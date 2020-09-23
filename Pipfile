@@ -12,6 +12,7 @@ bandit = "*"
 flake8 = "*"
 
 [packages]
+configargparse = "*"
 
 [requires]
 python_version = "3.8"
