@@ -7,7 +7,7 @@ import configargparse
 from app_build_suite.build_steps import (
     BuildStep,
     HelmBuilderValidator,
-    GitVersionSetter,
+    HelmGitVersionSetter,
     Error,
 )
 
@@ -17,7 +17,7 @@ logger = logging.getLogger(app_name)
 
 
 def get_pipeline() -> List[BuildStep]:
-    return [HelmBuilderValidator(), GitVersionSetter()]
+    return [HelmBuilderValidator(), HelmGitVersionSetter()]
 
 
 def configure_global_options(config_parser: configargparse.ArgParser):
