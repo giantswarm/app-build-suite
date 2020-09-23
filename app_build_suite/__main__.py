@@ -58,11 +58,11 @@ def main():
 
     # run pre-run steps: validation
     for step in steps:
-        logger.debug(f"Running pre-run step for {step.__class__}")
+        logger.debug(f"Running pre-run step for {step.name}")
         try:
             step.pre_run(config)
         except Error as e:
-            logger.error(f"Error when running pre-run step for {step.__class__}: {e}")
+            logger.error(f"Error when running pre-run step for {step.name}: {e.msg}")
 
 
 if __name__ == "__main__":
