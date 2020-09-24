@@ -13,7 +13,7 @@ from app_build_suite.build_steps import (
 
 version = "0.0.1"
 app_name = "app_build_suite"
-logger = logging.getLogger(app_name)
+logger = logging.getLogger(__name__)
 
 
 def get_pipeline() -> List[BuildStep]:
@@ -25,7 +25,8 @@ def configure_global_options(config_parser: configargparse.ArgParser):
         "-d",
         "--debug",
         required=False,
-        action="store_false",
+        default=False,
+        action="store_true",
         help="Enable debug messages.",
     )
     config_parser.add_argument(
@@ -33,9 +34,7 @@ def configure_global_options(config_parser: configargparse.ArgParser):
     )
 
 
-def main():
-    steps = get_pipeline()
-
+def configure(steps: List[BuildStep]) -> configargparse.Namespace:
     # initialize config, setup arg parsers
     config_parser = configargparse.ArgParser(
         prog=app_name,
@@ -49,20 +48,51 @@ def main():
     for step in steps:
         step.initialize_config(config_parser)
     config = config_parser.parse_args()
+    logger.info("Starting build with the following options")
+    logger.info(f"\n{config_parser.format_values()}")
+    return config
 
-    # configure logging
-    if config.debug:
-        logger.setLevel(logging.DEBUG)
 
-    logger.debug(config_parser.format_values())
-
-    # run pre-run steps: validation
+def run_cleanup(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
     for step in steps:
-        logger.debug(f"Running pre-run step for {step.name}")
+        logger.info(f"Running cleanup for {step.name}")
+        try:
+            step.cleanup(config)
+        except Error as e:
+            logger.error(f"Error when running cleanup for {step.name}: {e.msg}")
+
+
+def run_build_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
+    for step in steps:
+        logger.info(f"Running build step for {step.name}")
+        try:
+            step.run(config)
+        except Error as e:
+            logger.error(f"Error when running build step for {step.name}: {e.msg}")
+
+
+def run_pre_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
+    for step in steps:
+        logger.info(f"Running pre-run step for {step.name}")
         try:
             step.pre_run(config)
         except Error as e:
             logger.error(f"Error when running pre-run step for {step.name}: {e.msg}")
+
+
+def main():
+    log_format = "%(asctime)s %(name)s %(levelname)s: %(message)s"
+    logging.basicConfig(level=logging.INFO, format=log_format)
+
+    steps = get_pipeline()
+    config = configure(steps)
+
+    if config.debug:
+        logging.basicConfig(level=logging.DEBUG, format=log_format)
+
+    run_pre_steps(config, steps)
+    run_build_steps(config, steps)
+    run_cleanup(config, steps)
 
 
 if __name__ == "__main__":

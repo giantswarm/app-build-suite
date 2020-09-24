@@ -18,9 +18,9 @@ class BuildStep(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def run(self) -> None:
+    def run(self, config: argparse.Namespace) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def cleanup(self) -> None:
+    def cleanup(self, config: argparse.Namespace) -> None:
         raise NotImplementedError
