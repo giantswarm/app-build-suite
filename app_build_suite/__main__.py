@@ -31,10 +31,16 @@ def configure_global_options(config_parser: configargparse.ArgParser):
     config_parser.add_argument(
         "--version", action="version", version=f"{app_name} v{version}"
     )
+    config_parser.add_argument(
+        "-b",
+        "--build-engine",
+        required=False,
+        default="helm3",
+        help="Select the build engine used for building your chart.",
+    )
 
 
-def configure(steps: List[BuildStep]) -> configargparse.Namespace:
-    # initialize config, setup arg parsers
+def get_global_config_parser() -> configargparse.ArgParser:
     config_parser = configargparse.ArgParser(
         prog=app_name,
         add_config_file_help=True,
@@ -44,6 +50,12 @@ def configure(steps: List[BuildStep]) -> configargparse.Namespace:
         auto_env_var_prefix="ABS_",
     )
     configure_global_options(config_parser)
+    return config_parser
+
+
+def get_config(steps: List[BuildStep]) -> configargparse.Namespace:
+    # initialize config, setup arg parsers
+    config_parser = get_global_config_parser()
     for step in steps:
         step.initialize_config(config_parser)
     config = config_parser.parse_args()
@@ -85,8 +97,9 @@ def main():
     logging.getLogger().setLevel(logging.INFO)
 
     container = Container()
+    container.config.from_dict({"build_engine": "helm3"},)
     steps = get_pipeline(container)
-    config = configure(steps)
+    config = get_config(steps)
 
     if config.debug:
         logging.getLogger().setLevel(logging.DEBUG)
