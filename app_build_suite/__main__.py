@@ -6,18 +6,17 @@ import configargparse
 
 from app_build_suite.build_steps import (
     BuildStep,
-    HelmBuilderValidator,
-    HelmGitVersionSetter,
     Error,
 )
+from .container import Container
 
 version = "0.0.1"
 app_name = "app_build_suite"
 logger = logging.getLogger(__name__)
 
 
-def get_pipeline() -> List[BuildStep]:
-    return [HelmBuilderValidator(), HelmGitVersionSetter()]
+def get_pipeline(container: Container) -> List[BuildStep]:
+    return [container.validator(), container.version_setter()]
 
 
 def configure_global_options(config_parser: configargparse.ArgParser):
@@ -82,13 +81,15 @@ def run_pre_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> N
 
 def main():
     log_format = "%(asctime)s %(name)s %(levelname)s: %(message)s"
-    logging.basicConfig(level=logging.INFO, format=log_format)
+    logging.basicConfig(format=log_format)
+    logging.getLogger().setLevel(logging.INFO)
 
-    steps = get_pipeline()
+    container = Container()
+    steps = get_pipeline(container)
     config = configure(steps)
 
     if config.debug:
-        logging.basicConfig(level=logging.DEBUG, format=log_format)
+        logging.getLogger().setLevel(logging.DEBUG)
 
     run_pre_steps(config, steps)
     run_build_steps(config, steps)
