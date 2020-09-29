@@ -15,6 +15,7 @@ flake8 = "*"
 configargparse = "*"
 gitpython = "*"
 dependency-injector = "*"
+semver = "*"
 
 [requires]
 python_version = "3.8"

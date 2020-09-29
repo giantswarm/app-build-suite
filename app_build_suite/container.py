@@ -1,6 +1,10 @@
 from dependency_injector import containers, providers
 
-from app_build_suite.build_steps import HelmGitVersionSetter, HelmBuilderValidator
+from app_build_suite.build_steps.helm import (
+    HelmChartToolLinter,
+    HelmBuilderValidator,
+    HelmGitVersionSetter,
+)
 
 
 class Container(containers.DeclarativeContainer):
@@ -13,3 +17,5 @@ class Container(containers.DeclarativeContainer):
     version_setter = providers.Selector(
         config.build_engine, helm3=providers.Singleton(HelmGitVersionSetter)
     )
+
+    ct_validator = providers.Singleton(HelmChartToolLinter)

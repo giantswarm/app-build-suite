@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_pipeline(container: Container) -> List[BuildStep]:
-    return [container.validator(), container.version_setter()]
+    return [container.validator(), container.version_setter(), container.ct_validator()]
 
 
 def configure_global_options(config_parser: configargparse.ArgParser):

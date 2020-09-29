@@ -2,12 +2,14 @@ import argparse
 import logging
 import os
 import shutil
+import subprocess  # nosec
 from typing import List, Optional
 
 import configargparse
+import semver
 
 from app_build_suite.build_steps import BuildStep
-from app_build_suite.build_steps.errors import ValidationError
+from app_build_suite.build_steps.errors import ValidationError, BuildError
 from app_build_suite.utils.git import GitRepoVersionInfo
 
 logger = logging.getLogger(__name__)
@@ -16,6 +18,8 @@ _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
 _chart_yaml = "Chart.yaml"
 _values_yaml = "values.yaml"
+_min_ct_version = semver.VersionInfo(major=3, minor=1)
+_max_ct_version = semver.VersionInfo(major=4)
 
 
 class HelmGitVersionSetter(BuildStep):
@@ -25,13 +29,13 @@ class HelmGitVersionSetter(BuildStep):
         config_parser.add_argument(
             "--replace-app-version-with-git",
             required=False,
-            action="store_false",
+            action="store_true",
             help=f"Should the {_chart_yaml_app_version_key}  in {_chart_yaml} be replaced by a tag and hash from git",
         )
         config_parser.add_argument(
             "--replace-chart-version-with-git",
             required=False,
-            action="store_false",
+            action="store_true",
             help=f"Should the {_chart_yaml_chart_version_key} in {_chart_yaml} be replaced by a tag and hash from git",
         )
 
@@ -69,10 +73,10 @@ class HelmGitVersionSetter(BuildStep):
                     and fields[0] == _chart_yaml_app_version_key
                 ):
                     logger.info(
-                        f"Replacing '{fields[0]}' with get version '{git_version}' in {_chart_yaml}."
+                        f"Replacing '{fields[0]}' with git version '{git_version}' in {_chart_yaml}."
                     )
                     changes_made = True
-                    new_lines.append(f"{fields[0]}: {git_version}")
+                    new_lines.append(f"{fields[0]}: {git_version}\n")
                 else:
                     new_lines.append(line)
         if changes_made:
@@ -111,6 +115,84 @@ class HelmBuilderValidator(BuildStep):
 
     def run(self, config: argparse.Namespace) -> None:
         pass
+
+    def cleanup(self, config: argparse.Namespace) -> None:
+        pass
+
+
+class HelmChartToolLinter(BuildStep):
+    """
+    Runs helm ct linter against the chart.
+    """
+
+    _ct_bin = "ct"
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--ct-config",
+            required=False,
+            help="Path to optional 'ct' lint config file.",
+        )
+        config_parser.add_argument(
+            "--ct-schema", required=False, help="Path to optional 'ct' schema file.",
+        )
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        # verify if binary present
+        if shutil.which(self._ct_bin) is None:
+            raise ValidationError(
+                self.name,
+                f"Can't find {self._ct_bin} executable. Please make sue it's installed.",
+            )
+        # verify version
+        run_res = subprocess.run(["ct", "version"], capture_output=True)  # nosec
+        version_line = str(run_res.stdout.splitlines()[0], "utf-8")
+        version = version_line.split(":")[1].strip()
+        if version.startswith("v"):
+            version = version[1:]
+        parsed_ver = semver.VersionInfo.parse(version)
+        if parsed_ver < _min_ct_version:
+            raise ValidationError(
+                self.name,
+                f"Min {_min_ct_version} of 'ct' is required, {parsed_ver} found.",
+            )
+        if parsed_ver >= _max_ct_version:
+            raise ValidationError(
+                self.name,
+                f"{parsed_ver} of 'ct' is detected, but lower than {_max_ct_version} is required.",
+            )
+        # validate config options
+        if config.ct_config is not None and not os.path.isfile(config.ct_config):
+            raise ValidationError(
+                self.name, f"Chart tool config file {config.ct_config} doesn't exist.",
+            )
+        if config.ct_schema is not None and not os.path.isfile(config.ct_schema):
+            raise ValidationError(
+                self.name, f"Chart tool schema file {config.ct_schema} doesn't exist.",
+            )
+
+    def run(self, config: argparse.Namespace) -> None:
+        args = [
+            "ct",
+            "lint",
+            "--validate-maintainers=false",
+            f"--charts={config.chart_dir}",
+        ]
+        if config.ct_config is not None:
+            args.append(f"--config={config.ct_config}")
+        if config.ct_schema is not None:
+            args.append(f"--chart-yaml-schema={config.ct_schema}")
+        logger.info("Running chart tool linting")
+        run_res = subprocess.run(  # nosec, input params checked above in pre_run
+            args, capture_output=True
+        )
+        for line in run_res.stdout.splitlines():
+            logger.info(str(line, "utf-8"))
+        if run_res.returncode != 0:
+            logger.error(
+                f"{self._ct_bin} run failed with exit code {run_res.returncode}"
+            )
+            raise BuildError(self.name, "Linting failed")
 
     def cleanup(self, config: argparse.Namespace) -> None:
         pass

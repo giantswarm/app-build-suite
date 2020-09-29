@@ -16,3 +16,11 @@ class ValidationError(Error):
     def __init__(self, source, message):
         self.source = source
         self.msg = message
+
+
+class BuildError(Error):
+    source: str
+
+    def __init__(self, source, message):
+        self.source = source
+        self.msg = message
