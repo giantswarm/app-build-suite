@@ -9,6 +9,12 @@ import configargparse
 import semver
 
 from app_build_suite.build_steps import BuildStep
+from app_build_suite.build_steps.build_step import (
+    StepType,
+    STEP_BUILD,
+    ALL_STEPS,
+    STEP_TEST_UNIT,
+)
 from app_build_suite.build_steps.errors import ValidationError, BuildError
 from app_build_suite.utils.git import GitRepoVersionInfo
 
@@ -18,12 +24,17 @@ _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
 _chart_yaml = "Chart.yaml"
 _values_yaml = "values.yaml"
+
 _min_ct_version = semver.VersionInfo(major=3, minor=1)
 _max_ct_version = semver.VersionInfo(major=4)
 
 
 class HelmGitVersionSetter(BuildStep):
     repo_info: Optional[GitRepoVersionInfo] = None
+
+    @property
+    def steps_provided(self) -> List[StepType]:
+        return [STEP_BUILD]
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
@@ -94,6 +105,10 @@ class HelmBuilderValidator(BuildStep):
     """Very simple validator that checks of the folder looks like Helm chart at all.
     """
 
+    @property
+    def steps_provided(self) -> List[StepType]:
+        return ALL_STEPS
+
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
             "-c",
@@ -124,6 +139,10 @@ class HelmChartToolLinter(BuildStep):
     """
     Runs helm ct linter against the chart.
     """
+
+    @property
+    def steps_provided(self) -> List[StepType]:
+        return [STEP_TEST_UNIT]
 
     _ct_bin = "ct"
 
