@@ -23,7 +23,12 @@ ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
 
 
 def get_pipeline(container: Container) -> List[BuildStep]:
-    return [container.validator(), container.version_setter(), container.ct_validator()]
+    return [
+        container.validator(),
+        container.version_setter(),
+        container.ct_validator(),
+        container.builder(),
+    ]
 
 
 def configure_global_options(config_parser: configargparse.ArgParser):

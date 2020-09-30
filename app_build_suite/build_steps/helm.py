@@ -6,7 +6,6 @@ import subprocess  # nosec
 from typing import List, Optional
 
 import configargparse
-import semver
 
 from app_build_suite.build_steps import BuildStep
 from app_build_suite.build_steps.build_step import (
@@ -24,9 +23,6 @@ _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
 _chart_yaml = "Chart.yaml"
 _values_yaml = "values.yaml"
-
-_min_ct_version = semver.VersionInfo(major=3, minor=1)
-_max_ct_version = semver.VersionInfo(major=4)
 
 
 class HelmGitVersionSetter(BuildStep):
@@ -145,6 +141,8 @@ class HelmChartToolLinter(BuildStep):
         return [STEP_TEST_UNIT]
 
     _ct_bin = "ct"
+    _min_ct_version = "3.1.0"
+    _max_ct_version = "4.0.0"
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
@@ -158,28 +156,14 @@ class HelmChartToolLinter(BuildStep):
 
     def pre_run(self, config: argparse.Namespace) -> None:
         # verify if binary present
-        if shutil.which(self._ct_bin) is None:
-            raise ValidationError(
-                self.name,
-                f"Can't find {self._ct_bin} executable. Please make sue it's installed.",
-            )
+        self._is_binary_present_in_path(self._ct_bin)
         # verify version
         run_res = subprocess.run(["ct", "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
         version = version_line.split(":")[1].strip()
-        if version.startswith("v"):
-            version = version[1:]
-        parsed_ver = semver.VersionInfo.parse(version)
-        if parsed_ver < _min_ct_version:
-            raise ValidationError(
-                self.name,
-                f"Min {_min_ct_version} of 'ct' is required, {parsed_ver} found.",
-            )
-        if parsed_ver >= _max_ct_version:
-            raise ValidationError(
-                self.name,
-                f"{parsed_ver} of 'ct' is detected, but lower than {_max_ct_version} is required.",
-            )
+        self._is_version_in_range(
+            self._ct_bin, version, self._min_ct_version, self._max_ct_version
+        )
         # validate config options
         if config.ct_config is not None and not os.path.isfile(config.ct_config):
             raise ValidationError(
@@ -212,6 +196,42 @@ class HelmChartToolLinter(BuildStep):
                 f"{self._ct_bin} run failed with exit code {run_res.returncode}"
             )
             raise BuildError(self.name, "Linting failed")
+
+    def cleanup(self, config: argparse.Namespace) -> None:
+        pass
+
+
+class HelmChartBuilder(BuildStep):
+    _helm_bin = "helm"
+    _min_helm_version = "3.2.0"
+    _max_helm_version = "4.0.0"
+
+    @property
+    def steps_provided(self) -> List[StepType]:
+        return [STEP_BUILD]
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        pass
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        self._is_binary_present_in_path(self._helm_bin)
+        run_res = subprocess.run(["helm", "version"], capture_output=True)  # nosec
+        version_line = str(run_res.stdout.splitlines()[0], "utf-8")
+        prefix = "version.BuildInfo"
+        if version_line.startswith(prefix):
+            version_line = version_line[len(prefix) :].strip("{}")
+        else:
+            raise ValidationError(
+                self.name, f"Can't parse {self._helm_bin} version number."
+            )
+        version_entries = version_line.split(",")[0]
+        version = version_entries.split(":")[1].strip('"')
+        self._is_version_in_range(
+            self._helm_bin, version, self._min_helm_version, self._max_helm_version
+        )
+
+    def run(self, config: argparse.Namespace) -> None:
+        pass
 
     def cleanup(self, config: argparse.Namespace) -> None:
         pass

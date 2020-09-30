@@ -4,6 +4,7 @@ from app_build_suite.build_steps.helm import (
     HelmChartToolLinter,
     HelmBuilderValidator,
     HelmGitVersionSetter,
+    HelmChartBuilder,
 )
 
 
@@ -19,3 +20,7 @@ class Container(containers.DeclarativeContainer):
     )
 
     ct_validator = providers.Singleton(HelmChartToolLinter)
+
+    builder = providers.Selector(
+        config.build_engine, helm3=providers.Singleton(HelmChartBuilder)
+    )

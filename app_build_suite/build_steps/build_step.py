@@ -1,8 +1,12 @@
 import argparse
+import shutil
 from abc import ABC, abstractmethod
 from typing import List, NewType
 
 import configargparse
+import semver
+
+from app_build_suite.build_steps.errors import ValidationError
 
 StepType = NewType("StepType", str)
 STEP_ALL = StepType("all")
@@ -38,3 +42,29 @@ class BuildStep(ABC):
     @abstractmethod
     def cleanup(self, config: argparse.Namespace) -> None:
         raise NotImplementedError
+
+    def _is_binary_present_in_path(self, bin_name: str) -> None:
+        if shutil.which(bin_name) is None:
+            raise ValidationError(
+                self.name,
+                f"Can't find {bin_name} executable. Please make sure it's installed.",
+            )
+
+    def _is_version_in_range(
+        self, app_name: str, version: str, min_version: str, max_version: str
+    ) -> None:
+        if version.startswith("v"):
+            version = version[1:]
+        parsed_ver = semver.VersionInfo.parse(version)
+        parsed_min_version = semver.VersionInfo.parse(min_version)
+        parsed_max_version = semver.VersionInfo.parse(max_version)
+        if parsed_ver < parsed_min_version:
+            raise ValidationError(
+                self.name,
+                f"Min version '{min_version}' of '{app_name}' is required, '{parsed_ver}' found.",
+            )
+        if parsed_ver >= parsed_max_version:
+            raise ValidationError(
+                self.name,
+                f"Version '{parsed_ver}' of '{app_name}' is detected, but lower than {max_version} is required.",
+            )
