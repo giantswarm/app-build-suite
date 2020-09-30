@@ -1,7 +1,7 @@
 """Main module."""
 import logging
 import sys
-from typing import List, NewType
+from typing import List, NewType, Callable
 
 import configargparse
 
@@ -9,7 +9,7 @@ from app_build_suite.build_steps import (
     BuildStep,
     Error,
 )
-from app_build_suite.build_steps.build_step import ALL_STEPS
+from app_build_suite.build_steps.build_step import ALL_STEPS, STEP_ALL
 from app_build_suite.build_steps.errors import ConfigError
 from .container import Container
 
@@ -100,33 +100,41 @@ def get_config(steps: List[BuildStep]) -> configargparse.Namespace:
     return config
 
 
-def run_cleanup(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
+def _iterate_steps(
+    config: configargparse.Namespace,
+    steps: List[BuildStep],
+    stage: str,
+    error_exit_code: int,
+    step_function: Callable[[BuildStep], None],
+) -> None:
     for step in steps:
-        logger.info(f"Running cleanup for {step.name}")
-        try:
-            step.cleanup(config)
-        except Error as e:
-            logger.error(f"Error when running cleanup for {step.name}: {e.msg}")
-
-
-def run_build_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
-    for step in steps:
-        logger.info(f"Running build step for {step.name}")
-        try:
-            step.run(config)
-        except Error as e:
-            logger.error(f"Error when running build step for {step.name}: {e.msg}")
-            sys.exit(3)
+        if STEP_ALL in config.steps or any(
+            s in step.steps_provided for s in config.steps
+        ):
+            logger.info(f"Running {stage} step for {step.name}")
+            try:
+                step_function(step)
+            except Error as e:
+                logger.error(
+                    f"Error when running {stage} step for {step.name}: {e.msg}"
+                )
+                sys.exit(error_exit_code)
+        else:
+            logger.info(
+                f"Skipping {stage} step for {step.name} as it was not configured to run."
+            )
 
 
 def run_pre_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
-    for step in steps:
-        logger.info(f"Running pre-run step for {step.name}")
-        try:
-            step.pre_run(config)
-        except Error as e:
-            logger.error(f"Error when running pre-run step for {step.name}: {e.msg}")
-            sys.exit(2)
+    _iterate_steps(config, steps, "pre-run", 2, lambda step: step.pre_run(config))
+
+
+def run_build_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
+    _iterate_steps(config, steps, "build", 3, lambda step: step.run(config))
+
+
+def run_cleanup(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
+    _iterate_steps(config, steps, "cleanup", 4, lambda step: step.cleanup(config))
 
 
 def main():
