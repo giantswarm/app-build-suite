@@ -1,6 +1,7 @@
 """Main module."""
 import logging
-from typing import List
+import sys
+from typing import List, NewType
 
 import configargparse
 
@@ -8,11 +9,17 @@ from app_build_suite.build_steps import (
     BuildStep,
     Error,
 )
+from app_build_suite.build_steps.build_step import ALL_STEPS
+from app_build_suite.build_steps.errors import ConfigError
 from .container import Container
 
 version = "0.0.1"
 app_name = "app_build_suite"
 logger = logging.getLogger(__name__)
+
+BuildEngineType = NewType("BuildEngineType", str)
+BUILD_ENGINE_HELM3 = BuildEngineType("helm3")
+ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
 
 
 def get_pipeline(container: Container) -> List[BuildStep]:
@@ -36,7 +43,15 @@ def configure_global_options(config_parser: configargparse.ArgParser):
         "--build-engine",
         required=False,
         default="helm3",
+        type=BuildEngineType,
         help="Select the build engine used for building your chart.",
+    )
+    config_parser.add_argument(
+        "--steps",
+        nargs="+",
+        help=f"List of steps to execute. Defaults to 'all'. Available steps: {ALL_STEPS}",
+        required=False,
+        default=["all"],
     )
 
 
@@ -53,12 +68,33 @@ def get_global_config_parser() -> configargparse.ArgParser:
     return config_parser
 
 
+def validate_config(config: configargparse.Namespace):
+    # validate build engine
+    if config.build_engine not in ALL_BUILD_ENGINES:
+        raise ConfigError(
+            "build_engine",
+            f"Unknown build engine '{config.build_engine}'. Valid engines are: {ALL_BUILD_ENGINES}.",
+        )
+    # validate steps
+    for step in config.steps:
+        if step not in ALL_STEPS:
+            raise ConfigError(
+                "steps", f"Unknown step '{step}'. Valid steps are: {ALL_STEPS}."
+            )
+
+
 def get_config(steps: List[BuildStep]) -> configargparse.Namespace:
     # initialize config, setup arg parsers
-    config_parser = get_global_config_parser()
-    for step in steps:
-        step.initialize_config(config_parser)
-    config = config_parser.parse_args()
+    try:
+        config_parser = get_global_config_parser()
+        for step in steps:
+            step.initialize_config(config_parser)
+        config = config_parser.parse_args()
+        validate_config(config)
+    except ConfigError as e:
+        logger.error(f"Error when checking config option '{e.config_option}': {e.msg}")
+        sys.exit(1)
+
     logger.info("Starting build with the following options")
     logger.info(f"\n{config_parser.format_values()}")
     return config
@@ -80,6 +116,7 @@ def run_build_steps(config: configargparse.Namespace, steps: List[BuildStep]) ->
             step.run(config)
         except Error as e:
             logger.error(f"Error when running build step for {step.name}: {e.msg}")
+            sys.exit(3)
 
 
 def run_pre_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
@@ -89,6 +126,7 @@ def run_pre_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> N
             step.pre_run(config)
         except Error as e:
             logger.error(f"Error when running pre-run step for {step.name}: {e.msg}")
+            sys.exit(2)
 
 
 def main():
