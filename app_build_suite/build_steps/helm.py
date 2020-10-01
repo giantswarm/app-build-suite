@@ -13,6 +13,7 @@ from app_build_suite.build_steps.build_step import (
     STEP_BUILD,
     ALL_STEPS,
     STEP_TEST_UNIT,
+    BuildStepsPipeline,
 )
 from app_build_suite.build_steps.errors import ValidationError, BuildError
 from app_build_suite.utils.git import GitRepoVersionInfo
@@ -23,6 +24,40 @@ _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
 _chart_yaml = "Chart.yaml"
 _values_yaml = "values.yaml"
+
+
+class HelmBuilderValidator(BuildStep):
+    """Very simple validator that checks of the folder looks like Helm chart at all.
+    """
+
+    @property
+    def steps_provided(self) -> List[StepType]:
+        return ALL_STEPS
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "-c",
+            "--chart-dir",
+            required=False,
+            default=".",
+            help="Path to the Helm Chart to build.",
+        )
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """Validates if basic chart files are present in the configured directory."""
+        if os.path.exists(
+            os.path.join(config.chart_dir, _chart_yaml)
+        ) and os.path.exists(os.path.join(config.chart_dir, _values_yaml)):
+            return
+        raise ValidationError(
+            self.name, f"Can't find '{_chart_yaml}' or '{_values_yaml}' files."
+        )
+
+    def run(self, config: argparse.Namespace) -> None:
+        pass
+
+    def cleanup(self, config: argparse.Namespace) -> None:
+        pass
 
 
 class HelmGitVersionSetter(BuildStep):
@@ -92,40 +127,6 @@ class HelmGitVersionSetter(BuildStep):
             with open(chart_yaml_path, "w") as file:
                 logger.info(f"Saving {_chart_yaml} with version set from git.")
                 file.writelines(new_lines)
-
-    def cleanup(self, config: argparse.Namespace) -> None:
-        pass
-
-
-class HelmBuilderValidator(BuildStep):
-    """Very simple validator that checks of the folder looks like Helm chart at all.
-    """
-
-    @property
-    def steps_provided(self) -> List[StepType]:
-        return ALL_STEPS
-
-    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
-        config_parser.add_argument(
-            "-c",
-            "--chart-dir",
-            required=False,
-            default=".",
-            help="Path to the Helm Chart to build. Default is local dir.",
-        )
-
-    def pre_run(self, config: argparse.Namespace) -> None:
-        """Validates if basic chart files are present in the configured directory."""
-        if os.path.exists(
-            os.path.join(config.chart_dir, _chart_yaml)
-        ) and os.path.exists(os.path.join(config.chart_dir, _values_yaml)):
-            return
-        raise ValidationError(
-            self.name, f"Can't find '{_chart_yaml}' or '{_values_yaml}' files."
-        )
-
-    def run(self, config: argparse.Namespace) -> None:
-        pass
 
     def cleanup(self, config: argparse.Namespace) -> None:
         pass
@@ -250,3 +251,15 @@ class HelmChartBuilder(BuildStep):
 
     def cleanup(self, config: argparse.Namespace) -> None:
         pass
+
+
+class HelmBuildPipeline(BuildStepsPipeline):
+    def __init__(self):
+        super().__init__(
+            [
+                HelmBuilderValidator(),
+                HelmGitVersionSetter(),
+                HelmChartToolLinter(),
+                HelmChartBuilder(),
+            ]
+        )

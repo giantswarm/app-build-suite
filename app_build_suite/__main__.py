@@ -1,15 +1,12 @@
 """Main module."""
 import logging
 import sys
-from typing import List, NewType, Callable
+from typing import List, NewType
 
 import configargparse
 
-from app_build_suite.build_steps import (
-    BuildStep,
-    Error,
-)
-from app_build_suite.build_steps.build_step import ALL_STEPS, STEP_ALL
+from app_build_suite.build_steps import BuildStep
+from app_build_suite.build_steps.build_step import ALL_STEPS
 from app_build_suite.build_steps.errors import ConfigError
 from .container import Container
 
@@ -24,9 +21,6 @@ ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
 
 def get_pipeline(container: Container) -> List[BuildStep]:
     return [
-        container.validator(),
-        container.version_setter(),
-        container.ct_validator(),
         container.builder(),
     ]
 
@@ -54,7 +48,7 @@ def configure_global_options(config_parser: configargparse.ArgParser):
     config_parser.add_argument(
         "--steps",
         nargs="+",
-        help=f"List of steps to execute. Defaults to 'all'. Available steps: {ALL_STEPS}",
+        help=f"List of steps to execute. Available steps: {ALL_STEPS}",
         required=False,
         default=["all"],
     )
@@ -68,6 +62,7 @@ def get_global_config_parser() -> configargparse.ArgParser:
         description="Build and test Giant Swarm App Platform app.",
         add_env_var_help=True,
         auto_env_var_prefix="ABS_",
+        formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
     )
     configure_global_options(config_parser)
     return config_parser
@@ -105,41 +100,19 @@ def get_config(steps: List[BuildStep]) -> configargparse.Namespace:
     return config
 
 
-def _iterate_steps(
-    config: configargparse.Namespace,
-    steps: List[BuildStep],
-    stage: str,
-    error_exit_code: int,
-    step_function: Callable[[BuildStep], None],
-) -> None:
-    for step in steps:
-        if STEP_ALL in config.steps or any(
-            s in step.steps_provided for s in config.steps
-        ):
-            logger.info(f"Running {stage} step for {step.name}")
-            try:
-                step_function(step)
-            except Error as e:
-                logger.error(
-                    f"Error when running {stage} step for {step.name}: {e.msg}"
-                )
-                sys.exit(error_exit_code)
-        else:
-            logger.info(
-                f"Skipping {stage} step for {step.name} as it was not configured to run."
-            )
-
-
 def run_pre_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
-    _iterate_steps(config, steps, "pre-run", 2, lambda step: step.pre_run(config))
+    for step in steps:
+        step.pre_run(config)
 
 
 def run_build_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
-    _iterate_steps(config, steps, "build", 3, lambda step: step.run(config))
+    for step in steps:
+        step.run(config)
 
 
 def run_cleanup(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
-    _iterate_steps(config, steps, "cleanup", 4, lambda step: step.cleanup(config))
+    for step in steps:
+        step.cleanup(config)
 
 
 def main():
