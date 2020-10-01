@@ -156,12 +156,12 @@ class HelmChartToolLinter(BuildStep):
 
     def pre_run(self, config: argparse.Namespace) -> None:
         # verify if binary present
-        self._is_binary_present_in_path(self._ct_bin)
+        self._assert_binary_present_in_path(self._ct_bin)
         # verify version
         run_res = subprocess.run(["ct", "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
         version = version_line.split(":")[1].strip()
-        self._is_version_in_range(
+        self._assert_version_in_range(
             self._ct_bin, version, self._min_ct_version, self._max_ct_version
         )
         # validate config options
@@ -214,7 +214,7 @@ class HelmChartBuilder(BuildStep):
         pass
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        self._is_binary_present_in_path(self._helm_bin)
+        self._assert_binary_present_in_path(self._helm_bin)
         run_res = subprocess.run(["helm", "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
         prefix = "version.BuildInfo"
@@ -226,7 +226,7 @@ class HelmChartBuilder(BuildStep):
             )
         version_entries = version_line.split(",")[0]
         version = version_entries.split(":")[1].strip('"')
-        self._is_version_in_range(
+        self._assert_version_in_range(
             self._helm_bin, version, self._min_helm_version, self._max_helm_version
         )
 

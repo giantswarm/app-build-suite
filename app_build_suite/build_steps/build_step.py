@@ -43,14 +43,14 @@ class BuildStep(ABC):
     def cleanup(self, config: argparse.Namespace) -> None:
         raise NotImplementedError
 
-    def _is_binary_present_in_path(self, bin_name: str) -> None:
+    def _assert_binary_present_in_path(self, bin_name: str) -> None:
         if shutil.which(bin_name) is None:
             raise ValidationError(
                 self.name,
                 f"Can't find {bin_name} executable. Please make sure it's installed.",
             )
 
-    def _is_version_in_range(
+    def _assert_version_in_range(
         self, app_name: str, version: str, min_version: str, max_version: str
     ) -> None:
         if version.startswith("v"):
