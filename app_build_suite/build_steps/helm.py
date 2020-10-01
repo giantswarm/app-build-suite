@@ -231,7 +231,22 @@ class HelmChartBuilder(BuildStep):
         )
 
     def run(self, config: argparse.Namespace) -> None:
-        pass
+        args = [
+            "helm",
+            "package",
+            config.chart_dir,
+        ]
+        logger.info("Building chart with 'helm package'")
+        run_res = subprocess.run(  # nosec, input params checked above in pre_run
+            args, capture_output=True
+        )
+        for line in run_res.stdout.splitlines():
+            logger.info(str(line, "utf-8"))
+        if run_res.returncode != 0:
+            logger.error(
+                f"{self._helm_bin} run failed with exit code {run_res.returncode}"
+            )
+            raise BuildError(self.name, "Chart build failed")
 
     def cleanup(self, config: argparse.Namespace) -> None:
         pass
