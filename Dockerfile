@@ -1,5 +1,21 @@
-FROM python:3.8.6-alpine3.12
+FROM python:3.8.6-alpine3.12 AS base
 
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
+ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONFAULTHANDLER 1
+
+
+FROM base as builder
+# pip prerequesties
+RUN pip install pipenv==2020.8.13
+RUN apk add --no-cache gcc musl-dev
+COPY Pipfile .
+COPY Pipfile.lock .
+RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy
+
+
+FROM base
 ARG WORK_DIR="/tmp/install"
 ARG ABS_DIR="/abs"
 ENV HELM_VER="3.3.4"
@@ -10,8 +26,6 @@ ENV CT_VER="3.1.1"
 RUN apk add --no-cache curl git
 RUN mkdir $WORK_DIR
 WORKDIR $WORK_DIR
-# pip prerequesties
-RUN pip install yamllint==1.25.0 yamale==3.0.4 pipenv==2020.8.13
 # kubectl
 RUN curl -LO https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VER}/bin/linux/amd64/kubectl \
     && install kubectl /usr/local/bin && rm kubectl && kubectl version --client=true
@@ -25,16 +39,16 @@ RUN curl -L https://github.com/helm/chart-testing/releases/download/v${CT_VER}/c
     && mv ./etc/* /etc/ct/ && rm ct && rm ct.tar.gz && ct version
 # cleanup
 RUN rm -rf $WORK_DIR
+#RUN pip install yamllint==1.25.0 yamale==3.0.4 pipenv==2020.8.13
+RUN pip install yamllint==1.25.0 yamale==3.0.4
 
 RUN adduser --disabled-password --home $ABS_DIR --uid 1001 abs
 WORKDIR $ABS_DIR
-RUN apk add --no-cache gcc musl-dev
-COPY Pipfile .
-COPY Pipfile.lock .
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv install -v --deploy
+COPY --from=builder /.venv .venv/
+ENV PATH="${ABS_DIR}/.venv/bin:$PATH"
 COPY setup.py setup.py
 COPY app_build_suite/ app_build_suite/
 RUN chown -R abs.abs .
 USER abs
-ENTRYPOINT ["pipenv", "run", "python", "-m", "app_build_suite"]
+ENTRYPOINT ["python", "-m", "app_build_suite"]
 CMD ["-h"]
