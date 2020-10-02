@@ -5,8 +5,7 @@ from typing import List, NewType
 
 import configargparse
 
-from app_build_suite.build_steps import BuildStep
-from app_build_suite.build_steps.build_step import ALL_STEPS
+from app_build_suite.build_steps import BuildStep, BuildStepsPipeline, ALL_STEPS
 from app_build_suite.build_steps.errors import ConfigError
 from .container import Container
 
@@ -19,7 +18,7 @@ BUILD_ENGINE_HELM3 = BuildEngineType("helm3")
 ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
 
 
-def get_pipeline(container: Container) -> List[BuildStep]:
+def get_pipeline(container: Container) -> List[BuildStepsPipeline]:
     return [
         container.builder(),
     ]
@@ -123,8 +122,8 @@ def main():
     container = Container()
     container.config.from_dict({"build_engine": "helm3"},)
     steps = get_pipeline(container)
-    config = get_config(steps)
 
+    config = get_config(steps)
     if config.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
