@@ -67,7 +67,7 @@ def get_global_config_parser() -> configargparse.ArgParser:
     return config_parser
 
 
-def validate_config(config: configargparse.Namespace):
+def validate_global_config(config: configargparse.Namespace):
     # validate build engine
     if config.build_engine not in ALL_BUILD_ENGINES:
         raise ConfigError(
@@ -89,7 +89,7 @@ def get_config(steps: List[BuildStep]) -> configargparse.Namespace:
         for step in steps:
             step.initialize_config(config_parser)
         config = config_parser.parse_args()
-        validate_config(config)
+        validate_global_config(config)
     except ConfigError as e:
         logger.error(f"Error when checking config option '{e.config_option}': {e.msg}")
         sys.exit(1)
@@ -119,14 +119,16 @@ def main():
     logging.basicConfig(format=log_format)
     logging.getLogger().setLevel(logging.INFO)
 
-    container = Container()
-    container.config.from_dict({"build_engine": "helm3"},)
-    steps = get_pipeline(container)
-
-    config = get_config(steps)
-    if config.debug:
+    global_only_config_parser = get_global_config_parser()
+    global_only_config = global_only_config_parser.parse_known_args()[0]
+    if global_only_config.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    container = Container()
+    container.config.from_dict({"build_engine": global_only_config.build_engine},)
+
+    steps = get_pipeline(container)
+    config = get_config(steps)
     run_pre_steps(config, steps)
     run_build_steps(config, steps)
     run_cleanup(config, steps)
