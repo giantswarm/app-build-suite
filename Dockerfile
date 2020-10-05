@@ -39,16 +39,16 @@ RUN curl -L https://github.com/helm/chart-testing/releases/download/v${CT_VER}/c
     && mv ./etc/* /etc/ct/ && rm ct && rm ct.tar.gz && ct version
 # cleanup
 RUN rm -rf $WORK_DIR
-#RUN pip install yamllint==1.25.0 yamale==3.0.4 pipenv==2020.8.13
 RUN pip install yamllint==1.25.0 yamale==3.0.4
 
 RUN adduser --disabled-password --home $ABS_DIR --uid 1001 abs
 WORKDIR $ABS_DIR
 COPY --from=builder /.venv .venv/
 ENV PATH="${ABS_DIR}/.venv/bin:$PATH"
-COPY setup.py setup.py
 COPY app_build_suite/ app_build_suite/
+ENV PYTHONPATH=$ABS_DIR
 RUN chown -R abs.abs .
-USER abs
+RUN mkdir workdir
+WORKDIR $ABS_DIR/workdir
 ENTRYPOINT ["python", "-m", "app_build_suite"]
 CMD ["-h"]
