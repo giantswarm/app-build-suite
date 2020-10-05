@@ -1,3 +1,4 @@
+"""Module with git related utilities."""
 import git
 
 
@@ -7,6 +8,11 @@ class GitRepoVersionInfo:
     """
 
     def __init__(self, path: str):
+        """
+        Create an instance of GitRepoVersionInfo
+        :param path: The path to search for git information. It searches for '.git' in this folder or any parent
+        folder.
+        """
         self._is_repo = False
         try:
             self._repo = git.Repo(path, search_parent_directories=True)

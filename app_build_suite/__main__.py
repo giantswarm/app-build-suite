@@ -1,4 +1,4 @@
-"""Main module."""
+"""Main module. Loads configuration and executes main control loops."""
 import logging
 import sys
 from typing import List, NewType

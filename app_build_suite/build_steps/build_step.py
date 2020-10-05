@@ -1,9 +1,10 @@
+"""Basic building block for implementing BuildSteps and Pipelines"""
 import argparse
 import logging
 import shutil
 import sys
 from abc import ABC, abstractmethod
-from typing import List, NewType, Callable, Set
+from typing import List, NewType, Callable, Set, cast
 
 import configargparse
 import semver
@@ -22,32 +23,72 @@ ALL_STEPS = [STEP_ALL, STEP_BUILD, STEP_METADATA, STEP_TEST_ALL, STEP_TEST_UNIT]
 
 
 class BuildStep(ABC):
+    """
+    BuildStep is an abstract base class that defines interface for any real build steps.
+    """
+
     @property
     def name(self) -> str:
+        """
+        The name of the step.
+        :return: By default returns the name of the implementing class.
+        """
         return self.__class__.__name__
 
     @property
     @abstractmethod
     def steps_provided(self) -> List[StepType]:
+        """
+        This defines types of steps this BuildStep should be executed for. If a user filters the set of steps
+        and the steps listed here don't match any of the steps selected by the user, the whole BuildStep
+        won't be executed for this run.
+        :return: Returns a list with elements from ALL_STEPS.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        """
+        Provide configuration options supported by this BuildStep. Needs to only act on ArgParser and can't
+        run any blocking/long operations.
+        :param config_parser: configargparse.ArgParser to add the configuration options to.
+        :return: None
+        """
         raise NotImplementedError
 
     @abstractmethod
     def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Execute any pre-run validation or assertion logic.
+        :param config: Ready (parsed) configuration Namespace object.
+        :return: None
+        """
         raise NotImplementedError
 
     @abstractmethod
     def run(self, config: argparse.Namespace) -> None:
+        """
+        Execute actual build action of the BuildStep.
+        :param config: Ready (parsed) configuration Namespace object.
+        :return: None
+        """
         raise NotImplementedError
 
     @abstractmethod
     def cleanup(self, config: argparse.Namespace) -> None:
+        """
+        Clean up any resources used during the BuildStep.
+        :param config: Ready (parsed) configuration Namespace object.
+        :return: None
+        """
         raise NotImplementedError
 
     def _assert_binary_present_in_path(self, bin_name: str) -> None:
+        """
+        Checks if binary is available in the system. Raises ValidationError if not found.
+        :param bin_name: The name of the binary executable.
+        :return: None.
+        """
         if shutil.which(bin_name) is None:
             raise ValidationError(
                 self.name,
@@ -57,6 +98,15 @@ class BuildStep(ABC):
     def _assert_version_in_range(
         self, app_name: str, version: str, min_version: str, max_version: str
     ) -> None:
+        """
+        Checks if the given app_name with a string version falls in between specified min and max
+        versions (min_version <= version < max_version). Raises ValidationError.
+        :param app_name: The name of the app (used just for logging purposes).
+        :param version: The version string (semver, might start with optional 'v' prefix).
+        :param min_version:
+        :param max_version:
+        :return:
+        """
         if version.startswith("v"):
             version = version[1:]
         parsed_ver = semver.VersionInfo.parse(version)
@@ -75,7 +125,16 @@ class BuildStep(ABC):
 
 
 class BuildStepsPipeline(BuildStep):
+    """
+    A base class to provide sets (pipelines) of BuildSteps. Implement your BuildStepsPipeline by
+    inheriting from this class and overriding self._pipeline members.
+    """
+
     def __init__(self, pipeline: List[BuildStep]):
+        """
+        Create new instance using the BuildSteps passed.
+        :param pipeline: The list of BuildSteps to be included in this pipeline.
+        """
         self._pipeline = pipeline
 
     @property
@@ -86,7 +145,10 @@ class BuildStepsPipeline(BuildStep):
         return list(all_steps)
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
-        group = config_parser.add_argument_group("helm3 build engine options")
+        group = cast(
+            configargparse.ArgParser,
+            config_parser.add_argument_group("helm3 build engine options"),
+        )
         for build_step in self._pipeline:
             build_step.initialize_config(group)
 
