@@ -1,3 +1,4 @@
+"""Build steps implementing helm3 based builds."""
 import argparse
 import logging
 import os
@@ -27,7 +28,8 @@ _values_yaml = "values.yaml"
 
 
 class HelmBuilderValidator(BuildStep):
-    """Very simple validator that checks of the folder looks like Helm chart at all.
+    """
+    Very simple validator that checks if the folder looks like Helm chart at all.
     """
 
     @property
@@ -61,6 +63,10 @@ class HelmBuilderValidator(BuildStep):
 
 
 class HelmGitVersionSetter(BuildStep):
+    """
+    Sets chart `version` and `appVersion` to a version discovered from `git`. Both options are configurable.
+    """
+
     repo_info: Optional[GitRepoVersionInfo] = None
 
     @property
@@ -82,6 +88,11 @@ class HelmGitVersionSetter(BuildStep):
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if we can find a git directory in the chart's dir or that dir's parent.
+        :param config: Configuration Namespace object.
+        :return: None
+        """
         self.repo_info = GitRepoVersionInfo(config.chart_dir)
         if not self.repo_info.is_git_repo:
             raise ValidationError(
@@ -156,6 +167,11 @@ class HelmChartToolLinter(BuildStep):
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Verifies if the required version of `ct` is installed.
+        :param config: the config object
+        :return: None
+        """
         # verify if binary present
         self._assert_binary_present_in_path(self._ct_bin)
         # verify version
@@ -203,6 +219,10 @@ class HelmChartToolLinter(BuildStep):
 
 
 class HelmChartBuilder(BuildStep):
+    """
+    Builds a helm chart using helm3.
+    """
+
     _helm_bin = "helm"
     _min_helm_version = "3.2.0"
     _max_helm_version = "4.0.0"
@@ -215,6 +235,11 @@ class HelmChartBuilder(BuildStep):
         pass
 
     def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if the required version of helm is installed.
+        :param config: the config object
+        :return: None
+        """
         self._assert_binary_present_in_path(self._helm_bin)
         run_res = subprocess.run(["helm", "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
@@ -232,6 +257,11 @@ class HelmChartBuilder(BuildStep):
         )
 
     def run(self, config: argparse.Namespace) -> None:
+        """
+        Runs 'helm package' to build the chart.
+        :param config: the config object
+        :return: None
+        """
         args = [
             "helm",
             "package",
@@ -254,6 +284,10 @@ class HelmChartBuilder(BuildStep):
 
 
 class HelmBuildPipeline(BuildStepsPipeline):
+    """
+    Pipeline that combines all the steps required to use helm3 as a chart builder.
+    """
+
     def __init__(self):
         super().__init__(
             [
