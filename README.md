@@ -31,5 +31,8 @@ Setup dev environment:
 Then, checkout the repo and run:
 
 ```bash
+# to create venv
 pipenv install --dev
+# to configure quality check triggers
+pipenv run pre-commit install
 ```
