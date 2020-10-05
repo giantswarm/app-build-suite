@@ -53,7 +53,7 @@ def configure_global_options(config_parser: configargparse.ArgParser):
     )
 
 
-def get_global_config_parser() -> configargparse.ArgParser:
+def get_global_config_parser(add_help: bool = True) -> configargparse.ArgParser:
     config_parser = configargparse.ArgParser(
         prog=app_name,
         add_config_file_help=True,
@@ -62,6 +62,7 @@ def get_global_config_parser() -> configargparse.ArgParser:
         add_env_var_help=True,
         auto_env_var_prefix="ABS_",
         formatter_class=configargparse.ArgumentDefaultsHelpFormatter,
+        add_help=add_help,
     )
     configure_global_options(config_parser)
     return config_parser
@@ -119,7 +120,7 @@ def main():
     logging.basicConfig(format=log_format)
     logging.getLogger().setLevel(logging.INFO)
 
-    global_only_config_parser = get_global_config_parser()
+    global_only_config_parser = get_global_config_parser(add_help=False)
     global_only_config = global_only_config_parser.parse_known_args()[0]
     if global_only_config.debug:
         logging.getLogger().setLevel(logging.DEBUG)
