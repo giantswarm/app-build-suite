@@ -1,0 +1,71 @@
+"""This is a module that includes main components of the app"""
+import logging
+import sys
+from typing import List, Dict, Any
+
+import configargparse
+from dependency_injector import containers, providers
+
+from app_build_suite.build_steps import BuildStep
+from app_build_suite.build_steps.errors import Error
+from app_build_suite.build_steps.helm import HelmBuildPipeline
+
+logger = logging.getLogger(__name__)
+
+
+class ComponentsContainer(containers.DeclarativeContainer):
+    """
+    A dependency injection container for easily switching build or test runtimes.
+    """
+
+    config = providers.Configuration()
+
+    builder = providers.Selector(
+        config.build_engine, helm3=providers.Singleton(HelmBuildPipeline)
+    )
+
+
+class Runner:
+    """
+    A class used to run all the steps of a build pipeline.
+    """
+
+    def __init__(self, config: configargparse.Namespace, steps: List[BuildStep]):
+        self._config = config
+        self._steps = steps
+        self._context: Dict[str, Any] = {}
+        self._failed_build = False
+
+    @property
+    def context(self):
+        return self._context
+
+    def run(self) -> None:
+        self.run_pre_steps()
+        self.run_build_steps()
+        self.run_cleanup()
+
+    def run_pre_steps(self) -> None:
+        try:
+            for step in self._steps:
+                step.pre_run(self._config)
+        except Error:
+            logger.error("Error when running pre-steps. Exiting.")
+            sys.exit(1)
+
+    def run_build_steps(self) -> None:
+        try:
+            for step in self._steps:
+                step.run(self._config, self._context)
+        except Error:
+            logger.error(
+                "Error when running build. No further build steps will be performed, moving to cleanup."
+            )
+            self._failed_build = True
+
+    def run_cleanup(self) -> None:
+        for step in self._steps:
+            try:
+                step.cleanup(self._config, self._context, self._failed_build)
+            except Error:
+                logger.error("Last cleanup step failed, moving to the next one.")

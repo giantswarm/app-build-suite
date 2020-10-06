@@ -10,8 +10,13 @@ black = "==20.8b1"
 mypy = "*"
 bandit = "*"
 flake8 = "*"
+pytest = "*"
 
 [packages]
+configargparse = "*"
+gitpython = "*"
+dependency-injector = "*"
+semver = "*"
 
 [requires]
 python_version = "3.8"
