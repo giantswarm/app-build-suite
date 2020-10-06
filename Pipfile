@@ -11,6 +11,7 @@ mypy = "*"
 bandit = "*"
 flake8 = "*"
 pytest = "*"
+pytest-cov = "*"
 
 [packages]
 configargparse = "*"

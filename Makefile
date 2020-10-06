@@ -19,3 +19,6 @@ docker-build:
 docker-push:
 	docker push ${IMG}:latest
 	docker push ${IMG}:${IMG_VER}
+
+test:
+	pipenv run pytest --cov app_build_suite --log-cli-level info tests/
