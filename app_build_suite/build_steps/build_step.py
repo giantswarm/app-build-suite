@@ -2,7 +2,6 @@
 import argparse
 import logging
 import shutil
-import sys
 from abc import ABC, abstractmethod
 from typing import List, NewType, Callable, Set, cast
 
@@ -85,9 +84,11 @@ class BuildStep(ABC):
         """
         raise NotImplementedError
 
-    def cleanup(self, config: argparse.Namespace) -> None:
+    def cleanup(self, config: argparse.Namespace, has_build_failed: bool) -> None:
         """
         Clean up any resources used during the BuildStep.
+        :param has_build_failed: A boolean set to True if the cleanup is run after any of the BuildSteps
+        failed their run step
         :param config: Ready (parsed) configuration Namespace object.
         :return: None
         """
@@ -163,19 +164,20 @@ class BuildStepsPipeline(BuildStep):
             build_step.initialize_config(group)
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        self._iterate_steps(config, "pre-run", 2, lambda step: step.pre_run(config))
+        self._iterate_steps(config, "pre-run", lambda step: step.pre_run(config))
 
     def run(self, config: argparse.Namespace) -> None:
-        self._iterate_steps(config, "build", 3, lambda step: step.run(config))
+        self._iterate_steps(config, "build", lambda step: step.run(config))
 
-    def cleanup(self, config: argparse.Namespace) -> None:
-        self._iterate_steps(config, "cleanup", 4, lambda step: step.cleanup(config))
+    def cleanup(self, config: argparse.Namespace, has_build_failed: bool) -> None:
+        self._iterate_steps(
+            config, "cleanup", lambda step: step.cleanup(config, has_build_failed)
+        )
 
     def _iterate_steps(
         self,
         config: configargparse.Namespace,
         stage: str,
-        error_exit_code: int,
         step_function: Callable[[BuildStep], None],
     ) -> None:
         for step in self._pipeline:
@@ -189,7 +191,7 @@ class BuildStepsPipeline(BuildStep):
                     logger.error(
                         f"Error when running {stage} step for {step.name}: {e.msg}"
                     )
-                    sys.exit(error_exit_code)
+                    raise
             else:
                 logger.info(
                     f"Skipping {stage} step for {step.name} as it was not configured to run."

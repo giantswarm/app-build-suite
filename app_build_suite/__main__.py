@@ -7,7 +7,7 @@ import configargparse
 
 from app_build_suite.build_steps import BuildStep, BuildStepsPipeline, ALL_STEPS
 from app_build_suite.build_steps.errors import ConfigError
-from .componentscontainer import ComponentsContainer
+from .components import ComponentsContainer, Runner
 
 version = "0.0.1"
 app_name = "app_build_suite"
@@ -100,21 +100,6 @@ def get_config(steps: List[BuildStep]) -> configargparse.Namespace:
     return config
 
 
-def run_pre_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
-    for step in steps:
-        step.pre_run(config)
-
-
-def run_build_steps(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
-    for step in steps:
-        step.run(config)
-
-
-def run_cleanup(config: configargparse.Namespace, steps: List[BuildStep]) -> None:
-    for step in steps:
-        step.cleanup(config)
-
-
 def main():
     log_format = "%(asctime)s %(name)s %(levelname)s: %(message)s"
     logging.basicConfig(format=log_format)
@@ -130,9 +115,8 @@ def main():
 
     steps = get_pipeline(container)
     config = get_config(steps)
-    run_pre_steps(config, steps)
-    run_build_steps(config, steps)
-    run_cleanup(config, steps)
+    runner = Runner(config, steps)
+    runner.run()
 
 
 if __name__ == "__main__":
