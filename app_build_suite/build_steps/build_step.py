@@ -25,6 +25,19 @@ ALL_STEPS = [STEP_ALL, STEP_BUILD, STEP_METADATA, STEP_TEST_ALL, STEP_TEST_UNIT]
 class BuildStep(ABC):
     """
     BuildStep is an abstract base class that defines interface for any real build steps.
+
+    All the BuildSteps are executed by the main logic in such a way that first all initialize_config
+    methods are called, then sequentially pre_run methods of all the BuildSteps, then all run calls
+    and after that all cleanup steps. Therefore, you should use the methods as follows:
+    - initialize_config must be used for adding BuildStep specific config options only
+    - pre_run, if defined, is used for "fail fast" logic; check any assumptions and validations
+      you can check *quickly* at this stage; failing here will fail the whole pipeline and not
+      even get to the run step, providing immediate feedback that the build can't be done
+    - run is the only method expected to run long lasting jobs and to execute actual build steps
+      that can be later re-used by next steps
+    - since results of executing run of one BuildStep can be later re-used by a subsequent BuildStep,
+      yet you might want to do a proper cleanup after the build is done, the cleanup method is called
+      only after the run method of all BuildSteps is executed.
     """
 
     @property
