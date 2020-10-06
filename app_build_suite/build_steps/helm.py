@@ -4,7 +4,7 @@ import logging
 import os
 import shutil
 import subprocess  # nosec
-from typing import List, Optional
+from typing import List, Optional, Any, Dict
 
 import configargparse
 
@@ -55,7 +55,7 @@ class HelmBuilderValidator(BuildStep):
             self.name, f"Can't find '{_chart_yaml}' or '{_values_yaml}' files."
         )
 
-    def run(self, config: argparse.Namespace) -> None:
+    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         pass
 
 
@@ -64,6 +64,7 @@ class HelmGitVersionSetter(BuildStep):
     Sets chart `version` and `appVersion` to a version discovered from `git`. Both options are configurable.
     """
 
+    context_key_git_version: str = "git_version"
     repo_info: Optional[GitRepoVersionInfo] = None
 
     @property
@@ -96,18 +97,28 @@ class HelmGitVersionSetter(BuildStep):
                 self.name, f"Can't find valid git repository in {config.chart_dir}"
             )
 
-    def run(self, config: argparse.Namespace) -> None:
+    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         """
         Gets the git-version, then replaces keys in Chart.yaml
         :param config: the config object
+        :param context: the context object
         :return: None
         """
+        if not (
+            config.replace_chart_version_with_git or config.replace_app_version_with_git
+        ):
+            logger.debug("No version override options requested, ending step.")
+            return
+
         if self.repo_info is not None:
             git_version = self.repo_info.get_git_version
         else:
             raise ValidationError(
                 self.name, f"Can't find valid git repository in {config.chart_dir}"
             )
+        # add the version info to context, so other BuildSteps can use it
+        context[HelmGitVersionSetter.context_key_git_version] = git_version
+
         new_lines: List[str] = []
         changes_made = False
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
@@ -185,7 +196,7 @@ class HelmChartToolLinter(BuildStep):
                 self.name, f"Chart tool schema file {config.ct_schema} doesn't exist.",
             )
 
-    def run(self, config: argparse.Namespace) -> None:
+    def run(self, config: argparse.Namespace, _: Dict[str, Any]) -> None:
         args = [
             "ct",
             "lint",
@@ -218,6 +229,9 @@ class HelmChartBuilder(BuildStep):
     _min_helm_version = "3.2.0"
     _max_helm_version = "4.0.0"
 
+    context_key_chart_full_path: str = "chart_full_path"
+    context_key_chart_file_name: str = "chart_file_name"
+
     @property
     def steps_provided(self) -> List[StepType]:
         return [STEP_BUILD]
@@ -244,10 +258,11 @@ class HelmChartBuilder(BuildStep):
             self._helm_bin, version, self._min_helm_version, self._max_helm_version
         )
 
-    def run(self, config: argparse.Namespace) -> None:
+    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         """
         Runs 'helm package' to build the chart.
         :param config: the config object
+        :param context: the context object
         :return: None
         """
         args = [
@@ -261,6 +276,12 @@ class HelmChartBuilder(BuildStep):
         )
         for line in run_res.stdout.splitlines():
             logger.info(str(line, "utf-8"))
+            if line.startswith(b"Successfully packaged chart and saved it to"):
+                full_chart_path = str(line.split(b":")[1].strip(), "utf-8")
+                context[HelmChartBuilder.context_key_chart_full_path] = full_chart_path
+                context[
+                    HelmChartBuilder.context_key_chart_file_name
+                ] = os.path.basename(full_chart_path)
         if run_res.returncode != 0:
             logger.error(
                 f"{self._helm_bin} run failed with exit code {run_res.returncode}"

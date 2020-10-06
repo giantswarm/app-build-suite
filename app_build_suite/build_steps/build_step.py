@@ -3,7 +3,7 @@ import argparse
 import logging
 import shutil
 from abc import ABC, abstractmethod
-from typing import List, NewType, Callable, Set, cast
+from typing import List, NewType, Callable, Set, cast, Dict, Any
 
 import configargparse
 import semver
@@ -76,17 +76,24 @@ class BuildStep(ABC):
         pass
 
     @abstractmethod
-    def run(self, config: argparse.Namespace) -> None:
+    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         """
         Execute actual build action of the BuildStep.
+        :param context: A context where different components can save data to share with other components.
         :param config: Ready (parsed) configuration Namespace object.
         :return: None
         """
         raise NotImplementedError
 
-    def cleanup(self, config: argparse.Namespace, has_build_failed: bool) -> None:
+    def cleanup(
+        self,
+        config: argparse.Namespace,
+        context: Dict[str, Any],
+        has_build_failed: bool,
+    ) -> None:
         """
         Clean up any resources used during the BuildStep.
+        :param context: A context where different components can save data to share with other components.
         :param has_build_failed: A boolean set to True if the cleanup is run after any of the BuildSteps
         failed their run step
         :param config: Ready (parsed) configuration Namespace object.
@@ -166,12 +173,19 @@ class BuildStepsPipeline(BuildStep):
     def pre_run(self, config: argparse.Namespace) -> None:
         self._iterate_steps(config, "pre-run", lambda step: step.pre_run(config))
 
-    def run(self, config: argparse.Namespace) -> None:
-        self._iterate_steps(config, "build", lambda step: step.run(config))
+    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+        self._iterate_steps(config, "build", lambda step: step.run(config, context))
 
-    def cleanup(self, config: argparse.Namespace, has_build_failed: bool) -> None:
+    def cleanup(
+        self,
+        config: argparse.Namespace,
+        context: Dict[str, Any],
+        has_build_failed: bool,
+    ) -> None:
         self._iterate_steps(
-            config, "cleanup", lambda step: step.cleanup(config, has_build_failed)
+            config,
+            "cleanup",
+            lambda step: step.cleanup(config, context, has_build_failed),
         )
 
     def _iterate_steps(

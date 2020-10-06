@@ -56,7 +56,7 @@ class Runner:
     def run_build_steps(self) -> None:
         try:
             for step in self._steps:
-                step.run(self._config)
+                step.run(self._config, self._context)
         except Error:
             logger.error(
                 "Error when running build. No further build steps will be performed, moving to cleanup."
@@ -66,6 +66,6 @@ class Runner:
     def run_cleanup(self) -> None:
         for step in self._steps:
             try:
-                step.cleanup(self._config, self._failed_build)
+                step.cleanup(self._config, self._context, self._failed_build)
             except Error:
                 logger.error("Last cleanup step failed, moving to the next one.")
