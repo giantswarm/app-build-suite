@@ -7,7 +7,7 @@ import configargparse
 
 from app_build_suite.build_steps import BuildStep, BuildStepsPipeline, ALL_STEPS
 from app_build_suite.build_steps.errors import ConfigError
-from .container import Container
+from .componentscontainer import ComponentsContainer
 
 version = "0.0.1"
 app_name = "app_build_suite"
@@ -18,7 +18,7 @@ BUILD_ENGINE_HELM3 = BuildEngineType("helm3")
 ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
 
 
-def get_pipeline(container: Container) -> List[BuildStepsPipeline]:
+def get_pipeline(container: ComponentsContainer) -> List[BuildStepsPipeline]:
     return [
         container.builder(),
     ]
@@ -125,7 +125,7 @@ def main():
     if global_only_config.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    container = Container()
+    container = ComponentsContainer()
     container.config.from_dict({"build_engine": global_only_config.build_engine},)
 
     steps = get_pipeline(container)
