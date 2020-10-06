@@ -1,4 +1,4 @@
-FROM python:3.8.6-alpine3.12 AS base
+FROM python:3.8.6-slim AS base
 
 ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
@@ -8,8 +8,10 @@ ENV PYTHONFAULTHANDLER 1
 
 FROM base as builder
 # pip prerequesties
-RUN pip install pipenv==2020.8.13
-RUN apk add --no-cache gcc musl-dev
+RUN pip install --no-cache-dir pipenv==2020.8.13
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y gcc && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 COPY Pipfile .
 COPY Pipfile.lock .
 RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy
@@ -23,7 +25,9 @@ ENV KUBECTL_VER="1.18.9"
 ENV CT_VER="3.1.1"
 
 # install dependencies
-RUN apk add --no-cache curl git
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y curl git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN mkdir $WORK_DIR
 WORKDIR $WORK_DIR
 # kubectl
