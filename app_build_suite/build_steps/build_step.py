@@ -59,7 +59,6 @@ class BuildStep(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         """
         Provide configuration options supported by this BuildStep. Needs to only act on ArgParser and can't
@@ -67,16 +66,15 @@ class BuildStep(ABC):
         :param config_parser: configargparse.ArgParser to add the configuration options to.
         :return: None
         """
-        raise NotImplementedError
+        pass
 
-    @abstractmethod
     def pre_run(self, config: argparse.Namespace) -> None:
         """
         Execute any pre-run validation or assertion logic.
         :param config: Ready (parsed) configuration Namespace object.
         :return: None
         """
-        raise NotImplementedError
+        pass
 
     @abstractmethod
     def run(self, config: argparse.Namespace) -> None:
@@ -87,14 +85,13 @@ class BuildStep(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     def cleanup(self, config: argparse.Namespace) -> None:
         """
         Clean up any resources used during the BuildStep.
         :param config: Ready (parsed) configuration Namespace object.
         :return: None
         """
-        raise NotImplementedError
+        pass
 
     def _assert_binary_present_in_path(self, bin_name: str) -> None:
         """

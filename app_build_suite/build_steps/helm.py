@@ -58,9 +58,6 @@ class HelmBuilderValidator(BuildStep):
     def run(self, config: argparse.Namespace) -> None:
         pass
 
-    def cleanup(self, config: argparse.Namespace) -> None:
-        pass
-
 
 class HelmGitVersionSetter(BuildStep):
     """
@@ -139,9 +136,6 @@ class HelmGitVersionSetter(BuildStep):
                 logger.info(f"Saving {_chart_yaml} with version set from git.")
                 file.writelines(new_lines)
 
-    def cleanup(self, config: argparse.Namespace) -> None:
-        pass
-
 
 class HelmChartToolLinter(BuildStep):
     """
@@ -214,9 +208,6 @@ class HelmChartToolLinter(BuildStep):
             )
             raise BuildError(self.name, "Linting failed")
 
-    def cleanup(self, config: argparse.Namespace) -> None:
-        pass
-
 
 class HelmChartBuilder(BuildStep):
     """
@@ -230,9 +221,6 @@ class HelmChartBuilder(BuildStep):
     @property
     def steps_provided(self) -> List[StepType]:
         return [STEP_BUILD]
-
-    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
-        pass
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """
@@ -278,9 +266,6 @@ class HelmChartBuilder(BuildStep):
                 f"{self._helm_bin} run failed with exit code {run_res.returncode}"
             )
             raise BuildError(self.name, "Chart build failed")
-
-    def cleanup(self, config: argparse.Namespace) -> None:
-        pass
 
 
 class HelmBuildPipeline(BuildStepsPipeline):
