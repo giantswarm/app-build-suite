@@ -114,22 +114,22 @@ class BuildStep(ABC):
             )
 
     def _assert_version_in_range(
-        self, app_name: str, version: str, min_version: str, max_version: str
+        self, app_name: str, version: str, min_version: str, max_version_exc: str
     ) -> None:
         """
         Checks if the given app_name with a string version falls in between specified min and max
         versions (min_version <= version < max_version). Raises ValidationError.
         :param app_name: The name of the app (used just for logging purposes).
         :param version: The version string (semver, might start with optional 'v' prefix).
-        :param min_version:
-        :param max_version:
+        :param min_version: proper semver version string to check for (includes this version)
+        :param max_version_exc: proper semver version string to check for (excludes this version)
         :return:
         """
         if version.startswith("v"):
             version = version[1:]
         parsed_ver = semver.VersionInfo.parse(version)
         parsed_min_version = semver.VersionInfo.parse(min_version)
-        parsed_max_version = semver.VersionInfo.parse(max_version)
+        parsed_max_version = semver.VersionInfo.parse(max_version_exc)
         if parsed_ver < parsed_min_version:
             raise ValidationError(
                 self.name,
@@ -138,7 +138,7 @@ class BuildStep(ABC):
         if parsed_ver >= parsed_max_version:
             raise ValidationError(
                 self.name,
-                f"Version '{parsed_ver}' of '{app_name}' is detected, but lower than {max_version} is required.",
+                f"Version '{parsed_ver}' of '{app_name}' is detected, but lower than {max_version_exc} is required.",
             )
 
 
