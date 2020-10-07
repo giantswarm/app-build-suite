@@ -47,8 +47,8 @@ RUN pip install yamllint==1.25.0 yamale==3.0.4
 
 RUN adduser --disabled-password --home $ABS_DIR --uid 1001 abs
 WORKDIR $ABS_DIR
-COPY --from=builder /.venv .venv/
-ENV PATH="${ABS_DIR}/.venv/bin:$PATH"
+COPY --from=builder /.venv /.venv
+ENV PATH="/.venv/bin:$PATH"
 COPY app_build_suite/ app_build_suite/
 ENV PYTHONPATH=$ABS_DIR
 RUN chown -R abs.abs .

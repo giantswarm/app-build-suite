@@ -9,6 +9,8 @@ export DATE ?= $(shell date '+%FT%T%:z')
 
 IMG_VER ?= ${VER}-${SHORT_COMMIT}
 
+.PHONY: all docker-build docker-push docker-build-test test docker-test
+
 all: docker-build
 
 # Build the docker image from locally built binary
@@ -20,5 +22,11 @@ docker-push:
 	docker push ${IMG}:latest
 	docker push ${IMG}:${IMG_VER}
 
+docker-build-test: docker-build
+	docker build --build-arg ver=${VER} --build-arg commit=${COMMIT} -f testrunner.Dockerfile . -t ${IMG}-test:latest
+
 test:
 	pipenv run pytest --cov app_build_suite --log-cli-level info tests/
+
+docker-test: docker-build-test
+	docker run -it --rm ${IMG}-test:latest
