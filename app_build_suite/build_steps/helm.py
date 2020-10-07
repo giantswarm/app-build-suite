@@ -213,7 +213,7 @@ class HelmChartToolLinter(BuildStep):
         if config.ct_chart_repos is not None:
             repos_entries = config.ct_chart_repos.split(",")
             for entry in repos_entries:
-                name, url = entry.split("=")
+                name, url = entry.strip("\"'").split("=")
                 if not validators.slug(name):
                     raise ValidationError(
                         self.name, f"{name} is not a correct helm repo name.",
