@@ -36,7 +36,7 @@ class GitRepoVersionInfo:
         """
         if not self._is_repo:
             raise git.exc.InvalidGitRepositoryError()
-        tags = sorted(self._repo.tags, key=lambda t: t.tag.tagged_date)
+        tags = sorted(self._repo.tags, key=lambda t: t.commit.committed_date)
         ver = "0.0.0" if len(tags) == 0 else tags[-1]
         sha = self._repo.head.object.hexsha
         return f"{ver}-{sha}"
