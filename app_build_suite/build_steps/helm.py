@@ -160,6 +160,9 @@ class HelmChartToolLinter(BuildStep):
     _ct_bin = "ct"
     _min_ct_version = "3.1.0"
     _max_ct_version = "4.0.0"
+    _additional_helm_repos = [
+        "stable=https://kubernetes-charts.storage.googleapis.com/"
+    ]
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
@@ -202,7 +205,10 @@ class HelmChartToolLinter(BuildStep):
             "lint",
             "--validate-maintainers=false",
             f"--charts={config.chart_dir}",
+            f"--chart-repos={','.join(self._additional_helm_repos)}",
         ]
+        if config.debug:
+            args.append("--debug")
         if config.ct_config is not None:
             args.append(f"--config={config.ct_config}")
         if config.ct_schema is not None:
