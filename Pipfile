@@ -18,6 +18,7 @@ configargparse = "*"
 gitpython = "*"
 dependency-injector = "*"
 semver = "*"
+validators = "*"
 
 [requires]
 python_version = "3.8"
