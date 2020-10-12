@@ -33,4 +33,4 @@ jobs:
           name: Execute tests
           command: |
             apk --no-cache add make
-            make docker-build-test
+            make docker-test
