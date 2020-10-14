@@ -4,7 +4,7 @@ import logging
 import os
 import shutil
 import subprocess  # nosec
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Set
 
 import configargparse
 import validators
@@ -34,7 +34,7 @@ class HelmBuilderValidator(BuildStep):
     """
 
     @property
-    def steps_provided(self) -> List[StepType]:
+    def steps_provided(self) -> Set[StepType]:
         return ALL_STEPS
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
@@ -69,8 +69,8 @@ class HelmGitVersionSetter(BuildStep):
     repo_info: Optional[GitRepoVersionInfo] = None
 
     @property
-    def steps_provided(self) -> List[StepType]:
-        return [STEP_BUILD]
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_BUILD}
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
@@ -155,8 +155,8 @@ class HelmChartToolLinter(BuildStep):
     """
 
     @property
-    def steps_provided(self) -> List[StepType]:
-        return [STEP_TEST_UNIT]
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_TEST_UNIT}
 
     _ct_bin = "ct"
     _min_ct_version = "3.1.0"
@@ -265,8 +265,8 @@ class HelmChartBuilder(BuildStep):
     context_key_chart_file_name: str = "chart_file_name"
 
     @property
-    def steps_provided(self) -> List[StepType]:
-        return [STEP_BUILD]
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_BUILD}
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """

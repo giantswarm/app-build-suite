@@ -18,7 +18,7 @@ STEP_BUILD = StepType("build")
 STEP_METADATA = StepType("metadata")
 STEP_TEST_ALL = StepType("test_all")
 STEP_TEST_UNIT = StepType("test_unit")
-ALL_STEPS = [STEP_ALL, STEP_BUILD, STEP_METADATA, STEP_TEST_ALL, STEP_TEST_UNIT]
+ALL_STEPS = {STEP_ALL, STEP_BUILD, STEP_METADATA, STEP_TEST_ALL, STEP_TEST_UNIT}
 
 
 class BuildStep(ABC):
@@ -49,7 +49,7 @@ class BuildStep(ABC):
 
     @property
     @abstractmethod
-    def steps_provided(self) -> List[StepType]:
+    def steps_provided(self) -> Set[StepType]:
         """
         This defines types of steps this BuildStep should be executed for. If a user filters the set of steps
         and the steps listed here don't match any of the steps selected by the user, the whole BuildStep
@@ -156,11 +156,11 @@ class BuildStepsPipeline(BuildStep):
         self._pipeline = pipeline
 
     @property
-    def steps_provided(self) -> List[StepType]:
+    def steps_provided(self) -> Set[StepType]:
         all_steps: Set[StepType] = set()
         for build_step in self._pipeline:
-            all_steps.union(build_step.steps_provided)
-        return list(all_steps)
+            all_steps.update(build_step.steps_provided)
+        return all_steps
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         group = cast(
