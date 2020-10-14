@@ -146,13 +146,18 @@ class BuildStepsPipeline(BuildStep):
     """
     A base class to provide sets (pipelines) of BuildSteps that can be later executed as a single BuildStep.
     Implement your BuildStepsPipeline by inheriting from this class and overriding self._pipeline members.
+    This class handles BuildSteps filtering based on configured "--steps" flags.
     """
 
-    def __init__(self, pipeline: List[BuildStep]):
+    def __init__(self, pipeline: List[BuildStep], config_group_desc: str):
         """
         Create new instance using the BuildSteps passed.
         :param pipeline: The list of BuildSteps to be included in this pipeline.
+        :param config_group_desc: All options provided by BuildSteps included in
+        BuildStepsPipeline all included in the application's help message as
+        a separate config options group. This sets its description.
         """
+        self._config_group_desc = config_group_desc
         self._pipeline = pipeline
 
     @property
@@ -165,7 +170,7 @@ class BuildStepsPipeline(BuildStep):
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         group = cast(
             configargparse.ArgParser,
-            config_parser.add_argument_group("helm3 build engine options"),
+            config_parser.add_argument_group(self._config_group_desc),
         )
         for build_step in self._pipeline:
             build_step.initialize_config(group)

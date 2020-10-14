@@ -333,5 +333,6 @@ class HelmBuildPipeline(BuildStepsPipeline):
                 HelmGitVersionSetter(),
                 HelmChartToolLinter(),
                 HelmChartBuilder(),
-            ]
+            ],
+            "Helm 3 build engine options",
         )

@@ -27,7 +27,8 @@ class ComponentsContainer(containers.DeclarativeContainer):
 
 class Runner:
     """
-    A class used to run all the steps of a build pipeline.
+    A class used to run all the steps of a build pipeline. Expects to get a list of configured
+    BuildSteps and a config. Provides context object.
     """
 
     def __init__(self, config: configargparse.Namespace, steps: List[BuildStep]):

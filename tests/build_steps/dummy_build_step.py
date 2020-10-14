@@ -1,6 +1,8 @@
 import argparse
 from typing import Dict, Any, Set
 
+import configargparse
+
 from app_build_suite.build_steps import BuildStep, BuildStepsPipeline
 from app_build_suite.build_steps.build_step import (
     StepType,
@@ -9,7 +11,7 @@ from app_build_suite.build_steps.build_step import (
     STEP_TEST_ALL,
     STEP_METADATA,
 )
-from app_build_suite.build_steps.errors import Error
+from app_build_suite.build_steps.errors import Error, ValidationError
 
 
 class DummyBuildStep(BuildStep):
@@ -17,13 +19,16 @@ class DummyBuildStep(BuildStep):
         self,
         dummy_name: str,
         steps_provided: Set[StepType] = None,
+        fail_in_config: bool = False,
         fail_in_pre: bool = False,
         fail_in_run: bool = False,
         fail_in_cleanup: bool = False,
     ):
+        self.fail_in_config = fail_in_config
         self.my_steps = {STEP_ALL} if steps_provided is None else steps_provided
         self.fail_in_cleanup = fail_in_cleanup
         self.dummy_name = dummy_name
+        self.config_counter = 0
         self.pre_run_counter = 0
         self.run_counter = 0
         self.cleanup_counter = 0
@@ -34,6 +39,16 @@ class DummyBuildStep(BuildStep):
     @property
     def steps_provided(self) -> Set[StepType]:
         return self.my_steps
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        """
+        Run configuration phase
+        :param config_parser: Any config parser.
+        :return: None
+        """
+        self.config_counter += 1
+        if self.fail_in_config:
+            raise ValidationError(self.name, "configuration error was requested")
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """
@@ -73,11 +88,13 @@ class DummyBuildStep(BuildStep):
 class DummyOneStepBuildPipeline(BuildStepsPipeline):
     def __init__(self):
         self.step = DummyBuildStep("t1")
-        super().__init__([self.step])
+        super().__init__([self.step], "Dummy one step pipeline")
 
 
 class DummyTwoStepBuildPipeline(BuildStepsPipeline):
-    def __init__(self):
-        self.step1 = DummyBuildStep("bs1", {STEP_BUILD, STEP_METADATA})
-        self.step2 = DummyBuildStep("bs2", {STEP_TEST_ALL})
-        super().__init__([self.step1, self.step2])
+    def __init__(self, fail_in_pre: bool = False):
+        self.step1 = DummyBuildStep(
+            "bs1", {STEP_BUILD, STEP_METADATA}, fail_in_pre=fail_in_pre
+        )
+        self.step2 = DummyBuildStep("bs2", {STEP_TEST_ALL}, fail_in_pre=fail_in_pre)
+        super().__init__([self.step1, self.step2], "Dummy two steps pipeline")
