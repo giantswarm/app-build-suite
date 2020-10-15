@@ -35,7 +35,7 @@ jobs:
           command: |
             apk --no-cache add make
             make docker-test-ci
-            pwd
+            scp -r remote-docker .coverage/ .
             ls -la .
             ls -la .coverage/
 
