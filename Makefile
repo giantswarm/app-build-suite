@@ -24,8 +24,10 @@ docker-push:
 docker-build-test: docker-build
 	docker build --build-arg ver=${VER} --build-arg commit=${COMMIT} -f testrunner.Dockerfile . -t ${IMG}-test:latest
 
+test-command = --cov app_build_suite --log-cli-level info tests/
+
 test:
-	pipenv run pytest --cov app_build_suite --log-cli-level info tests/
+	pipenv run pytest $(test-command)
 
 docker-test: docker-build-test
-	docker run -it --rm ${IMG}-test:latest
+	docker run -it --rm -v ${PWD}/.coverage/:/abs/.coverage/ ${IMG}-test:latest $(test-command)
