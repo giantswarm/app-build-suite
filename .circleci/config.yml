@@ -24,7 +24,7 @@ workflows:
 
 jobs:
   run-tests:
-    executor: architect/architect
+    executor: machine
     steps:
       - checkout
 
@@ -35,7 +35,6 @@ jobs:
           command: |
             apk --no-cache add make
             make docker-test-ci
-            scp -r remote-docker .coverage/ .
             ls -la .
             ls -la .coverage/
 
