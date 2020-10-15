@@ -56,26 +56,32 @@ class TestBuildStepSuite:
         assert bsp.steps_provided == {STEP_BUILD, STEP_METADATA, STEP_TEST_ALL}
 
     @pytest.mark.parametrize(
-        "configured_tags,expected_run_counters",
+        "requested_tags,requested_skips,expected_run_counters",
         [
             # STEPS_ALL should run all build steps
-            ([STEP_ALL], ([1, 1, 1, 1], [1, 1, 1, 1])),
+            ([STEP_ALL], [], ([1, 1, 1, 1], [1, 1, 1, 1])),
             # STEPS_BUILD should run only 1st BuildStep, but 'configure' needs to run for both still
-            ([STEP_BUILD], ([1, 1, 1, 1], [1, 0, 0, 0])),
+            ([STEP_BUILD], [], ([1, 1, 1, 1], [1, 0, 0, 0])),
             # STEPS_TEST_ALL should run only 2nd BuildStep, but 'configure' needs to run for both still
-            ([STEP_TEST_ALL], ([1, 0, 0, 0], [1, 1, 1, 1])),
+            ([STEP_TEST_ALL], [], ([1, 0, 0, 0], [1, 1, 1, 1])),
+            # this should run all except the ones including STEP_BUILD (1st one)
+            ([STEP_ALL], [STEP_BUILD], ([1, 0, 0, 0], [1, 1, 1, 1])),
+            # this should run all except the ones including STEP_TEST_ALL (2nd one)
+            ([STEP_ALL], [STEP_TEST_ALL], ([1, 1, 1, 1], [1, 0, 0, 0])),
         ],
     )
     def test_build_step_suite_runs_steps_ok(
         self,
-        configured_tags: List[StepType],
+        requested_tags: List[StepType],
+        requested_skips: List[StepType],
         expected_run_counters: Tuple[List[int], List[int]],
     ):
         bsp = DummyTwoStepBuildFilteringPipeline()
         config_parser = get_global_config_parser()
         bsp.initialize_config(config_parser)
         config = config_parser.parse_known_args()[0]
-        config.steps = list(configured_tags)
+        config.steps = list(requested_tags)
+        config.skip_steps = list(requested_skips)
         context: Dict[str, Any] = {}
         bsp.pre_run(config)
         bsp.run(config, context)

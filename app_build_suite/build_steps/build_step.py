@@ -200,9 +200,10 @@ class BuildStepsFilteringPipeline(BuildStep):
         step_function: Callable[[BuildStep], None],
     ) -> None:
         for step in self._pipeline:
-            if STEP_ALL in config.steps or any(
-                s in step.steps_provided for s in config.steps
-            ):
+            execute_all = STEP_ALL in config.steps
+            is_requested_step = any(s in step.steps_provided for s in config.steps)
+            is_requested_skip = any(s in step.steps_provided for s in config.skip_steps)
+            if (execute_all or is_requested_step) and not is_requested_skip:
                 logger.info(f"Running {stage} step for {step.name}")
                 try:
                     step_function(step)

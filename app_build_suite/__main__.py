@@ -10,6 +10,7 @@ from app_build_suite.build_steps import (
     BuildStepsFilteringPipeline,
     ALL_STEPS,
 )
+from app_build_suite.build_steps.build_step import STEP_ALL
 from app_build_suite.build_steps.errors import ConfigError
 from .components import ComponentsContainer, Runner
 
@@ -48,12 +49,20 @@ def configure_global_options(config_parser: configargparse.ArgParser):
         type=BuildEngineType,
         help="Select the build engine used for building your chart.",
     )
-    config_parser.add_argument(
+    steps_group = config_parser.add_mutually_exclusive_group()
+    steps_group.add_argument(
         "--steps",
         nargs="+",
         help=f"List of steps to execute. Available steps: {ALL_STEPS}",
         required=False,
         default=["all"],
+    )
+    steps_group.add_argument(
+        "--skip-steps",
+        nargs="+",
+        help=f"List of steps to skip. Available steps: {ALL_STEPS}",
+        required=False,
+        default=[],
     )
 
 
@@ -79,8 +88,13 @@ def validate_global_config(config: configargparse.Namespace):
             "build_engine",
             f"Unknown build engine '{config.build_engine}'. Valid engines are: {ALL_BUILD_ENGINES}.",
         )
-    # validate steps
-    for step in config.steps:
+    # validate steps; '--steps' and '--skip-steps' can't be used together, but that is already
+    # enforced by the argparse library
+    if STEP_ALL in config.skip_steps:
+        raise ConfigError(
+            "skip-steps", f"'{STEP_ALL}' is not a reasonable step kind to skip."
+        )
+    for step in config.steps + config.skip_steps:
         if step not in ALL_STEPS:
             raise ConfigError(
                 "steps", f"Unknown step '{step}'. Valid steps are: {ALL_STEPS}."
