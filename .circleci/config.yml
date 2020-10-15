@@ -32,8 +32,6 @@ jobs:
           name: Execute tests
           command: |
             make docker-test-ci
-            ls -la .
-            ls -la .coverage/
 
       - codecov/upload:
           file: .coverage/coverage.xml
