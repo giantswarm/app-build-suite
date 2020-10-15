@@ -37,4 +37,4 @@ docker-test: docker-build-test
 	$(test-docker-run) $(test-command)
 
 docker-test-ci: docker-build-test
-	$(test-docker-run) $(test-command-ci)
+	$(test-docker-run-ci) $(test-command-ci)
