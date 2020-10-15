@@ -4,7 +4,7 @@ from typing import Dict, Any, Set
 import configargparse
 import pytest
 
-from app_build_suite.build_steps import BuildStep, BuildStepsPipeline
+from app_build_suite.build_steps import BuildStep, BuildStepsFilteringPipeline
 from app_build_suite.build_steps.build_step import (
     StepType,
     STEP_ALL,
@@ -111,13 +111,13 @@ class DummyBuildStep(BuildStep):
             )
 
 
-class DummyOneStepBuildPipeline(BuildStepsPipeline):
+class DummyOneStepBuildFilteringPipeline(BuildStepsFilteringPipeline):
     def __init__(self):
         self.step = DummyBuildStep("t1")
         super().__init__([self.step], "Dummy one step pipeline")
 
 
-class DummyTwoStepBuildPipeline(BuildStepsPipeline):
+class DummyTwoStepBuildFilteringPipeline(BuildStepsFilteringPipeline):
     def __init__(self, fail_in_pre: bool = False):
         self.step1 = DummyBuildStep(
             "bs1", {STEP_BUILD, STEP_METADATA}, fail_in_pre=fail_in_pre

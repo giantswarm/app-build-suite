@@ -15,7 +15,7 @@ from app_build_suite.build_steps.build_step import (
     STEP_BUILD,
     ALL_STEPS,
     STEP_TEST_UNIT,
-    BuildStepsPipeline,
+    BuildStepsFilteringPipeline,
 )
 from app_build_suite.build_steps.errors import ValidationError, BuildError
 from app_build_suite.utils.git import GitRepoVersionInfo
@@ -321,7 +321,7 @@ class HelmChartBuilder(BuildStep):
             raise BuildError(self.name, "Chart build failed")
 
 
-class HelmBuildPipeline(BuildStepsPipeline):
+class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     """
     Pipeline that combines all the steps required to use helm3 as a chart builder.
     """

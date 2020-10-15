@@ -142,7 +142,7 @@ class BuildStep(ABC):
             )
 
 
-class BuildStepsPipeline(BuildStep):
+class BuildStepsFilteringPipeline(BuildStep):
     """
     A base class to provide sets (pipelines) of BuildSteps that can be later executed as a single BuildStep.
     Implement your BuildStepsPipeline by inheriting from this class and overriding self._pipeline members.

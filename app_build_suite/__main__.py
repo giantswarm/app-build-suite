@@ -5,7 +5,11 @@ from typing import List, NewType
 
 import configargparse
 
-from app_build_suite.build_steps import BuildStep, BuildStepsPipeline, ALL_STEPS
+from app_build_suite.build_steps import (
+    BuildStep,
+    BuildStepsFilteringPipeline,
+    ALL_STEPS,
+)
 from app_build_suite.build_steps.errors import ConfigError
 from .components import ComponentsContainer, Runner
 
@@ -18,7 +22,7 @@ BUILD_ENGINE_HELM3 = BuildEngineType("helm3")
 ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
 
 
-def get_pipeline(container: ComponentsContainer) -> List[BuildStepsPipeline]:
+def get_pipeline(container: ComponentsContainer) -> List[BuildStepsFilteringPipeline]:
     return [
         container.builder(),
     ]

@@ -12,7 +12,10 @@ from app_build_suite.build_steps.build_step import (
     STEP_ALL,
 )
 from app_build_suite.build_steps.errors import ValidationError, Error
-from tests.build_steps.dummy_build_step import DummyBuildStep, DummyTwoStepBuildPipeline
+from tests.build_steps.dummy_build_step import (
+    DummyBuildStep,
+    DummyTwoStepBuildFilteringPipeline,
+)
 
 
 class TestBuildStep:
@@ -49,7 +52,7 @@ class TestBuildStep:
 
 class TestBuildStepSuite:
     def test_build_step_suite_combines_step_types_ok(self):
-        bsp = DummyTwoStepBuildPipeline()
+        bsp = DummyTwoStepBuildFilteringPipeline()
         assert bsp.steps_provided == {STEP_BUILD, STEP_METADATA, STEP_TEST_ALL}
 
     @pytest.mark.parametrize(
@@ -68,7 +71,7 @@ class TestBuildStepSuite:
         configured_tags: List[StepType],
         expected_run_counters: Tuple[List[int], List[int]],
     ):
-        bsp = DummyTwoStepBuildPipeline()
+        bsp = DummyTwoStepBuildFilteringPipeline()
         config_parser = get_global_config_parser()
         bsp.initialize_config(config_parser)
         config = config_parser.parse_known_args()[0]
@@ -82,7 +85,7 @@ class TestBuildStepSuite:
         bsp.step2.assert_run_counters(*expected_run_counters[1])
 
     def test_build_step_suite_runs_with_exception(self):
-        bsp = DummyTwoStepBuildPipeline(fail_in_pre=True)
+        bsp = DummyTwoStepBuildFilteringPipeline(fail_in_pre=True)
         config_parser = get_global_config_parser()
         bsp.initialize_config(config_parser)
         config = config_parser.parse_known_args()[0]

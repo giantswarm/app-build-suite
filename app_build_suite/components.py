@@ -8,7 +8,7 @@ from dependency_injector import containers, providers
 
 from app_build_suite.build_steps import BuildStep
 from app_build_suite.build_steps.errors import Error
-from app_build_suite.build_steps.helm import HelmBuildPipeline
+from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -21,7 +21,7 @@ class ComponentsContainer(containers.DeclarativeContainer):
     config = providers.Configuration()
 
     builder = providers.Selector(
-        config.build_engine, helm3=providers.Singleton(HelmBuildPipeline)
+        config.build_engine, helm3=providers.Singleton(HelmBuildFilteringPipeline)
     )
 
 
