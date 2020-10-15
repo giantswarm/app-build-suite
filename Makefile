@@ -1,6 +1,5 @@
 # Image URL to use all building/pushing image targets
-IMG ?= app_build_suite
-#IMG ?= quay.io/giantswarm/app_build_suite
+IMG ?= quay.io/giantswarm/app-build-suite
 
 export VER ?= $(shell git describe 2>/dev/null || echo "0.0.0")
 export COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo "0000000")
