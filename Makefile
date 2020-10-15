@@ -26,7 +26,9 @@ docker-build-test: docker-build
 
 test-command = --cov app_build_suite --log-cli-level info tests/
 test-command-ci = --cov-report=xml $(test-command)
-test-docker-run = docker run -it --rm -v ${PWD}/.coverage/:/abs/.coverage/ ${IMG}-test:latest
+test-docker-args = run -it --rm -v ${PWD}/.coverage/:/abs/.coverage/
+test-docker-run = docker $(test-docker-args) ${IMG}-test:latest
+test-docker-run-ci = docker $(test-docker-args) -v ${PWD}/.git:/abs/.git/ ${IMG}-test:latest
 
 test:
 	pipenv run pytest $(test-command)

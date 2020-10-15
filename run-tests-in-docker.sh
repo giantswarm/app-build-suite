@@ -7,5 +7,5 @@
 
 #chown -R $USE_UID:$USE_GID $ABS_DIR
 #sudo --preserve-env=PYTHONPATH,PATH -g "#$USE_GID" -u "#$USE_UID" -- python -m app_build_suite $@
-# pipenv run pre-commit run --all-files
+pipenv run pre-commit run --all-files
 pipenv run pytest $@
