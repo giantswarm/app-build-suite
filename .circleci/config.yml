@@ -31,7 +31,6 @@ jobs:
       - run:
           name: Execute tests
           command: |
-            apt-get install make
             make docker-test-ci
             ls -la .
             ls -la .coverage/
