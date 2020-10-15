@@ -65,7 +65,7 @@ class BuildStep(ABC):
         :param config_parser: configargparse.ArgParser to add the configuration options to.
         :return: None
         """
-        pass
+        pass  # pragma: no cover
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """
@@ -73,7 +73,7 @@ class BuildStep(ABC):
         :param config: Ready (parsed) configuration Namespace object.
         :return: None
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
@@ -99,7 +99,7 @@ class BuildStep(ABC):
         :param config: Ready (parsed) configuration Namespace object.
         :return: None
         """
-        pass
+        pass  # pragma: no cover
 
     def _assert_binary_present_in_path(self, bin_name: str) -> None:
         """
