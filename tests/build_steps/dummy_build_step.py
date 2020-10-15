@@ -2,6 +2,7 @@ import argparse
 from typing import Dict, Any, Set
 
 import configargparse
+import pytest
 
 from app_build_suite.build_steps import BuildStep, BuildStepsPipeline
 from app_build_suite.build_steps.build_step import (
@@ -83,6 +84,31 @@ class DummyBuildStep(BuildStep):
         self.cleanup_informed_about_failure = has_build_failed
         if self.fail_in_cleanup:
             raise Error("failure was requested")
+
+    def assert_run_counters(
+        self,
+        expected_config_counter: int,
+        expected_pre_run_counter: int,
+        expected_run_counter: int,
+        expected_cleanup_counter: int,
+    ):
+        __tracebackhide__ = True
+        if self.config_counter != expected_config_counter:
+            pytest.fail(
+                f"expected config run counter is {expected_config_counter}, but was {self.config_counter}"
+            )
+        if self.pre_run_counter != expected_pre_run_counter:
+            pytest.fail(
+                f"expected pre_run run counter is {expected_pre_run_counter}, but was {self.pre_run_counter}"
+            )
+        if self.run_counter != expected_run_counter:
+            pytest.fail(
+                f"expected run counter is {expected_run_counter}, but was {self.run_counter}"
+            )
+        if self.cleanup_counter != expected_cleanup_counter:
+            pytest.fail(
+                f"expected cleanup run counter is {expected_cleanup_counter}, but was {self.cleanup_counter}"
+            )
 
 
 class DummyOneStepBuildPipeline(BuildStepsPipeline):

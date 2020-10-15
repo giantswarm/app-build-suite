@@ -12,9 +12,7 @@ def test_runner_with_single_step():
     runner = Runner(cast(configargparse.Namespace, None), [test_step])
     runner.run()
 
-    assert test_step.pre_run_counter == 1
-    assert test_step.run_counter == 1
-    assert test_step.cleanup_counter == 1
+    test_step.assert_run_counters(0, 1, 1, 1)
     assert runner.context["test"] == 1
 
 
@@ -25,9 +23,7 @@ def test_runner_exits_on_failed_pre_run():
         runner.run()
     assert pytest_wrapped_e.type == SystemExit
     assert pytest_wrapped_e.value.code == 1
-    assert test_step.pre_run_counter == 1
-    assert test_step.run_counter == 0
-    assert test_step.cleanup_counter == 0
+    test_step.assert_run_counters(0, 1, 0, 0)
 
 
 def test_runner_breaks_build_on_failed_run():
@@ -36,13 +32,9 @@ def test_runner_breaks_build_on_failed_run():
     runner = Runner(cast(configargparse.Namespace, None), [test_step1, test_step2])
     runner.run()
 
-    assert test_step1.pre_run_counter == 1
-    assert test_step2.pre_run_counter == 1
-    assert test_step1.run_counter == 1
     # if the first build step failed, second one should be not executed
-    assert test_step2.run_counter == 0
     # but cleanup should still run for both steps, even if cleanup in the 1st one fails
+    test_step1.assert_run_counters(0, 1, 1, 1)
+    test_step2.assert_run_counters(0, 1, 0, 1)
     assert test_step1.cleanup_informed_about_failure
-    assert test_step1.cleanup_counter == 1
     assert test_step2.cleanup_informed_about_failure
-    assert test_step2.cleanup_counter == 1
