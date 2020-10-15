@@ -2,6 +2,7 @@ version: 2.1
 
 orbs:
   architect: giantswarm/architect@0.13.0
+  codecov: codecov/codecov@1.0.2
 
 workflows:
   test:
@@ -34,3 +35,6 @@ jobs:
           command: |
             apk --no-cache add make
             make docker-test
+
+      - codecov/upload:
+          file: {{ coverage_report_filepath }}
