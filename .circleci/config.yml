@@ -34,7 +34,7 @@ jobs:
           name: Execute tests
           command: |
             apk --no-cache add make
-            make docker-test
+            make docker-test-ci
 
       - codecov/upload:
-          file: .coverage/coverage
+          file: .coverage/coverage.xml
