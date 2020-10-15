@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
 import pytest
 
@@ -8,6 +8,8 @@ from app_build_suite.build_steps.build_step import (
     STEP_BUILD,
     STEP_METADATA,
     STEP_TEST_ALL,
+    StepType,
+    STEP_ALL,
 )
 from app_build_suite.build_steps.errors import ValidationError, Error
 from tests.build_steps.dummy_build_step import DummyBuildStep, DummyTwoStepBuildPipeline
@@ -50,18 +52,34 @@ class TestBuildStepSuite:
         bsp = DummyTwoStepBuildPipeline()
         assert bsp.steps_provided == {STEP_BUILD, STEP_METADATA, STEP_TEST_ALL}
 
-    def test_build_step_suite_runs_steps_ok(self):
+    @pytest.mark.parametrize(
+        "configured_tags,expected_run_counters",
+        [
+            # STEPS_ALL should run all build steps
+            ([STEP_ALL], ([1, 1, 1, 1], [1, 1, 1, 1])),
+            # STEPS_BUILD should run only 1st BuildStep, but 'configure' needs to run for both still
+            ([STEP_BUILD], ([1, 1, 1, 1], [1, 0, 0, 0])),
+            # STEPS_TEST_ALL should run only 2nd BuildStep, but 'configure' needs to run for both still
+            ([STEP_TEST_ALL], ([1, 0, 0, 0], [1, 1, 1, 1])),
+        ],
+    )
+    def test_build_step_suite_runs_steps_ok(
+        self,
+        configured_tags: List[StepType],
+        expected_run_counters: Tuple[List[int], List[int]],
+    ):
         bsp = DummyTwoStepBuildPipeline()
         config_parser = get_global_config_parser()
         bsp.initialize_config(config_parser)
         config = config_parser.parse_known_args()[0]
+        config.steps = list(configured_tags)
         context: Dict[str, Any] = {}
         bsp.pre_run(config)
         bsp.run(config, context)
         bsp.cleanup(config, context, False)
 
-        bsp.step1.assert_run_counters(1, 1, 1, 1)
-        bsp.step2.assert_run_counters(1, 1, 1, 1)
+        bsp.step1.assert_run_counters(*expected_run_counters[0])
+        bsp.step2.assert_run_counters(*expected_run_counters[1])
 
     def test_build_step_suite_runs_with_exception(self):
         bsp = DummyTwoStepBuildPipeline(fail_in_pre=True)
