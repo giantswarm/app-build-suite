@@ -31,7 +31,7 @@ jobs:
       - run:
           name: Execute tests
           command: |
-            apk --no-cache add make
+            apt-get install make
             make docker-test-ci
             ls -la .
             ls -la .coverage/
