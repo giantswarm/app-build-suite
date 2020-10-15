@@ -1,4 +1,4 @@
-FROM app_build_suite:latest
+FROM quay.io/giantswarm/app-build-suite:latest
 
 ARG ABS_DIR="/abs"
 
