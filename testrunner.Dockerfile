@@ -9,9 +9,9 @@ COPY .coveragerc .
 COPY .flake8 .
 COPY .mypy.ini .
 COPY .pre-commit-config.yaml .
+COPY run-tests-in-docker.sh .
 COPY Pipfile .
 COPY Pipfile.lock .
 RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --clear --dev
-COPY tests/ tests/
-ENTRYPOINT ["pipenv", "run", "pytest"]
+ENTRYPOINT ["./run-tests-in-docker.sh"]
 CMD ["--cov", "app_build_suite", "--log-cli-level", "info", "tests/"]
