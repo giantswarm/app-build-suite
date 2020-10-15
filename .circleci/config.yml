@@ -24,7 +24,7 @@ workflows:
 
 jobs:
   run-tests:
-    executor: machine
+    machine: true
     steps:
       - checkout
 
