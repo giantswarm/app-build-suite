@@ -8,13 +8,14 @@ export DATE ?= $(shell date '+%FT%T%:z')
 
 IMG_VER ?= ${VER}-${SHORT_COMMIT}
 
-.PHONY: all docker-build docker-push docker-build-test test docker-test
+.PHONY: all docker-build docker-push docker-build-test test docker-test docker-test-ci
 
 all: docker-build
 
 # Build the docker image from locally built binary
 docker-build:
-	docker build --build-arg ver=${VER} --build-arg commit=${COMMIT} . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
+	echo build_ver=\"${VER}-${COMMIT}\" > app_build_suite/version.py
+	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
 
 # Push the docker image
 docker-push:
@@ -22,7 +23,7 @@ docker-push:
 	docker push ${IMG}:${IMG_VER}
 
 docker-build-test: docker-build
-	docker build --build-arg ver=${VER} --build-arg commit=${COMMIT} -f testrunner.Dockerfile . -t ${IMG}-test:latest
+	docker build -f testrunner.Dockerfile . -t ${IMG}-test:latest
 
 test-command = --cov app_build_suite --log-cli-level info tests/
 test-command-ci = --cov-report=xml $(test-command)

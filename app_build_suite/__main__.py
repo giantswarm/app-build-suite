@@ -14,13 +14,22 @@ from app_build_suite.build_steps.build_step import STEP_ALL
 from app_build_suite.build_steps.errors import ConfigError
 from .components import ComponentsContainer, Runner
 
-version = "0.0.1"
+ver = "0.0.1-dev"
 app_name = "app_build_suite"
 logger = logging.getLogger(__name__)
 
 BuildEngineType = NewType("BuildEngineType", str)
 BUILD_ENGINE_HELM3 = BuildEngineType("helm3")
 ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
+
+
+def get_version() -> str:
+    try:
+        from .version import build_ver
+
+        return build_ver
+    except ImportError:
+        return ver
 
 
 def get_pipeline(container: ComponentsContainer) -> List[BuildStepsFilteringPipeline]:
@@ -39,7 +48,7 @@ def configure_global_options(config_parser: configargparse.ArgParser):
         help="Enable debug messages.",
     )
     config_parser.add_argument(
-        "--version", action="version", version=f"{app_name} v{version}"
+        "--version", action="version", version=f"{app_name} v{get_version()}"
     )
     config_parser.add_argument(
         "-b",
