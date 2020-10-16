@@ -18,7 +18,7 @@ docker-build:
 	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
 
 # Push the docker image
-docker-push:
+docker-push: docker-build
 	docker push ${IMG}:latest
 	docker push ${IMG}:${IMG_VER}
 
