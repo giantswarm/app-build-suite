@@ -20,7 +20,9 @@ class ComponentsContainer(containers.DeclarativeContainer):
 
     config = providers.Configuration()
 
-    builder = providers.Selector(config.build_engine, helm3=providers.Singleton(HelmBuildFilteringPipeline))
+    builder = providers.Selector(
+        config.build_engine, helm3=providers.Singleton(HelmBuildFilteringPipeline)
+    )
 
 
 class Runner:
@@ -57,7 +59,9 @@ class Runner:
             for step in self._steps:
                 step.run(self._config, self._context)
         except Error:
-            logger.error("Error when running build. No further build steps will be performed, moving to cleanup.")
+            logger.error(
+                "Error when running build. No further build steps will be performed, moving to cleanup."
+            )
             self._failed_build = True
 
     def run_cleanup(self) -> None:

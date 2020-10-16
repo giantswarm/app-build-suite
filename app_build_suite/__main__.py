@@ -47,7 +47,9 @@ def configure_global_options(config_parser: configargparse.ArgParser):
         action="store_true",
         help="Enable debug messages.",
     )
-    config_parser.add_argument("--version", action="version", version=f"{app_name} v{get_version()}")
+    config_parser.add_argument(
+        "--version", action="version", version=f"{app_name} v{get_version()}"
+    )
     config_parser.add_argument(
         "-b",
         "--build-engine",
@@ -98,10 +100,14 @@ def validate_global_config(config: configargparse.Namespace):
     # validate steps; '--steps' and '--skip-steps' can't be used together, but that is already
     # enforced by the argparse library
     if STEP_ALL in config.skip_steps:
-        raise ConfigError("skip-steps", f"'{STEP_ALL}' is not a reasonable step kind to skip.")
+        raise ConfigError(
+            "skip-steps", f"'{STEP_ALL}' is not a reasonable step kind to skip."
+        )
     for step in config.steps + config.skip_steps:
         if step not in ALL_STEPS:
-            raise ConfigError("steps", f"Unknown step '{step}'. Valid steps are: {ALL_STEPS}.")
+            raise ConfigError(
+                "steps", f"Unknown step '{step}'. Valid steps are: {ALL_STEPS}."
+            )
 
 
 def get_config(steps: List[BuildStep]) -> configargparse.Namespace:

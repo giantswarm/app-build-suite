@@ -113,7 +113,9 @@ class BuildStep(ABC):
                 f"Can't find {bin_name} executable. Please make sure it's installed.",
             )
 
-    def _assert_version_in_range(self, app_name: str, version: str, min_version: str, max_version_exc: str) -> None:
+    def _assert_version_in_range(
+        self, app_name: str, version: str, min_version: str, max_version_exc: str
+    ) -> None:
         """
         Checks if the given app_name with a string version falls in between specified min and max
         versions (min_version <= version < max_version). Raises ValidationError.
@@ -206,7 +208,11 @@ class BuildStepsFilteringPipeline(BuildStep):
                 try:
                     step_function(step)
                 except Error as e:
-                    logger.error(f"Error when running {stage} step for {step.name}: {e.msg}")
+                    logger.error(
+                        f"Error when running {stage} step for {step.name}: {e.msg}"
+                    )
                     raise
             else:
-                logger.info(f"Skipping {stage} step for {step.name} as it was not configured to run.")
+                logger.info(
+                    f"Skipping {stage} step for {step.name} as it was not configured to run."
+                )
