@@ -18,7 +18,7 @@ STEP_BUILD = StepType("build")
 STEP_METADATA = StepType("metadata")
 STEP_TEST_ALL = StepType("test_all")
 STEP_TEST_UNIT = StepType("test_unit")
-ALL_STEPS = [STEP_ALL, STEP_BUILD, STEP_METADATA, STEP_TEST_ALL, STEP_TEST_UNIT]
+ALL_STEPS = {STEP_ALL, STEP_BUILD, STEP_METADATA, STEP_TEST_ALL, STEP_TEST_UNIT}
 
 
 class BuildStep(ABC):
@@ -49,7 +49,7 @@ class BuildStep(ABC):
 
     @property
     @abstractmethod
-    def steps_provided(self) -> List[StepType]:
+    def steps_provided(self) -> Set[StepType]:
         """
         This defines types of steps this BuildStep should be executed for. If a user filters the set of steps
         and the steps listed here don't match any of the steps selected by the user, the whole BuildStep
@@ -65,7 +65,7 @@ class BuildStep(ABC):
         :param config_parser: configargparse.ArgParser to add the configuration options to.
         :return: None
         """
-        pass
+        pass  # pragma: no cover
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """
@@ -73,7 +73,7 @@ class BuildStep(ABC):
         :param config: Ready (parsed) configuration Namespace object.
         :return: None
         """
-        pass
+        pass  # pragma: no cover
 
     @abstractmethod
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
@@ -99,7 +99,7 @@ class BuildStep(ABC):
         :param config: Ready (parsed) configuration Namespace object.
         :return: None
         """
-        pass
+        pass  # pragma: no cover
 
     def _assert_binary_present_in_path(self, bin_name: str) -> None:
         """
@@ -142,30 +142,35 @@ class BuildStep(ABC):
             )
 
 
-class BuildStepsPipeline(BuildStep):
+class BuildStepsFilteringPipeline(BuildStep):
     """
     A base class to provide sets (pipelines) of BuildSteps that can be later executed as a single BuildStep.
     Implement your BuildStepsPipeline by inheriting from this class and overriding self._pipeline members.
+    This class handles BuildSteps filtering based on configured "--steps" flags.
     """
 
-    def __init__(self, pipeline: List[BuildStep]):
+    def __init__(self, pipeline: List[BuildStep], config_group_desc: str):
         """
         Create new instance using the BuildSteps passed.
         :param pipeline: The list of BuildSteps to be included in this pipeline.
+        :param config_group_desc: All options provided by BuildSteps included in
+        BuildStepsPipeline all included in the application's help message as
+        a separate config options group. This sets its description.
         """
+        self._config_group_desc = config_group_desc
         self._pipeline = pipeline
 
     @property
-    def steps_provided(self) -> List[StepType]:
+    def steps_provided(self) -> Set[StepType]:
         all_steps: Set[StepType] = set()
         for build_step in self._pipeline:
-            all_steps.union(build_step.steps_provided)
-        return list(all_steps)
+            all_steps.update(build_step.steps_provided)
+        return all_steps
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         group = cast(
             configargparse.ArgParser,
-            config_parser.add_argument_group("helm3 build engine options"),
+            config_parser.add_argument_group(self._config_group_desc),
         )
         for build_step in self._pipeline:
             build_step.initialize_config(group)
@@ -195,9 +200,10 @@ class BuildStepsPipeline(BuildStep):
         step_function: Callable[[BuildStep], None],
     ) -> None:
         for step in self._pipeline:
-            if STEP_ALL in config.steps or any(
-                s in step.steps_provided for s in config.steps
-            ):
+            execute_all = STEP_ALL in config.steps
+            is_requested_step = any(s in step.steps_provided for s in config.steps)
+            is_requested_skip = any(s in step.steps_provided for s in config.skip_steps)
+            if (execute_all or is_requested_step) and not is_requested_skip:
                 logger.info(f"Running {stage} step for {step.name}")
                 try:
                     step_function(step)

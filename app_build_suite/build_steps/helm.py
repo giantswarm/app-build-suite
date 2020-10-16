@@ -4,9 +4,10 @@ import logging
 import os
 import shutil
 import subprocess  # nosec
-from typing import List, Optional, Any, Dict
+from typing import List, Optional, Any, Dict, Set
 
 import configargparse
+import validators
 
 from app_build_suite.build_steps import BuildStep
 from app_build_suite.build_steps.build_step import (
@@ -14,7 +15,7 @@ from app_build_suite.build_steps.build_step import (
     STEP_BUILD,
     ALL_STEPS,
     STEP_TEST_UNIT,
-    BuildStepsPipeline,
+    BuildStepsFilteringPipeline,
 )
 from app_build_suite.build_steps.errors import ValidationError, BuildError
 from app_build_suite.utils.git import GitRepoVersionInfo
@@ -33,7 +34,7 @@ class HelmBuilderValidator(BuildStep):
     """
 
     @property
-    def steps_provided(self) -> List[StepType]:
+    def steps_provided(self) -> Set[StepType]:
         return ALL_STEPS
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
@@ -68,8 +69,8 @@ class HelmGitVersionSetter(BuildStep):
     repo_info: Optional[GitRepoVersionInfo] = None
 
     @property
-    def steps_provided(self) -> List[StepType]:
-        return [STEP_BUILD]
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_BUILD}
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
@@ -154,12 +155,17 @@ class HelmChartToolLinter(BuildStep):
     """
 
     @property
-    def steps_provided(self) -> List[StepType]:
-        return [STEP_TEST_UNIT]
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_TEST_UNIT}
 
     _ct_bin = "ct"
     _min_ct_version = "3.1.0"
     _max_ct_version = "4.0.0"
+
+    def __init__(self):
+        self._additional_helm_repos = [
+            "stable=https://kubernetes-charts.storage.googleapis.com/"
+        ]
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
@@ -168,12 +174,23 @@ class HelmChartToolLinter(BuildStep):
             help="Path to optional 'ct' lint config file.",
         )
         config_parser.add_argument(
-            "--ct-schema", required=False, help="Path to optional 'ct' schema file.",
+            "--ct-schema",
+            required=False,
+            help="Path to optional 'ct' schema file.",
+        )
+        config_parser.add_argument(
+            "--ct-chart-repos",
+            required=False,
+            help="Additional helm chart repositories for use with 'ct' validation."
+            " Additional chart repositories for dependency resolutions."
+            " Repositories should be formatted as 'name=url' (ex:"
+            " local=http://127.0.0.1:8879/charts). Multiple entries must"
+            " be separated with ','.",
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """
-        Verifies if the required version of `ct` is installed.
+        Verifies if the required version of `ct` is installed and config options are sane.
         :param config: the config object
         :return: None
         """
@@ -189,12 +206,30 @@ class HelmChartToolLinter(BuildStep):
         # validate config options
         if config.ct_config is not None and not os.path.isfile(config.ct_config):
             raise ValidationError(
-                self.name, f"Chart tool config file {config.ct_config} doesn't exist.",
+                self.name,
+                f"Chart tool config file {config.ct_config} doesn't exist.",
             )
         if config.ct_schema is not None and not os.path.isfile(config.ct_schema):
             raise ValidationError(
-                self.name, f"Chart tool schema file {config.ct_schema} doesn't exist.",
+                self.name,
+                f"Chart tool schema file {config.ct_schema} doesn't exist.",
             )
+        if config.ct_chart_repos is not None:
+            repos_entries = config.ct_chart_repos.split(",")
+            for entry in repos_entries:
+                entry = entry.strip("\"'")
+                name, url = entry.split("=")
+                if not validators.slug(name):
+                    raise ValidationError(
+                        self.name,
+                        f"{name} is not a correct helm repo name.",
+                    )
+                if not validators.url(url):
+                    raise ValidationError(
+                        self.name,
+                        f"{url} is not a correct helm repo url.",
+                    )
+                self._additional_helm_repos.append(entry)
 
     def run(self, config: argparse.Namespace, _: Dict[str, Any]) -> None:
         args = [
@@ -202,7 +237,10 @@ class HelmChartToolLinter(BuildStep):
             "lint",
             "--validate-maintainers=false",
             f"--charts={config.chart_dir}",
+            f"--chart-repos={','.join(self._additional_helm_repos)}",
         ]
+        if config.debug:
+            args.append("--debug")
         if config.ct_config is not None:
             args.append(f"--config={config.ct_config}")
         if config.ct_schema is not None:
@@ -233,8 +271,8 @@ class HelmChartBuilder(BuildStep):
     context_key_chart_file_name: str = "chart_file_name"
 
     @property
-    def steps_provided(self) -> List[StepType]:
-        return [STEP_BUILD]
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_BUILD}
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """
@@ -289,7 +327,7 @@ class HelmChartBuilder(BuildStep):
             raise BuildError(self.name, "Chart build failed")
 
 
-class HelmBuildPipeline(BuildStepsPipeline):
+class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     """
     Pipeline that combines all the steps required to use helm3 as a chart builder.
     """
@@ -301,5 +339,6 @@ class HelmBuildPipeline(BuildStepsPipeline):
                 HelmGitVersionSetter(),
                 HelmChartToolLinter(),
                 HelmChartBuilder(),
-            ]
+            ],
+            "Helm 3 build engine options",
         )

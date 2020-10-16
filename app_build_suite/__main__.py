@@ -5,11 +5,16 @@ from typing import List, NewType
 
 import configargparse
 
-from app_build_suite.build_steps import BuildStep, BuildStepsPipeline, ALL_STEPS
+from app_build_suite.build_steps import (
+    BuildStep,
+    BuildStepsFilteringPipeline,
+    ALL_STEPS,
+)
+from app_build_suite.build_steps.build_step import STEP_ALL
 from app_build_suite.build_steps.errors import ConfigError
 from .components import ComponentsContainer, Runner
 
-version = "0.0.1"
+ver = "0.0.1-dev"
 app_name = "app_build_suite"
 logger = logging.getLogger(__name__)
 
@@ -18,7 +23,16 @@ BUILD_ENGINE_HELM3 = BuildEngineType("helm3")
 ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
 
 
-def get_pipeline(container: ComponentsContainer) -> List[BuildStepsPipeline]:
+def get_version() -> str:
+    try:
+        from .version import build_ver
+
+        return build_ver
+    except ImportError:
+        return ver
+
+
+def get_pipeline(container: ComponentsContainer) -> List[BuildStepsFilteringPipeline]:
     return [
         container.builder(),
     ]
@@ -34,7 +48,7 @@ def configure_global_options(config_parser: configargparse.ArgParser):
         help="Enable debug messages.",
     )
     config_parser.add_argument(
-        "--version", action="version", version=f"{app_name} v{version}"
+        "--version", action="version", version=f"{app_name} v{get_version()}"
     )
     config_parser.add_argument(
         "-b",
@@ -44,12 +58,20 @@ def configure_global_options(config_parser: configargparse.ArgParser):
         type=BuildEngineType,
         help="Select the build engine used for building your chart.",
     )
-    config_parser.add_argument(
+    steps_group = config_parser.add_mutually_exclusive_group()
+    steps_group.add_argument(
         "--steps",
         nargs="+",
         help=f"List of steps to execute. Available steps: {ALL_STEPS}",
         required=False,
         default=["all"],
+    )
+    steps_group.add_argument(
+        "--skip-steps",
+        nargs="+",
+        help=f"List of steps to skip. Available steps: {ALL_STEPS}",
+        required=False,
+        default=[],
     )
 
 
@@ -75,8 +97,13 @@ def validate_global_config(config: configargparse.Namespace):
             "build_engine",
             f"Unknown build engine '{config.build_engine}'. Valid engines are: {ALL_BUILD_ENGINES}.",
         )
-    # validate steps
-    for step in config.steps:
+    # validate steps; '--steps' and '--skip-steps' can't be used together, but that is already
+    # enforced by the argparse library
+    if STEP_ALL in config.skip_steps:
+        raise ConfigError(
+            "skip-steps", f"'{STEP_ALL}' is not a reasonable step kind to skip."
+        )
+    for step in config.steps + config.skip_steps:
         if step not in ALL_STEPS:
             raise ConfigError(
                 "steps", f"Unknown step '{step}'. Valid steps are: {ALL_STEPS}."
@@ -111,7 +138,9 @@ def main():
         logging.getLogger().setLevel(logging.DEBUG)
 
     container = ComponentsContainer()
-    container.config.from_dict({"build_engine": global_only_config.build_engine},)
+    container.config.from_dict(
+        {"build_engine": global_only_config.build_engine},
+    )
 
     steps = get_pipeline(container)
     config = get_config(steps)

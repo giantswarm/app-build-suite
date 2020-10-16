@@ -1,0 +1,37 @@
+version: 2.1
+
+orbs:
+  architect: giantswarm/architect@0.13.0
+  codecov: codecov/codecov@1.0.2
+
+workflows:
+  test:
+    jobs:
+      - run-tests
+
+      - architect/push-to-docker:
+          name: push-app-build-suite-to-quay
+          requires:
+            - run-tests
+          context: architect
+          image: "quay.io/giantswarm/app-build-suite"
+          username_envar: "QUAY_USERNAME"
+          password_envar: "QUAY_PASSWORD"
+          filters:
+            # Needed to trigger job also on git tag.
+            tags:
+              only: /^v.*/
+
+jobs:
+  run-tests:
+    machine: true
+    steps:
+      - checkout
+
+      - run:
+          name: Execute tests
+          command: |
+            make docker-test-ci
+
+      - codecov/upload:
+          file: .coverage/coverage.xml

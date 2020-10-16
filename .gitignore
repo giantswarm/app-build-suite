@@ -136,3 +136,4 @@ dmypy.json
 helm/
 helm.back/
 *.tgz
+app_build_suite/version.py

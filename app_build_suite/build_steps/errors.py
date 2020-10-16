@@ -6,7 +6,9 @@ class Error(Exception):
     Basic error class that just returns a message.
     """
 
-    msg: str
+    def __init__(self, message: str):
+        super().__init__()
+        self.msg = message
 
 
 class ConfigError(Error):
@@ -16,9 +18,9 @@ class ConfigError(Error):
 
     config_option: str
 
-    def __init__(self, config_option, message):
+    def __init__(self, config_option: str, message: str):
+        super().__init__(message)
         self.config_option = config_option
-        self.msg = message
 
 
 class ValidationError(Error):
@@ -29,9 +31,9 @@ class ValidationError(Error):
 
     source: str
 
-    def __init__(self, source, message):
+    def __init__(self, source: str, message: str):
+        super().__init__(message)
         self.source = source
-        self.msg = message
 
 
 class BuildError(Error):
@@ -41,6 +43,6 @@ class BuildError(Error):
 
     source: str
 
-    def __init__(self, source, message):
+    def __init__(self, source: str, message: str):
+        super().__init__(message)
         self.source = source
-        self.msg = message

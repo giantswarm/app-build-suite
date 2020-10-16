@@ -14,19 +14,19 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 COPY Pipfile .
 COPY Pipfile.lock .
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy
+RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --clear
 
 
 FROM base
 ARG WORK_DIR="/tmp/install"
-ARG ABS_DIR="/abs"
+ENV ABS_DIR="/abs"
 ENV HELM_VER="3.3.4"
 ENV KUBECTL_VER="1.18.9"
 ENV CT_VER="3.1.1"
 
 # install dependencies
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y curl git && \
+    apt-get install --no-install-recommends -y curl git sudo && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN mkdir $WORK_DIR
 WORKDIR $WORK_DIR
@@ -45,14 +45,14 @@ RUN curl -L https://github.com/helm/chart-testing/releases/download/v${CT_VER}/c
 RUN rm -rf $WORK_DIR
 RUN pip install yamllint==1.25.0 yamale==3.0.4
 
-RUN adduser --disabled-password --home $ABS_DIR --uid 1001 abs
-WORKDIR $ABS_DIR
-COPY --from=builder /.venv .venv/
-ENV PATH="${ABS_DIR}/.venv/bin:$PATH"
-COPY app_build_suite/ app_build_suite/
+ENV USE_UID=0
+ENV USE_GID=0
+COPY --from=builder /.venv /.venv
+ENV PATH="/.venv/bin:$PATH"
+RUN mkdir -p $ABS_DIR/workdir
 ENV PYTHONPATH=$ABS_DIR
-RUN chown -R abs.abs .
-RUN mkdir workdir
 WORKDIR $ABS_DIR/workdir
-ENTRYPOINT ["python", "-m", "app_build_suite"]
+COPY run-abs-in-docker.sh /usr/local/bin/
+COPY app_build_suite/ ${ABS_DIR}/app_build_suite/
+ENTRYPOINT ["run-abs-in-docker.sh"]
 CMD ["-h"]
