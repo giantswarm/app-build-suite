@@ -48,13 +48,11 @@ class HelmBuilderValidator(BuildStep):
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """Validates if basic chart files are present in the configured directory."""
-        if os.path.exists(
-            os.path.join(config.chart_dir, _chart_yaml)
-        ) and os.path.exists(os.path.join(config.chart_dir, _values_yaml)):
+        if os.path.exists(os.path.join(config.chart_dir, _chart_yaml)) and os.path.exists(
+            os.path.join(config.chart_dir, _values_yaml)
+        ):
             return
-        raise ValidationError(
-            self.name, f"Can't find '{_chart_yaml}' or '{_values_yaml}' files."
-        )
+        raise ValidationError(self.name, f"Can't find '{_chart_yaml}' or '{_values_yaml}' files.")
 
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         pass
@@ -94,9 +92,7 @@ class HelmGitVersionSetter(BuildStep):
         """
         self.repo_info = GitRepoVersionInfo(config.chart_dir)
         if not self.repo_info.is_git_repo:
-            raise ValidationError(
-                self.name, f"Can't find valid git repository in {config.chart_dir}"
-            )
+            raise ValidationError(self.name, f"Can't find valid git repository in {config.chart_dir}")
 
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         """
@@ -105,18 +101,14 @@ class HelmGitVersionSetter(BuildStep):
         :param context: the context object
         :return: None
         """
-        if not (
-            config.replace_chart_version_with_git or config.replace_app_version_with_git
-        ):
+        if not (config.replace_chart_version_with_git or config.replace_app_version_with_git):
             logger.debug("No version override options requested, ending step.")
             return
 
         if self.repo_info is not None:
             git_version = self.repo_info.get_git_version
         else:
-            raise ValidationError(
-                self.name, f"Can't find valid git repository in {config.chart_dir}"
-            )
+            raise ValidationError(self.name, f"Can't find valid git repository in {config.chart_dir}")
         # add the version info to context, so other BuildSteps can use it
         context[HelmGitVersionSetter.context_key_git_version] = git_version
 
@@ -127,16 +119,10 @@ class HelmGitVersionSetter(BuildStep):
             lines = file.readlines()
             for line in lines:
                 fields = line.split(":")
-                if (
-                    config.replace_chart_version_with_git
-                    and fields[0] == _chart_yaml_chart_version_key
-                ) or (
-                    config.replace_app_version_with_git
-                    and fields[0] == _chart_yaml_app_version_key
+                if (config.replace_chart_version_with_git and fields[0] == _chart_yaml_chart_version_key) or (
+                    config.replace_app_version_with_git and fields[0] == _chart_yaml_app_version_key
                 ):
-                    logger.info(
-                        f"Replacing '{fields[0]}' with git version '{git_version}' in {_chart_yaml}."
-                    )
+                    logger.info(f"Replacing '{fields[0]}' with git version '{git_version}' in {_chart_yaml}.")
                     changes_made = True
                     new_lines.append(f"{fields[0]}: {git_version}\n")
                 else:
@@ -163,9 +149,7 @@ class HelmChartToolLinter(BuildStep):
     _max_ct_version = "4.0.0"
 
     def __init__(self):
-        self._additional_helm_repos = [
-            "stable=https://kubernetes-charts.storage.googleapis.com/"
-        ]
+        self._additional_helm_repos = ["stable=https://kubernetes-charts.storage.googleapis.com/"]
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
@@ -174,7 +158,9 @@ class HelmChartToolLinter(BuildStep):
             help="Path to optional 'ct' lint config file.",
         )
         config_parser.add_argument(
-            "--ct-schema", required=False, help="Path to optional 'ct' schema file.",
+            "--ct-schema",
+            required=False,
+            help="Path to optional 'ct' schema file.",
         )
         config_parser.add_argument(
             "--ct-chart-repos",
@@ -198,17 +184,17 @@ class HelmChartToolLinter(BuildStep):
         run_res = subprocess.run(["ct", "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
         version = version_line.split(":")[1].strip()
-        self._assert_version_in_range(
-            self._ct_bin, version, self._min_ct_version, self._max_ct_version
-        )
+        self._assert_version_in_range(self._ct_bin, version, self._min_ct_version, self._max_ct_version)
         # validate config options
         if config.ct_config is not None and not os.path.isfile(config.ct_config):
             raise ValidationError(
-                self.name, f"Chart tool config file {config.ct_config} doesn't exist.",
+                self.name,
+                f"Chart tool config file {config.ct_config} doesn't exist.",
             )
         if config.ct_schema is not None and not os.path.isfile(config.ct_schema):
             raise ValidationError(
-                self.name, f"Chart tool schema file {config.ct_schema} doesn't exist.",
+                self.name,
+                f"Chart tool schema file {config.ct_schema} doesn't exist.",
             )
         if config.ct_chart_repos is not None:
             repos_entries = config.ct_chart_repos.split(",")
@@ -217,11 +203,13 @@ class HelmChartToolLinter(BuildStep):
                 name, url = entry.split("=")
                 if not validators.slug(name):
                     raise ValidationError(
-                        self.name, f"{name} is not a correct helm repo name.",
+                        self.name,
+                        f"{name} is not a correct helm repo name.",
                     )
                 if not validators.url(url):
                     raise ValidationError(
-                        self.name, f"{url} is not a correct helm repo url.",
+                        self.name,
+                        f"{url} is not a correct helm repo url.",
                     )
                 self._additional_helm_repos.append(entry)
 
@@ -240,15 +228,11 @@ class HelmChartToolLinter(BuildStep):
         if config.ct_schema is not None:
             args.append(f"--chart-yaml-schema={config.ct_schema}")
         logger.info("Running chart tool linting")
-        run_res = subprocess.run(  # nosec, input params checked above in pre_run
-            args, capture_output=True
-        )
+        run_res = subprocess.run(args, capture_output=True)  # nosec, input params checked above in pre_run
         for line in run_res.stdout.splitlines():
             logger.info(str(line, "utf-8"))
         if run_res.returncode != 0:
-            logger.error(
-                f"{self._ct_bin} run failed with exit code {run_res.returncode}"
-            )
+            logger.error(f"{self._ct_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Linting failed")
 
 
@@ -281,14 +265,10 @@ class HelmChartBuilder(BuildStep):
         if version_line.startswith(prefix):
             version_line = version_line[len(prefix) :].strip("{}")
         else:
-            raise ValidationError(
-                self.name, f"Can't parse {self._helm_bin} version number."
-            )
+            raise ValidationError(self.name, f"Can't parse {self._helm_bin} version number.")
         version_entries = version_line.split(",")[0]
         version = version_entries.split(":")[1].strip('"')
-        self._assert_version_in_range(
-            self._helm_bin, version, self._min_helm_version, self._max_helm_version
-        )
+        self._assert_version_in_range(self._helm_bin, version, self._min_helm_version, self._max_helm_version)
 
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         """
@@ -303,21 +283,15 @@ class HelmChartBuilder(BuildStep):
             config.chart_dir,
         ]
         logger.info("Building chart with 'helm package'")
-        run_res = subprocess.run(  # nosec, input params checked above in pre_run
-            args, capture_output=True
-        )
+        run_res = subprocess.run(args, capture_output=True)  # nosec, input params checked above in pre_run
         for line in run_res.stdout.splitlines():
             logger.info(str(line, "utf-8"))
             if line.startswith(b"Successfully packaged chart and saved it to"):
                 full_chart_path = str(line.split(b":")[1].strip(), "utf-8")
                 context[HelmChartBuilder.context_key_chart_full_path] = full_chart_path
-                context[
-                    HelmChartBuilder.context_key_chart_file_name
-                ] = os.path.basename(full_chart_path)
+                context[HelmChartBuilder.context_key_chart_file_name] = os.path.basename(full_chart_path)
         if run_res.returncode != 0:
-            logger.error(
-                f"{self._helm_bin} run failed with exit code {run_res.returncode}"
-            )
+            logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart build failed")
 
 

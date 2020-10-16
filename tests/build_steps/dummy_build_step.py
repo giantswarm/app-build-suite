@@ -94,21 +94,13 @@ class DummyBuildStep(BuildStep):
     ):
         __tracebackhide__ = True
         if self.config_counter != expected_config_counter:
-            pytest.fail(
-                f"expected config run counter is {expected_config_counter}, but was {self.config_counter}"
-            )
+            pytest.fail(f"expected config run counter is {expected_config_counter}, but was {self.config_counter}")
         if self.pre_run_counter != expected_pre_run_counter:
-            pytest.fail(
-                f"expected pre_run run counter is {expected_pre_run_counter}, but was {self.pre_run_counter}"
-            )
+            pytest.fail(f"expected pre_run run counter is {expected_pre_run_counter}, but was {self.pre_run_counter}")
         if self.run_counter != expected_run_counter:
-            pytest.fail(
-                f"expected run counter is {expected_run_counter}, but was {self.run_counter}"
-            )
+            pytest.fail(f"expected run counter is {expected_run_counter}, but was {self.run_counter}")
         if self.cleanup_counter != expected_cleanup_counter:
-            pytest.fail(
-                f"expected cleanup run counter is {expected_cleanup_counter}, but was {self.cleanup_counter}"
-            )
+            pytest.fail(f"expected cleanup run counter is {expected_cleanup_counter}, but was {self.cleanup_counter}")
 
 
 class DummyOneStepBuildFilteringPipeline(BuildStepsFilteringPipeline):
@@ -119,8 +111,6 @@ class DummyOneStepBuildFilteringPipeline(BuildStepsFilteringPipeline):
 
 class DummyTwoStepBuildFilteringPipeline(BuildStepsFilteringPipeline):
     def __init__(self, fail_in_pre: bool = False):
-        self.step1 = DummyBuildStep(
-            "bs1", {STEP_BUILD, STEP_METADATA}, fail_in_pre=fail_in_pre
-        )
+        self.step1 = DummyBuildStep("bs1", {STEP_BUILD, STEP_METADATA}, fail_in_pre=fail_in_pre)
         self.step2 = DummyBuildStep("bs2", {STEP_TEST_ALL}, fail_in_pre=fail_in_pre)
         super().__init__([self.step1, self.step2], "Dummy two steps pipeline")

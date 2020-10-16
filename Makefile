@@ -14,7 +14,7 @@ all: docker-build
 
 # Build the docker image from locally built binary
 docker-build:
-	echo build_ver=\"${VER}-${COMMIT}\" > app_build_suite/version.py
+	echo build_ver\ =\ \"${VER}-${COMMIT}\" > app_build_suite/version.py
 	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
 
 # Push the docker image

@@ -9,10 +9,12 @@ COPY .coveragerc .
 COPY .flake8 .
 COPY .mypy.ini .
 COPY .pre-commit-config.yaml .
+# COPY pyproject.toml .
 COPY run-tests-in-docker.sh .
 COPY Pipfile .
 COPY Pipfile.lock .
 COPY tests/ tests/
+COPY .git/ ./.git/
 RUN ln -s /.venv ${ABS_DIR}/.venv
 RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --clear --dev
 ENTRYPOINT ["./run-tests-in-docker.sh"]
