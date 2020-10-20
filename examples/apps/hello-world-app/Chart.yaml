@@ -1,6 +1,6 @@
 apiVersion: v1
 name: hello-world-app
-version: v0.0.1-27f2696343eb2a93994175e86e69ed7953cf7abd
+version: v0.0.1-df1c70b5fe46201ae1db71ddb9686d6e45fa18d0
 appVersion: v0.0.1-27f2696343eb2a93994175e86e69ed7953cf7abd
 home: https://github.com/giantswarm/hello-world-app
 description: A chart that deploys a basic hello world site and lets you test values merging of user values configmap and secrets.
