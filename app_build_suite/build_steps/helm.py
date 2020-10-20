@@ -355,6 +355,9 @@ class HelmChartMetadataGenerator(BuildStep):
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
+        if not config.generate_metadata:
+            logger.info("Metadata generation is disabled using 'generate-metadata' option.")
+            return
         # first step of validation should be done already by 'ct' with correct schema (unless explicitly disabled)
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
@@ -376,7 +379,19 @@ class HelmChartMetadataGenerator(BuildStep):
                 ):
                     raise ValidationError(self.name, f"Value of '{option}' is not a correct boolean.")
 
+    @staticmethod
+    def get_build_timestamp() -> str:
+        return datetime.utcnow().replace(tzinfo=timezone.utc, microsecond=0).isoformat()
+
+    @staticmethod
+    def write_meta_file(meta_file_name: str, meta: Dict[str, Any]) -> None:
+        with open(meta_file_name, "w") as f:
+            yaml.dump(meta, f, default_flow_style=False)
+
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+        if not config.generate_metadata:
+            logger.info("Metadata generation is disabled using 'generate-metadata' option.")
+            return
         meta = {}
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
@@ -385,7 +400,7 @@ class HelmChartMetadataGenerator(BuildStep):
         meta[self._key_digest] = get_file_sha256(context[context_key_chart_file_name])
         if self._key_upstream_chart_url in chart_yaml:
             meta[self._key_upstream_chart_url] = chart_yaml[self._key_upstream_chart_url]
-        meta[self._key_date_created] = datetime.utcnow().replace(tzinfo=timezone.utc, microsecond=0).isoformat()
+        meta[self._key_date_created] = self.get_build_timestamp()
         if self._key_restrictions in chart_yaml:
             meta[self._key_restrictions] = {}
             for key in [
@@ -399,8 +414,7 @@ class HelmChartMetadataGenerator(BuildStep):
         meta_dir_name = f"{context[context_key_chart_file_name]}-meta"
         pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
         meta_file_name = os.path.join(meta_dir_name, "main.yaml")
-        with open(meta_file_name, "w") as f:
-            yaml.dump(meta, f, default_flow_style=False)
+        self.write_meta_file(meta_file_name, meta)
         logger.info(f"Metadata file saved to '{meta_file_name}'")
 
 

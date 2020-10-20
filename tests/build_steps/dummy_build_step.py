@@ -4,6 +4,7 @@ from typing import Dict, Any, Set
 import configargparse
 import pytest
 
+from app_build_suite.__main__ import get_global_config_parser
 from app_build_suite.build_steps import BuildStep, BuildStepsFilteringPipeline
 from app_build_suite.build_steps.build_step import (
     StepType,
@@ -13,6 +14,14 @@ from app_build_suite.build_steps.build_step import (
     STEP_METADATA,
 )
 from app_build_suite.build_steps.errors import Error, ValidationError
+
+
+def init_config_for_step(step: BuildStep) -> configargparse.Namespace:
+    config_parser = get_global_config_parser()
+    step.initialize_config(config_parser)
+    config = config_parser.parse_known_args()[0]
+    config.chart_dir = "."
+    return config
 
 
 class DummyBuildStep(BuildStep):
