@@ -56,6 +56,7 @@ RUN mkdir -p $ABS_DIR/workdir
 ENV PYTHONPATH=$ABS_DIR
 WORKDIR $ABS_DIR/workdir
 COPY run-abs-in-docker.sh /usr/local/bin/
+COPY resources/ ${ABS_DIR}/resources/
 COPY app_build_suite/ ${ABS_DIR}/app_build_suite/
 ENTRYPOINT ["run-abs-in-docker.sh"]
 CMD ["-h"]
