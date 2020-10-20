@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 context_key_chart_full_path: str = "chart_full_path"
 context_key_chart_file_name: str = "chart_file_name"
+context_key_git_version: str = "git_version"
 
 _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
@@ -71,7 +72,6 @@ class HelmGitVersionSetter(BuildStep):
     Sets chart `version` and `appVersion` to a version discovered from `git`. Both options are configurable.
     """
 
-    context_key_git_version: str = "git_version"
     repo_info: Optional[GitRepoVersionInfo] = None
 
     @property
@@ -92,12 +92,18 @@ class HelmGitVersionSetter(BuildStep):
             help=f"Should the {_chart_yaml_chart_version_key} in {_chart_yaml} be replaced by a tag and hash from git",
         )
 
+    def _is_enabled(self, config: argparse.Namespace) -> bool:
+        return config.replace_chart_version_with_git or config.replace_app_version_with_git
+
     def pre_run(self, config: argparse.Namespace) -> None:
         """
         Checks if we can find a git directory in the chart's dir or that dir's parent.
         :param config: Configuration Namespace object.
         :return: None
         """
+        if not self._is_enabled(config):
+            logger.debug("No version override options requested, skipping pre-run.")
+            return
         self.repo_info = GitRepoVersionInfo(config.chart_dir)
         if not self.repo_info.is_git_repo:
             raise ValidationError(self.name, f"Can't find valid git repository in {config.chart_dir}")
@@ -109,7 +115,7 @@ class HelmGitVersionSetter(BuildStep):
         :param context: the context object
         :return: None
         """
-        if not (config.replace_chart_version_with_git or config.replace_app_version_with_git):
+        if not self._is_enabled(config):
             logger.debug("No version override options requested, ending step.")
             return
 
@@ -118,7 +124,7 @@ class HelmGitVersionSetter(BuildStep):
         else:
             raise ValidationError(self.name, f"Can't find valid git repository in {config.chart_dir}")
         # add the version info to context, so other BuildSteps can use it
-        context[HelmGitVersionSetter.context_key_git_version] = git_version
+        context[context_key_git_version] = git_version
 
         new_lines: List[str] = []
         changes_made = False
