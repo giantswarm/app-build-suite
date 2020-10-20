@@ -2,8 +2,10 @@
 import argparse
 import logging
 import os
+import pathlib
 import shutil
 import subprocess  # nosec
+from datetime import datetime, timezone
 from typing import List, Optional, Any, Dict, Set
 
 import configargparse
@@ -20,9 +22,13 @@ from app_build_suite.build_steps.build_step import (
     STEP_METADATA,
 )
 from app_build_suite.build_steps.errors import ValidationError, BuildError
+from app_build_suite.utils.files import get_file_sha256
 from app_build_suite.utils.git import GitRepoVersionInfo
 
 logger = logging.getLogger(__name__)
+
+context_key_chart_full_path: str = "chart_full_path"
+context_key_chart_file_name: str = "chart_file_name"
 
 _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
@@ -268,9 +274,6 @@ class HelmChartBuilder(BuildStep):
     _min_helm_version = "3.2.0"
     _max_helm_version = "4.0.0"
 
-    context_key_chart_full_path: str = "chart_full_path"
-    context_key_chart_file_name: str = "chart_file_name"
-
     @property
     def steps_provided(self) -> Set[StepType]:
         return {STEP_BUILD}
@@ -311,8 +314,8 @@ class HelmChartBuilder(BuildStep):
             logger.info(str(line, "utf-8"))
             if line.startswith(b"Successfully packaged chart and saved it to"):
                 full_chart_path = str(line.split(b":")[1].strip(), "utf-8")
-                context[HelmChartBuilder.context_key_chart_full_path] = full_chart_path
-                context[HelmChartBuilder.context_key_chart_file_name] = os.path.basename(full_chart_path)
+                context[context_key_chart_full_path] = full_chart_path
+                context[context_key_chart_file_name] = os.path.basename(full_chart_path)
         if run_res.returncode != 0:
             logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart build failed")
@@ -372,18 +375,27 @@ class HelmChartMetadataGenerator(BuildStep):
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
-        meta[self._key_chart_file] = context[HelmChartBuilder.context_key_chart_file_name]
+        meta[self._key_chart_file] = context[context_key_chart_file_name]
+        meta[self._key_digest] = get_file_sha256(context[context_key_chart_file_name])
         if self._key_upstream_chart_url in chart_yaml:
             meta[self._key_upstream_chart_url] = chart_yaml[self._key_upstream_chart_url]
-        # chartFile: The name of the chart this file is for (string, required, present in the upper level dir)[auto]
-        # digest: The digest of the chart's *.tgz file, same as in index.yaml (string, required)[auto]
-        # upstreamChartURL: If this chart is based on an upstream chart, place the URL for it here [manu]
-        # dateCreated: date of generating this metadata file (build date)(string, required)[auto]
-        # restrictions: (optional)
-        #   clusterSingleton:
-        #   namespaceSingleton:
-        #   fixedNamespace:
-        #   gpuInstances: this chart requ
+        meta[self._key_date_created] = datetime.utcnow().replace(tzinfo=timezone.utc, microsecond=0).isoformat()
+        if self._key_restrictions in chart_yaml:
+            meta[self._key_restrictions] = {}
+            for key in [
+                self._key_cluster_singleton,
+                self._key_namespace_singleton,
+                self._key_fixed_namespace,
+                self._key_gpu_instances,
+            ]:
+                if key in chart_yaml[self._key_restrictions]:
+                    meta[self._key_restrictions][key] = chart_yaml[self._key_restrictions][key]
+        meta_dir_name = f"{context[context_key_chart_file_name]}-meta"
+        pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
+        meta_file_name = os.path.join(meta_dir_name, "main.yaml")
+        with open(meta_file_name, "w") as f:
+            yaml.dump(meta, f, default_flow_style=False)
+        logger.info(f"Metadata file saved to '{meta_file_name}'")
 
 
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
