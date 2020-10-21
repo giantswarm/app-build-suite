@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ tpl .Values.resource.default.name . }}-service
+  labels:
+    app: {{ tpl .Values.resource.default.name . }}
+spec:
+  selector:
+    app: {{ tpl .Values.resource.default.name . }}
+    color: {{ .Values.color }}
+
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000

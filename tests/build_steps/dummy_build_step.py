@@ -4,6 +4,7 @@ from typing import Dict, Any, Set
 import configargparse
 import pytest
 
+from app_build_suite.__main__ import get_global_config_parser
 from app_build_suite.build_steps import BuildStep, BuildStepsFilteringPipeline
 from app_build_suite.build_steps.build_step import (
     StepType,
@@ -13,6 +14,14 @@ from app_build_suite.build_steps.build_step import (
     STEP_METADATA,
 )
 from app_build_suite.build_steps.errors import Error, ValidationError
+
+
+def init_config_for_step(step: BuildStep) -> configargparse.Namespace:
+    config_parser = get_global_config_parser()
+    step.initialize_config(config_parser)
+    config = config_parser.parse_known_args()[0]
+    config.chart_dir = "."
+    return config
 
 
 class DummyBuildStep(BuildStep):
@@ -94,21 +103,13 @@ class DummyBuildStep(BuildStep):
     ):
         __tracebackhide__ = True
         if self.config_counter != expected_config_counter:
-            pytest.fail(
-                f"expected config run counter is {expected_config_counter}, but was {self.config_counter}"
-            )
+            pytest.fail(f"expected config run counter is {expected_config_counter}, but was {self.config_counter}")
         if self.pre_run_counter != expected_pre_run_counter:
-            pytest.fail(
-                f"expected pre_run run counter is {expected_pre_run_counter}, but was {self.pre_run_counter}"
-            )
+            pytest.fail(f"expected pre_run run counter is {expected_pre_run_counter}, but was {self.pre_run_counter}")
         if self.run_counter != expected_run_counter:
-            pytest.fail(
-                f"expected run counter is {expected_run_counter}, but was {self.run_counter}"
-            )
+            pytest.fail(f"expected run counter is {expected_run_counter}, but was {self.run_counter}")
         if self.cleanup_counter != expected_cleanup_counter:
-            pytest.fail(
-                f"expected cleanup run counter is {expected_cleanup_counter}, but was {self.cleanup_counter}"
-            )
+            pytest.fail(f"expected cleanup run counter is {expected_cleanup_counter}, but was {self.cleanup_counter}")
 
 
 class DummyOneStepBuildFilteringPipeline(BuildStepsFilteringPipeline):
@@ -119,8 +120,6 @@ class DummyOneStepBuildFilteringPipeline(BuildStepsFilteringPipeline):
 
 class DummyTwoStepBuildFilteringPipeline(BuildStepsFilteringPipeline):
     def __init__(self, fail_in_pre: bool = False):
-        self.step1 = DummyBuildStep(
-            "bs1", {STEP_BUILD, STEP_METADATA}, fail_in_pre=fail_in_pre
-        )
+        self.step1 = DummyBuildStep("bs1", {STEP_BUILD, STEP_METADATA}, fail_in_pre=fail_in_pre)
         self.step2 = DummyBuildStep("bs2", {STEP_TEST_ALL}, fail_in_pre=fail_in_pre)
         super().__init__([self.step1, self.step2], "Dummy two steps pipeline")

@@ -4,6 +4,9 @@ ENV LANG C.UTF-8
 ENV LC_ALL C.UTF-8
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONFAULTHANDLER 1
+ENV ABS_DIR="/abs"
+RUN mkdir $ABS_DIR
+WORKDIR $ABS_DIR
 
 
 FROM base as builder
@@ -19,7 +22,6 @@ RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --clear
 
 FROM base
 ARG WORK_DIR="/tmp/install"
-ENV ABS_DIR="/abs"
 ENV HELM_VER="3.3.4"
 ENV KUBECTL_VER="1.18.9"
 ENV CT_VER="3.1.1"
@@ -43,16 +45,18 @@ RUN curl -L https://github.com/helm/chart-testing/releases/download/v${CT_VER}/c
     && mv ./etc/* /etc/ct/ && rm ct && rm ct.tar.gz && ct version
 # cleanup
 RUN rm -rf $WORK_DIR
+# pip dependencies for ct
 RUN pip install yamllint==1.25.0 yamale==3.0.4
 
 ENV USE_UID=0
 ENV USE_GID=0
-COPY --from=builder /.venv /.venv
-ENV PATH="/.venv/bin:$PATH"
+COPY --from=builder ${ABS_DIR}/.venv ${ABS_DIR}/.venv
+ENV PATH="${ABS_DIR}/.venv/bin:$PATH"
 RUN mkdir -p $ABS_DIR/workdir
 ENV PYTHONPATH=$ABS_DIR
 WORKDIR $ABS_DIR/workdir
 COPY run-abs-in-docker.sh /usr/local/bin/
+COPY resources/ ${ABS_DIR}/resources/
 COPY app_build_suite/ ${ABS_DIR}/app_build_suite/
 ENTRYPOINT ["run-abs-in-docker.sh"]
 CMD ["-h"]
