@@ -341,6 +341,9 @@ class HelmChartMetadataGenerator(BuildStep):
     _key_chart_file = "chartFile"
     _key_digest = "digest"
     _key_date_created = "dateCreated"
+    _key_chart_api_version = "chartApiVersion"
+    _key_api_version = "apiVersion"
+    _key_annotations = "annotations"
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -396,21 +399,16 @@ class HelmChartMetadataGenerator(BuildStep):
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
+        # mandatory metadata
         meta[self._key_chart_file] = context[context_key_chart_file_name]
         meta[self._key_digest] = get_file_sha256(context[context_key_chart_file_name])
-        if self._key_upstream_chart_url in chart_yaml:
-            meta[self._key_upstream_chart_url] = chart_yaml[self._key_upstream_chart_url]
         meta[self._key_date_created] = self.get_build_timestamp()
-        if self._key_restrictions in chart_yaml:
-            meta[self._key_restrictions] = {}
-            for key in [
-                self._key_cluster_singleton,
-                self._key_namespace_singleton,
-                self._key_fixed_namespace,
-                self._key_gpu_instances,
-            ]:
-                if key in chart_yaml[self._key_restrictions]:
-                    meta[self._key_restrictions][key] = chart_yaml[self._key_restrictions][key]
+        meta[self._key_chart_api_version] = chart_yaml[self._key_api_version]
+        # optional metadata
+        for key in [self._key_upstream_chart_url, self._key_restrictions, self._key_annotations]:
+            if key in chart_yaml:
+                meta[key] = chart_yaml[key]
+        # save metadata file
         meta_dir_name = f"{context[context_key_chart_file_name]}-meta"
         pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
         meta_file_name = os.path.join(meta_dir_name, "main.yaml")
