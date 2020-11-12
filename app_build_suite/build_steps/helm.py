@@ -284,6 +284,14 @@ class HelmChartBuilder(BuildStep):
     def steps_provided(self) -> Set[StepType]:
         return {STEP_BUILD}
 
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--destination",
+            required=False,
+            default=".",
+            help="Path of a directory to store the packaged tgz.",
+        )
+
     def pre_run(self, config: argparse.Namespace) -> None:
         """
         Checks if the required version of helm is installed.
@@ -313,6 +321,8 @@ class HelmChartBuilder(BuildStep):
             self._helm_bin,
             "package",
             config.chart_dir,
+            "--destination",
+            config.destination,
         ]
         logger.info("Building chart with 'helm package'")
         run_res = subprocess.run(args, capture_output=True)  # nosec, input params checked above in pre_run
@@ -401,7 +411,7 @@ class HelmChartMetadataGenerator(BuildStep):
             chart_yaml = yaml.safe_load(file)
         # mandatory metadata
         meta[self._key_chart_file] = context[context_key_chart_file_name]
-        meta[self._key_digest] = get_file_sha256(context[context_key_chart_file_name])
+        meta[self._key_digest] = get_file_sha256(context[context_key_chart_full_path])
         meta[self._key_date_created] = self.get_build_timestamp()
         meta[self._key_chart_api_version] = chart_yaml[self._key_api_version]
         # optional metadata
@@ -409,7 +419,7 @@ class HelmChartMetadataGenerator(BuildStep):
             if key in chart_yaml:
                 meta[key] = chart_yaml[key]
         # save metadata file
-        meta_dir_name = f"{context[context_key_chart_file_name]}-meta"
+        meta_dir_name = f"{context[context_key_chart_full_path]}-meta"
         pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
         meta_file_name = os.path.join(meta_dir_name, "main.yaml")
         self.write_meta_file(meta_file_name, meta)
