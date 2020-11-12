@@ -5,7 +5,11 @@ from unittest.mock import mock_open, patch
 import yaml
 
 import app_build_suite
-from app_build_suite.build_steps.helm import HelmChartMetadataGenerator, context_key_chart_file_name
+from app_build_suite.build_steps.helm import (
+    HelmChartMetadataGenerator,
+    context_key_chart_file_name,
+    context_key_chart_full_path,
+)
 from tests.build_steps.dummy_build_step import init_config_for_step
 
 
@@ -26,15 +30,19 @@ def test_generate_metadata(monkeypatch):
 
     # run run
     chart_file_name = "hello-world-app-v0.0.1.tgz"
+    chart_full_path = f"./{chart_file_name}"
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
-        context = {context_key_chart_file_name: chart_file_name}
+        context = {
+            context_key_chart_file_name: chart_file_name,
+            context_key_chart_full_path: chart_full_path,
+        }
 
         def monkey_sha256(path: str) -> str:
-            assert path == chart_file_name
+            assert path == chart_full_path
             return "123"
 
         def monkey_meta_write(_, meta_file_name: str, meta: Dict[str, Any]):
-            assert meta_file_name == os.path.join(f"{chart_file_name}-meta", "main.yaml")
+            assert meta_file_name == os.path.join(f"{chart_full_path}-meta", "main.yaml")
             input_meta_path = os.path.join(os.path.dirname(__file__), "res_test_helm/main.yaml")
             with open(input_meta_path) as t:
                 expected_meta = yaml.safe_load(t)
