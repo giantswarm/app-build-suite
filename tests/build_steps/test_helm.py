@@ -6,7 +6,7 @@ import yaml
 
 import app_build_suite
 from app_build_suite.build_steps.helm import (
-    HelmChartMetadataGenerator,
+    HelmChartMetadataFinalizer,
     context_key_chart_file_name,
     context_key_chart_full_path,
 )
@@ -15,7 +15,7 @@ from tests.build_steps.dummy_build_step import init_config_for_step
 
 def test_generate_metadata(monkeypatch):
     input_chart_path = os.path.join(os.path.dirname(__file__), "res_test_helm/Chart.yaml")
-    step = HelmChartMetadataGenerator()
+    step = HelmChartMetadataFinalizer()
     config = init_config_for_step(step)
     config.generate_metadata = True
     config.chart_dir = os.path.dirname(input_chart_path)
@@ -50,10 +50,10 @@ def test_generate_metadata(monkeypatch):
 
         monkeypatch.setattr("app_build_suite.build_steps.helm.get_file_sha256", monkey_sha256)
         monkeypatch.setattr(
-            app_build_suite.build_steps.helm.HelmChartMetadataGenerator, "write_meta_file", monkey_meta_write
+            app_build_suite.build_steps.helm.HelmChartMetadataFinalizer, "write_meta_file", monkey_meta_write
         )
         monkeypatch.setattr(
-            app_build_suite.build_steps.helm.HelmChartMetadataGenerator,
+            app_build_suite.build_steps.helm.HelmChartMetadataFinalizer,
             "get_build_timestamp",
             lambda _: "1020-10-20T10:20:10+00:00",
         )

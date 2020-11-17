@@ -4,6 +4,7 @@ import logging
 import os
 import pathlib
 import shutil
+import sys
 import subprocess  # nosec
 from datetime import datetime, timezone
 from typing import List, Optional, Any, Dict, Set
@@ -22,7 +23,7 @@ from app_build_suite.build_steps.build_step import (
     STEP_METADATA,
 )
 from app_build_suite.build_steps.errors import ValidationError, BuildError
-from app_build_suite.utils.files import get_file_sha256
+from app_build_suite.utils.files import get_file_sha256, save_yaml
 from app_build_suite.utils.git import GitRepoVersionInfo
 
 logger = logging.getLogger(__name__)
@@ -330,16 +331,22 @@ class HelmChartBuilder(BuildStep):
             logger.info(str(line, "utf-8"))
             if line.startswith(b"Successfully packaged chart and saved it to"):
                 full_chart_path = str(line.split(b":")[1].strip(), "utf-8")
+                # compare our guessed chart_file_name with the one returned from helm and fail if differs
+                helm_chart_file_name = os.path.basename(full_chart_path)
+                assert (
+                    helm_chart_file_name == context[context_key_chart_file_name]
+                ), f"guessed chart file name wrong '{context[context_key_chart_file_name]}' != '{helm_chart_file_name}'"
                 context[context_key_chart_full_path] = full_chart_path
-                context[context_key_chart_file_name] = os.path.basename(full_chart_path)
+                context[context_key_chart_file_name] = helm_chart_file_name
         if run_res.returncode != 0:
             logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart build failed")
 
 
-class HelmChartMetadataGenerator(BuildStep):
+class HelmChartMetadataPreparer(BuildStep):
     """
-    HelmChartMetadataGenerator generates metadata files based on additional info in Chart.yaml file
+    HelmChartMetadataPreparer prepares metadata generation based on additional info in Chart.yaml file.
+    Should run before HelmChartBuilder
     """
 
     _key_upstream_chart_url = "upstreamChartURL"
@@ -348,12 +355,11 @@ class HelmChartMetadataGenerator(BuildStep):
     _key_namespace_singleton = "namespaceSingleton"
     _key_gpu_instances = "gpuInstances"
     _key_fixed_namespace = "fixedNamespace"
-    _key_chart_file = "chartFile"
-    _key_digest = "digest"
-    _key_date_created = "dateCreated"
-    _key_chart_api_version = "chartApiVersion"
-    _key_api_version = "apiVersion"
     _key_annotations = "annotations"
+    _key_annotation_metadata_url = "application.giantswarm.io/metadata"
+    _key_annotation_readme_url = "application.giantswarm.io/readme"
+    _key_annotation_schema_url = "application.giantswarm.io/values-schema"
+    _value_annotation_catalog_base_url = "https://giantswarm.github.io/"
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -365,6 +371,11 @@ class HelmChartMetadataGenerator(BuildStep):
             required=False,
             action="store_true",
             help="Generate the metadata file for Giant Swarm App Platform.",
+        )
+        config_parser.add_argument(
+            "--catalog-name",
+            required="--generate-metadata" in sys.argv,
+            help="Name of the catalog the app package will be stored in.",
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
@@ -392,6 +403,72 @@ class HelmChartMetadataGenerator(BuildStep):
                 ):
                     raise ValidationError(self.name, f"Value of '{option}' is not a correct boolean.")
 
+    def additional_annotations(self, chart_file_name: str, catalog_name: str) -> Dict[str, Any]:
+        catalog_base_url = f"{self._value_annotation_catalog_base_url}{catalog_name}/{chart_file_name}-meta/"
+        annotations = {}
+        # TODO check if these exist
+        annotations[self._key_annotation_metadata_url] = f"{catalog_base_url}main.yaml"
+        annotations[self._key_annotation_readme_url] = f"{catalog_base_url}README.md"
+        return annotations
+
+    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+        if not config.generate_metadata:
+            logger.info("Metadata generation is disabled using 'generate-metadata' option.")
+            return
+        # read current Chart.yaml
+        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        with open(chart_yaml_path, "r") as file:
+            chart_yaml = yaml.safe_load(file)
+        # try to guess the package file name. we need it for url generation in annotations
+        chart_name = os.path.basename(config.chart_dir)
+        context[context_key_chart_file_name] = f"{chart_name}-{context[context_key_git_version]}.tgz"
+        # put in generated annotations
+        chart_yaml[self._key_annotations] = {
+            **chart_yaml.get(self._key_annotations, {}),
+            **self.additional_annotations(context[context_key_chart_file_name], config.catalog_name),
+        }
+        # save Chart.yaml
+        save_yaml(chart_yaml_path, chart_yaml)
+
+
+class HelmChartMetadataFinalizer(BuildStep):
+    """
+    HelmChartMetadataFinalizer finalizes metadata generation based on additional info in Chart.yaml file
+    Should run after HelmChartBuilder
+    """
+
+    _key_upstream_chart_url = "upstreamChartURL"
+    _key_restrictions = "restrictions"
+    _key_cluster_singleton = "clusterSingleton"
+    _key_namespace_singleton = "namespaceSingleton"
+    _key_gpu_instances = "gpuInstances"
+    _key_fixed_namespace = "fixedNamespace"
+    _key_chart_file = "chartFile"
+    _key_digest = "digest"
+    _key_date_created = "dateCreated"
+    _key_chart_api_version = "chartApiVersion"
+    _key_api_version = "apiVersion"
+    _key_annotations = "annotations"
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_METADATA}
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        if not config.generate_metadata:
+            logger.info("Metadata generation is disabled using 'generate-metadata' option.")
+            return
+        # first step of validation should be done already by 'ct' with correct schema (unless explicitly disabled)
+        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        with open(chart_yaml_path, "r") as file:
+            chart_yaml = yaml.safe_load(file)
+        # TODO decide if we want to validate the new annotations here
+        if self._key_upstream_chart_url in chart_yaml and not validators.url(chart_yaml[self._key_upstream_chart_url]):
+            raise ValidationError(
+                self.name,
+                f"Annotation option '{self._key_upstream_chart_url}' is not a correct URL.",
+            )
+
     @staticmethod
     def get_build_timestamp() -> str:
         return datetime.utcnow().replace(tzinfo=timezone.utc, microsecond=0).isoformat()
@@ -400,6 +477,11 @@ class HelmChartMetadataGenerator(BuildStep):
     def write_meta_file(meta_file_name: str, meta: Dict[str, Any]) -> None:
         with open(meta_file_name, "w") as f:
             yaml.dump(meta, f, default_flow_style=False)
+
+    @staticmethod
+    def prepare_meta_dir(meta_dir_name: str) -> None:
+        pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
+        # TODO copy readme and stuff
 
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         if not config.generate_metadata:
@@ -420,7 +502,7 @@ class HelmChartMetadataGenerator(BuildStep):
                 meta[key] = chart_yaml[key]
         # save metadata file
         meta_dir_name = f"{context[context_key_chart_full_path]}-meta"
-        pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
+        self.prepare_meta_dir(meta_dir_name)
         meta_file_name = os.path.join(meta_dir_name, "main.yaml")
         self.write_meta_file(meta_file_name, meta)
         logger.info(f"Metadata file saved to '{meta_file_name}'")
@@ -437,8 +519,9 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
                 HelmBuilderValidator(),
                 HelmGitVersionSetter(),
                 HelmChartToolLinter(),
+                HelmChartMetadataPreparer(),
                 HelmChartBuilder(),
-                HelmChartMetadataGenerator(),
+                HelmChartMetadataFinalizer(),
             ],
             "Helm 3 build engine options",
         )
