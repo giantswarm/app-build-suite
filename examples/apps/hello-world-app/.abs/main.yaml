@@ -1,0 +1,3 @@
+replace-chart-version-with-git: false
+replace-chart-version-with-git: false
+generate-metadata: true

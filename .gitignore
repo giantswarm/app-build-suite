@@ -132,8 +132,9 @@ dmypy.json
 .idea/
 
 # project specific files
-.abs.yaml
+.abs/
 helm/
 helm.back/
 *.tgz
 app_build_suite/version.py
+*-meta/
