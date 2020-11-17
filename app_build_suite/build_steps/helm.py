@@ -23,7 +23,7 @@ from app_build_suite.build_steps.build_step import (
     STEP_METADATA,
 )
 from app_build_suite.build_steps.errors import ValidationError, BuildError
-from app_build_suite.utils.files import get_file_sha256, save_yaml
+from app_build_suite.utils.files import get_file_sha256
 from app_build_suite.utils.git import GitRepoVersionInfo
 
 logger = logging.getLogger(__name__)
@@ -357,9 +357,12 @@ class HelmChartMetadataPreparer(BuildStep):
     _key_fixed_namespace = "fixedNamespace"
     _key_annotations = "annotations"
     _key_annotation_metadata_url = "application.giantswarm.io/metadata"
-    _key_annotation_readme_url = "application.giantswarm.io/readme"
-    _key_annotation_schema_url = "application.giantswarm.io/values-schema"
     _value_annotation_catalog_base_url = "https://giantswarm.github.io/"
+
+    _annotation_files_map = {
+        "./values.schema.json": "application.giantswarm.io/values-schema",
+        "../../README.md": "application.giantswarm.io/readme",
+    }
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -403,12 +406,19 @@ class HelmChartMetadataPreparer(BuildStep):
                 ):
                     raise ValidationError(self.name, f"Value of '{option}' is not a correct boolean.")
 
-    def additional_annotations(self, chart_file_name: str, catalog_name: str) -> Dict[str, Any]:
+    @staticmethod
+    def write_chart_yaml(chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+        with open(chart_yaml_file_name, "w") as f:
+            yaml.dump(data, f, default_flow_style=False)
+
+    def additional_annotations(self, chart_file_name: str, chart_dir: str, catalog_name: str) -> Dict[str, Any]:
         catalog_base_url = f"{self._value_annotation_catalog_base_url}{catalog_name}/{chart_file_name}-meta/"
         annotations = {}
-        # TODO check if these exist
         annotations[self._key_annotation_metadata_url] = f"{catalog_base_url}main.yaml"
-        annotations[self._key_annotation_readme_url] = f"{catalog_base_url}README.md"
+        for additional_file, annotation_key in self._annotation_files_map.items():
+            source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
+            if os.path.isfile(source_file_path):
+                annotations[annotation_key] = f"{catalog_base_url}{os.path.basename(additional_file)}"
         return annotations
 
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
@@ -425,10 +435,10 @@ class HelmChartMetadataPreparer(BuildStep):
         # put in generated annotations
         chart_yaml[self._key_annotations] = {
             **chart_yaml.get(self._key_annotations, {}),
-            **self.additional_annotations(context[context_key_chart_file_name], config.catalog_name),
+            **self.additional_annotations(context[context_key_chart_file_name], config.chart_dir, config.catalog_name),
         }
         # save Chart.yaml
-        save_yaml(chart_yaml_path, chart_yaml)
+        self.write_chart_yaml(chart_yaml_path, chart_yaml)
 
 
 class HelmChartMetadataFinalizer(BuildStep):
@@ -478,11 +488,6 @@ class HelmChartMetadataFinalizer(BuildStep):
         with open(meta_file_name, "w") as f:
             yaml.dump(meta, f, default_flow_style=False)
 
-    @staticmethod
-    def prepare_meta_dir(meta_dir_name: str) -> None:
-        pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
-        # TODO copy readme and stuff
-
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         if not config.generate_metadata:
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
@@ -502,10 +507,15 @@ class HelmChartMetadataFinalizer(BuildStep):
                 meta[key] = chart_yaml[key]
         # save metadata file
         meta_dir_name = f"{context[context_key_chart_full_path]}-meta"
-        self.prepare_meta_dir(meta_dir_name)
+        pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
         meta_file_name = os.path.join(meta_dir_name, "main.yaml")
         self.write_meta_file(meta_file_name, meta)
         logger.info(f"Metadata file saved to '{meta_file_name}'")
+        for additional_file in ["./values.schema.json", "../../README.md"]:
+            source_file_path = os.path.join(os.path.abspath(config.chart_dir), additional_file)
+            target_file_path = os.path.join(meta_dir_name, os.path.basename(additional_file))
+            if os.path.isfile(source_file_path):
+                shutil.copy2(source_file_path, target_file_path)
 
 
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
