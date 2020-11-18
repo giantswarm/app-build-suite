@@ -15,6 +15,7 @@ gitpython = "*"
 dependency-injector = "*"
 semver = "*"
 validators = "*"
+pytest-mock = "*"
 
 [requires]
 python_version = "3.8"
