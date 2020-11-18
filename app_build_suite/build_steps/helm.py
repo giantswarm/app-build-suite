@@ -4,10 +4,10 @@ import logging
 import os
 import pathlib
 import shutil
-import sys
 import subprocess  # nosec
 from datetime import datetime, timezone
 from typing import List, Optional, Any, Dict, Set
+from urllib.parse import urlsplit
 
 import configargparse
 import validators
@@ -357,7 +357,6 @@ class HelmChartMetadataPreparer(BuildStep):
     _key_fixed_namespace = "fixedNamespace"
     _key_annotations = "annotations"
     _key_annotation_metadata_url = "application.giantswarm.io/metadata"
-    _value_annotation_catalog_base_url = "https://giantswarm.github.io/"
 
     _annotation_files_map = {
         "./values.schema.json": "application.giantswarm.io/values-schema",
@@ -376,15 +375,21 @@ class HelmChartMetadataPreparer(BuildStep):
             help="Generate the metadata file for Giant Swarm App Platform.",
         )
         config_parser.add_argument(
-            "--catalog-name",
-            required="--generate-metadata" in sys.argv,
-            help="Name of the catalog the app package will be stored in.",
+            "--catalog-base-url",
+            required=False,
+            help="Base URL of the catalog in which the app package will be stored in. Should end with a /",
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
         if not config.generate_metadata:
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
+        if config.generate_metadata and not config.catalog_base_url:
+            raise ValidationError(
+                self.name, ("config option --generate-metadata requires non-empty option --catalog-base-url")
+            )
+        if not config.catalog_base_url.endswith("/"):
+            raise ValidationError(self.name, ("config option --catalog-base-url value should end with a /"))
         # first step of validation should be done already by 'ct' with correct schema (unless explicitly disabled)
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
@@ -411,14 +416,15 @@ class HelmChartMetadataPreparer(BuildStep):
         with open(chart_yaml_file_name, "w") as f:
             yaml.dump(data, f, default_flow_style=False)
 
-    def additional_annotations(self, chart_file_name: str, chart_dir: str, catalog_name: str) -> Dict[str, Any]:
-        catalog_base_url = f"{self._value_annotation_catalog_base_url}{catalog_name}/{chart_file_name}-meta/"
+    def additional_annotations(self, catalog_base_url: str, chart_file_name: str, chart_dir: str) -> Dict[str, Any]:
+        catalog_url = f"{catalog_base_url}{chart_file_name}-meta/"
         annotations = {}
-        annotations[self._key_annotation_metadata_url] = f"{catalog_base_url}main.yaml"
+        annotations[self._key_annotation_metadata_url] = urlsplit(f"{catalog_url}main.yaml").geturl()
         for additional_file, annotation_key in self._annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
-                annotations[annotation_key] = f"{catalog_base_url}{os.path.basename(additional_file)}"
+                annotations[annotation_key] = urlsplit(f"{catalog_url}{os.path.basename(additional_file)}").geturl()
+
         return annotations
 
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
@@ -435,7 +441,9 @@ class HelmChartMetadataPreparer(BuildStep):
         # put in generated annotations
         chart_yaml[self._key_annotations] = {
             **chart_yaml.get(self._key_annotations, {}),
-            **self.additional_annotations(context[context_key_chart_file_name], config.chart_dir, config.catalog_name),
+            **self.additional_annotations(
+                config.catalog_base_url, context[context_key_chart_file_name], config.chart_dir
+            ),
         }
         # save Chart.yaml
         self.write_chart_yaml(chart_yaml_path, chart_yaml)
