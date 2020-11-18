@@ -335,7 +335,7 @@ class HelmChartBuilder(BuildStep):
                 helm_chart_file_name = os.path.basename(full_chart_path)
                 assert (
                     helm_chart_file_name == context[context_key_chart_file_name]
-                ), f"expected chart file name different '{context[context_key_chart_file_name]}' != '{helm_chart_file_name}'"
+                ), f"expected chart file name '{helm_chart_file_name}' got '{context[context_key_chart_file_name]}'"
                 context[context_key_chart_full_path] = full_chart_path
                 context[context_key_chart_file_name] = helm_chart_file_name
         if run_res.returncode != 0:
