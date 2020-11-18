@@ -28,15 +28,25 @@ class GitRepoVersionInfo:
         """
         return self._is_repo
 
-    @property
-    def get_git_version(self) -> str:
+    def get_git_version(self, strip_v_in_version: bool = True) -> str:
         """
         Gets application version in the format [last-tag]-[last-commit-sha].
+        :param strip_v_in_version: If the version tag starts with 'v' (like 'v1.2.3),
+        this chooses if the 'v' should be stripped, so the resulting tag is '1.2.3'.
+        If there's a "-", "." or "_" separator after "v", it is removed as well.
         :return: The version string
         """
         if not self._is_repo:
             raise git.exc.InvalidGitRepositoryError()
         tags = sorted(self._repo.tags, key=lambda t: t.commit.committed_date)
-        ver = "0.0.0" if len(tags) == 0 else tags[-1]
-        sha = self._repo.head.object.hexsha
-        return f"{ver}-{sha}"
+        latest_tag = None if len(tags) == 0 else tags[-1]
+        ver = "0.0.0" if latest_tag is None else latest_tag.name
+        if strip_v_in_version and ver.startswith("v"):
+            txt_ver = ver.lstrip("v")
+            txt_ver = txt_ver.lstrip("-_.")
+        else:
+            txt_ver = ver
+        sha = self._repo.head.commit.hexsha
+        if latest_tag is not None and sha == latest_tag.commit.hexsha:
+            return txt_ver
+        return f"{txt_ver}-{sha}"
