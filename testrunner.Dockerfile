@@ -2,7 +2,7 @@ FROM quay.io/giantswarm/app-build-suite:latest
 
 ARG ABS_DIR="/abs"
 
-RUN pip install --no-cache-dir pipenv==2020.8.13
+RUN pip install --no-cache-dir pipenv==${PIPENV_VER}
 RUN apt-get update && apt-get install -y wget xz-utils && rm -rf /var/lib/apt/lists/*
 RUN wget -qO- "https://github.com/koalaman/shellcheck/releases/download/latest/shellcheck-latest.linux.x86_64.tar.xz" | tar -xJv && cp "shellcheck-latest/shellcheck" /usr/bin/
 WORKDIR $ABS_DIR
