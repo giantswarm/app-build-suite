@@ -7,10 +7,28 @@ import yaml
 import app_build_suite
 from app_build_suite.build_steps.helm import (
     HelmChartMetadataFinalizer,
+    HelmChartMetadataPreparer,
     context_key_chart_file_name,
     context_key_chart_full_path,
 )
 from tests.build_steps.dummy_build_step import init_config_for_step
+
+
+def test_prepare_metadata(monkeypatch):
+    input_chart_path = os.path.join(os.path.dirname(__file__), "res_test_helm/Chart.yaml")
+    step = HelmChartMetadataPreparer()
+    config = init_config_for_step(step)
+    config.generate_metadata = True
+    config.catalog_base_url = "https://some-bogus-catalog/"
+    config.chart_dir = os.path.dirname(input_chart_path)
+
+    with open(input_chart_path) as f:
+        input_chart_yaml = f.read()
+
+    # run pre_run
+    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
+        step.pre_run(config)
+        m.assert_called_once_with(input_chart_path, "r")
 
 
 def test_generate_metadata(monkeypatch):
@@ -22,11 +40,6 @@ def test_generate_metadata(monkeypatch):
 
     with open(input_chart_path) as f:
         input_chart_yaml = f.read()
-
-    # run pre_run
-    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
-        step.pre_run(config)
-        m.assert_called_once_with(input_chart_path, "r")
 
     # run run
     chart_file_name = "hello-world-app-v0.0.1.tgz"
