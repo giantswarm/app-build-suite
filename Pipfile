@@ -12,9 +12,10 @@ pytest-cov = "*"
 pyyaml = "*"
 configargparse = "*"
 gitpython = "*"
-dependency-injector = "*"
+dependency-injector = "==4.3.2"
 semver = "*"
 validators = "*"
+pytest-mock = "*"
 
 [requires]
 python_version = "3.8"
