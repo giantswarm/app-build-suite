@@ -120,7 +120,7 @@ class HelmGitVersionSetter(BuildStep):
             return
 
         if self.repo_info is not None:
-            git_version = self.repo_info.get_git_version
+            git_version = self.repo_info.get_git_version()
         else:
             raise ValidationError(self.name, f"Can't find valid git repository in {config.chart_dir}")
         # add the version info to context, so other BuildSteps can use it
