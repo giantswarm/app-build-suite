@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 context_key_chart_full_path: str = "chart_full_path"
 context_key_chart_file_name: str = "chart_file_name"
 context_key_git_version: str = "git_version"
+context_key_changes_made: str = "changes_made"
 
 _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
@@ -84,7 +85,7 @@ class HelmGitVersionSetter(BuildStep):
             "--replace-app-version-with-git",
             required=False,
             action="store_true",
-            help=f"Should the {_chart_yaml_app_version_key}  in {_chart_yaml} be replaced by a tag and hash from git",
+            help=f"Should the {_chart_yaml_app_version_key} in {_chart_yaml} be replaced by a tag and hash from git",
         )
         config_parser.add_argument(
             "--replace-chart-version-with-git",
@@ -128,7 +129,7 @@ class HelmGitVersionSetter(BuildStep):
         context[context_key_git_version] = git_version
 
         new_lines: List[str] = []
-        changes_made = False
+        context[context_key_changes_made] = False
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
             lines = file.readlines()
@@ -138,11 +139,11 @@ class HelmGitVersionSetter(BuildStep):
                     config.replace_app_version_with_git and fields[0] == _chart_yaml_app_version_key
                 ):
                     logger.info(f"Replacing '{fields[0]}' with git version '{git_version}' in {_chart_yaml}.")
-                    changes_made = True
+                    context[context_key_changes_made] = True
                     new_lines.append(f"{fields[0]}: {git_version}\n")
                 else:
                     new_lines.append(line)
-        if changes_made:
+        if context[context_key_changes_made]:
             logger.debug(f"Saving backup of {_chart_yaml} in {_chart_yaml}.back")
             shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
             with open(chart_yaml_path, "w") as file:
@@ -435,6 +436,7 @@ class HelmChartMetadataPreparer(BuildStep):
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
+        original_annotations = chart_yaml.get(self._key_annotations, None)
         # try to guess the package file name. we need it for url generation in annotations
         chart_name = os.path.basename(config.chart_dir)
         context[context_key_chart_file_name] = f"{chart_name}-{context[context_key_git_version]}.tgz"
@@ -446,6 +448,10 @@ class HelmChartMetadataPreparer(BuildStep):
             ),
         }
         # save Chart.yaml
+        if not context[context_key_changes_made] and original_annotations != chart_yaml[self._key_annotations]:
+            logger.debug(f"Saving backup of {_chart_yaml} in {_chart_yaml}.back")
+            shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
+            context[context_key_changes_made] = True
         self.write_chart_yaml(chart_yaml_path, chart_yaml)
 
 
@@ -471,21 +477,6 @@ class HelmChartMetadataFinalizer(BuildStep):
     @property
     def steps_provided(self) -> Set[StepType]:
         return {STEP_METADATA}
-
-    def pre_run(self, config: argparse.Namespace) -> None:
-        if not config.generate_metadata:
-            logger.info("Metadata generation is disabled using 'generate-metadata' option.")
-            return
-        # first step of validation should be done already by 'ct' with correct schema (unless explicitly disabled)
-        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
-        with open(chart_yaml_path, "r") as file:
-            chart_yaml = yaml.safe_load(file)
-        # TODO decide if we want to validate the new annotations here
-        if self._key_upstream_chart_url in chart_yaml and not validators.url(chart_yaml[self._key_upstream_chart_url]):
-            raise ValidationError(
-                self.name,
-                f"Annotation option '{self._key_upstream_chart_url}' is not a correct URL.",
-            )
 
     @staticmethod
     def get_build_timestamp() -> str:
@@ -526,6 +517,29 @@ class HelmChartMetadataFinalizer(BuildStep):
                 shutil.copy2(source_file_path, target_file_path)
 
 
+class HelmChartYAMLRestorer(BuildStep):
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_BUILD}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--keep-chart-changes",
+            required=False,
+            action="store_true",
+            help=f"Should the changes made in {_chart_yaml} be kept",
+        )
+
+    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+        if config.keep_chart_changes:
+            logger.info(f"Skipping restore of {_chart_yaml}.")
+            return
+        if context[context_key_changes_made]:
+            logger.debug(f"Restoring backup {_chart_yaml}.back to {_chart_yaml}")
+            chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+            shutil.move(chart_yaml_path + ".back", chart_yaml_path)
+
+
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     """
     Pipeline that combines all the steps required to use helm3 as a chart builder.
@@ -540,6 +554,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
                 HelmChartMetadataPreparer(),
                 HelmChartBuilder(),
                 HelmChartMetadataFinalizer(),
+                HelmChartYAMLRestorer(),
             ],
             "Helm 3 build engine options",
         )
