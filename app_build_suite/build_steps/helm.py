@@ -32,6 +32,7 @@ context_key_chart_full_path: str = "chart_full_path"
 context_key_chart_file_name: str = "chart_file_name"
 context_key_git_version: str = "git_version"
 context_key_changes_made: str = "changes_made"
+context_key_meta_dir_path: str = "meta_dir_path"
 
 _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
@@ -337,6 +338,9 @@ class HelmChartBuilder(BuildStep):
                 assert (
                     helm_chart_file_name == context[context_key_chart_file_name]
                 ), f"expected chart file name '{helm_chart_file_name}' got '{context[context_key_chart_file_name]}'"
+                assert context[context_key_chart_full_path].endswith(
+                    full_chart_path
+                ), f"expected '{context[context_key_chart_full_path]}' to end with '{full_chart_path}'"
                 context[context_key_chart_full_path] = full_chart_path
                 context[context_key_chart_file_name] = helm_chart_file_name
         if run_res.returncode != 0:
@@ -417,7 +421,15 @@ class HelmChartMetadataPreparer(BuildStep):
         with open(chart_yaml_file_name, "w") as f:
             yaml.dump(data, f, default_flow_style=False)
 
-    def additional_annotations(self, catalog_base_url: str, chart_file_name: str, chart_dir: str) -> Dict[str, Any]:
+    def build_file_annotations(
+        self, catalog_base_url: str, chart_file_name: str, chart_dir: str, meta_dir_path: str
+    ) -> Dict[str, Any]:
+        """
+        Based upon the _annotatons_files_map:
+          - check if the file is availeble
+          - include it in the annotations
+          - copy it into the metadata directory
+        """
         catalog_url = f"{catalog_base_url}{chart_file_name}-meta/"
         annotations = {}
         annotations[self._key_annotation_metadata_url] = urlsplit(f"{catalog_url}main.yaml").geturl()
@@ -425,6 +437,8 @@ class HelmChartMetadataPreparer(BuildStep):
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
                 annotations[annotation_key] = urlsplit(f"{catalog_url}{os.path.basename(additional_file)}").geturl()
+                target_file_path = os.path.join(meta_dir_path, os.path.basename(additional_file))
+                shutil.copy2(source_file_path, target_file_path)
 
         return annotations
 
@@ -440,11 +454,18 @@ class HelmChartMetadataPreparer(BuildStep):
         # try to guess the package file name. we need it for url generation in annotations
         chart_name = os.path.basename(config.chart_dir)
         context[context_key_chart_file_name] = f"{chart_name}-{context[context_key_git_version]}.tgz"
+        context[context_key_chart_full_path] = os.path.join(config.destination, context[context_key_chart_file_name])
+        # create metadata directory
+        context[context_key_meta_dir_path] = f"{context[context_key_chart_full_path]}-meta"
+        pathlib.Path(context[context_key_meta_dir_path]).mkdir(parents=True, exist_ok=True)
         # put in generated annotations
         chart_yaml[self._key_annotations] = {
             **chart_yaml.get(self._key_annotations, {}),
-            **self.additional_annotations(
-                config.catalog_base_url, context[context_key_chart_file_name], config.chart_dir
+            **self.build_file_annotations(
+                config.catalog_base_url,
+                context[context_key_chart_file_name],
+                config.chart_dir,
+                context[context_key_meta_dir_path],
             ),
         }
         # save Chart.yaml
@@ -505,16 +526,10 @@ class HelmChartMetadataFinalizer(BuildStep):
             if key in chart_yaml:
                 meta[key] = chart_yaml[key]
         # save metadata file
-        meta_dir_name = f"{context[context_key_chart_full_path]}-meta"
-        pathlib.Path(meta_dir_name).mkdir(exist_ok=True)
-        meta_file_name = os.path.join(meta_dir_name, "main.yaml")
+        pathlib.Path(context[context_key_meta_dir_path]).mkdir(exist_ok=True)
+        meta_file_name = os.path.join(context[context_key_meta_dir_path], "main.yaml")
         self.write_meta_file(meta_file_name, meta)
         logger.info(f"Metadata file saved to '{meta_file_name}'")
-        for additional_file in ["./values.schema.json", "../../README.md"]:
-            source_file_path = os.path.join(os.path.abspath(config.chart_dir), additional_file)
-            target_file_path = os.path.join(meta_dir_name, os.path.basename(additional_file))
-            if os.path.isfile(source_file_path):
-                shutil.copy2(source_file_path, target_file_path)
 
 
 class HelmChartYAMLRestorer(BuildStep):

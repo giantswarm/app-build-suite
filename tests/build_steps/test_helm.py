@@ -10,6 +10,7 @@ from app_build_suite.build_steps.helm import (
     HelmChartMetadataPreparer,
     context_key_chart_file_name,
     context_key_chart_full_path,
+    context_key_meta_dir_path,
 )
 from tests.build_steps.dummy_build_step import init_config_for_step
 
@@ -44,10 +45,12 @@ def test_generate_metadata(monkeypatch):
     # run run
     chart_file_name = "hello-world-app-v0.0.1.tgz"
     chart_full_path = f"./{chart_file_name}"
+    meta_dir_path = f"{chart_full_path}-meta"
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
         context = {
             context_key_chart_file_name: chart_file_name,
             context_key_chart_full_path: chart_full_path,
+            context_key_meta_dir_path: meta_dir_path,
         }
 
         def monkey_sha256(path: str) -> str:
