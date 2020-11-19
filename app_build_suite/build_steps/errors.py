@@ -46,3 +46,11 @@ class BuildError(Error):
     def __init__(self, source: str, message: str):
         super().__init__(message)
         self.source = source
+
+
+class TestError(Error):
+    """
+    TestError is raised in the test phase only
+    """
+
+    pass
