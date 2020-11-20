@@ -68,7 +68,7 @@ class ExternalClusterProvider(ClusterProvider):
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        if not config.external_cluster_kubeconfig_path == "":
+        if not config.external_cluster_kubeconfig_path:
             raise ConfigError(self.__config_option_kubeconfig_path, "Kubeconfig file path must be configured")
 
         if not os.path.isfile(config.external_cluster_kubeconfig_path):

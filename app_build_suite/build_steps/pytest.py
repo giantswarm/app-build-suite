@@ -194,8 +194,8 @@ class BaseTestRunner(BuildStep, ABC):
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        cluster_type = getattr(config, f"{self._test_type_executed}_tests_cluster_type")
-        cluster_config_file = getattr(config, f"{self._test_type_executed}_tests_cluster_config_file")
+        cluster_type: str = getattr(config, f"{self._test_type_executed}_tests_cluster_type")
+        cluster_config_file: str = getattr(config, f"{self._test_type_executed}_tests_cluster_config_file")
         known_cluster_types = self._cluster_manager.get_registered_cluster_types()
         if cluster_type not in known_cluster_types:
             raise ConfigError(
@@ -203,7 +203,7 @@ class BaseTestRunner(BuildStep, ABC):
                 f"Unknown cluster type '{cluster_type}' requested for tests of type"
                 f" '{self._test_type_executed}'. Known cluster types are: '{known_cluster_types}'.",
             )
-        if cluster_config_file != "" and not os.path.isfile(cluster_config_file):
+        if cluster_config_file and not os.path.isfile(cluster_config_file):
             raise ConfigError(
                 f"--{self._test_type_executed}-tests-cluster-config-file",
                 f"Cluster config file '{cluster_config_file}' for cluster type"
