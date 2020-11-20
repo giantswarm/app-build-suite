@@ -28,14 +28,8 @@ ENV CT_VER="3.1.1"
 
 # install dependencies
 RUN apt-get update && \
-    apt-get install --no-install-recommends -y curl git sudo openssh-client && \
+    apt-get install --no-install-recommends -y curl git sudo && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
-
-RUN mkdir ~/.ssh &&\
-    chmod 700 ~/.ssh &&\
-    ssh-keyscan github.com >> ~/.ssh/known_hosts &&\
-    printf "Host github.com\n IdentitiesOnly yes\n IdentityFile ~/.ssh/id_rsa\n" >> ~/.ssh/config &&\
-    chmod 600 ~/.ssh/*
 
 RUN mkdir $WORK_DIR
 WORKDIR $WORK_DIR
