@@ -30,7 +30,6 @@ ENV CT_VER="3.1.1"
 RUN apt-get update && \
     apt-get install --no-install-recommends -y curl git sudo && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
-
 RUN mkdir $WORK_DIR
 WORKDIR $WORK_DIR
 # kubectl
