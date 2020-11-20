@@ -3,12 +3,12 @@ import argparse
 import logging
 import shutil
 from abc import ABC, abstractmethod
-from typing import List, NewType, Callable, Set, cast, Dict, Any
+from typing import List, NewType, Callable, Set, cast, Dict, Any, Optional
 
 import configargparse
 import semver
 
-from app_build_suite.build_steps.errors import ValidationError, Error
+from app_build_suite.errors import ValidationError, Error
 
 logger = logging.getLogger(__name__)
 
@@ -169,6 +169,7 @@ class BuildStepsFilteringPipeline(BuildStep):
         """
         self._config_group_desc = config_group_desc
         self._pipeline = pipeline
+        self._config_parser_group: Optional[configargparse.ArgParser] = None
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -178,12 +179,12 @@ class BuildStepsFilteringPipeline(BuildStep):
         return all_steps
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
-        group = cast(
+        self._config_parser_group = cast(
             configargparse.ArgParser,
             config_parser.add_argument_group(self._config_group_desc),
         )
         for build_step in self._pipeline:
-            build_step.initialize_config(group)
+            build_step.initialize_config(self._config_parser_group)
 
     def pre_run(self, config: argparse.Namespace) -> None:
         self._iterate_steps(config, "pre-run", lambda step: step.pre_run(config))

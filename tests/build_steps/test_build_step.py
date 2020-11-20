@@ -11,7 +11,7 @@ from app_build_suite.build_steps.build_step import (
     StepType,
     STEP_ALL,
 )
-from app_build_suite.build_steps.errors import ValidationError, Error
+from app_build_suite.errors import ValidationError, Error
 from tests.build_steps.dummy_build_step import (
     DummyBuildStep,
     DummyTwoStepBuildFilteringPipeline,

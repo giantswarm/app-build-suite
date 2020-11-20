@@ -13,7 +13,7 @@ from app_build_suite.build_steps.build_step import (
     STEP_TEST_ALL,
     STEP_METADATA,
 )
-from app_build_suite.build_steps.errors import Error, ValidationError
+from app_build_suite.errors import Error, ValidationError
 
 
 def init_config_for_step(step: BuildStep) -> configargparse.Namespace:

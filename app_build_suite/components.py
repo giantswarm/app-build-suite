@@ -7,7 +7,7 @@ import configargparse
 from dependency_injector import containers, providers
 
 from app_build_suite.build_steps import BuildStep
-from app_build_suite.build_steps.errors import Error
+from app_build_suite.errors import Error
 from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
 
 logger = logging.getLogger(__name__)

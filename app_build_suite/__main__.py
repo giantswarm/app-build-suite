@@ -11,7 +11,8 @@ from app_build_suite.build_steps import (
     ALL_STEPS,
 )
 from app_build_suite.build_steps.build_step import STEP_ALL
-from app_build_suite.build_steps.errors import ConfigError
+from app_build_suite.errors import ConfigError
+from app_build_suite.build_steps.pytest import PytestTestFilteringPipeline
 from .components import ComponentsContainer, Runner
 
 ver = "0.0.1-dev"
@@ -35,6 +36,7 @@ def get_version() -> str:
 def get_pipeline(container: ComponentsContainer) -> List[BuildStepsFilteringPipeline]:
     return [
         container.builder(),
+        PytestTestFilteringPipeline(),
     ]
 
 
