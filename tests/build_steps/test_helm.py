@@ -11,6 +11,8 @@ from app_build_suite.build_steps.helm import (
     context_key_chart_file_name,
     context_key_chart_full_path,
     context_key_meta_dir_path,
+    context_key_git_version,
+    context_key_changes_made,
 )
 from tests.build_steps.dummy_build_step import init_config_for_step
 
@@ -22,6 +24,7 @@ def test_prepare_metadata(monkeypatch):
     config.generate_metadata = True
     config.catalog_base_url = "https://some-bogus-catalog/"
     config.chart_dir = os.path.dirname(input_chart_path)
+    config.destination = "."
 
     with open(input_chart_path) as f:
         input_chart_yaml = f.read()
@@ -29,6 +32,37 @@ def test_prepare_metadata(monkeypatch):
     # run pre_run
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
         step.pre_run(config)
+        m.assert_called_once_with(input_chart_path, "r")
+
+    # run run
+    git_version = "v0.0.1"
+    chart_file_name = f"hello-world-app-{git_version}.tgz"
+    chart_full_path = f"./{chart_file_name}"
+    meta_dir_path = f"{chart_full_path}-meta"
+    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
+        context = {
+            context_key_chart_file_name: chart_file_name,
+            context_key_chart_full_path: chart_full_path,
+            context_key_meta_dir_path: meta_dir_path,
+            context_key_git_version: git_version,
+            context_key_changes_made: True,
+        }
+
+        def monkey_write_chart_yaml(_, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+            annotation_base_url = f"{config.catalog_base_url}res_test_helm-{git_version}.tgz-meta/"
+            assert data["annotations"]["application.giantswarm.io/metadata"] == f"{annotation_base_url}main.yaml"
+            assert (
+                data["annotations"]["application.giantswarm.io/values-schema"]
+                == f"{annotation_base_url}values.schema.json"
+            )
+
+        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: True)
+        monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: True)
+        monkeypatch.setattr(
+            app_build_suite.build_steps.helm.HelmChartMetadataPreparer, "write_chart_yaml", monkey_write_chart_yaml
+        )
+
+        step.run(config, context)
         m.assert_called_once_with(input_chart_path, "r")
 
 
