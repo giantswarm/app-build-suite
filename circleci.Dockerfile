@@ -1,5 +1,6 @@
-FROM changeme
 FROM quay.io/giantswarm/conftest:v0.18.1 AS conftest
+
+FROM changeme
 
 COPY --from=conftest /usr/local/bin/conftest /usr/local/bin/conftest
 
