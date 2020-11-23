@@ -46,7 +46,7 @@ workflows:
 jobs:
   augment-circleci-dockerfile:
     docker:
-      - image: quay.io/giantswarm/busybox:1.32.0
+      - image: quay.io/giantswarm/alpine:3.12.1
     steps:
       - checkout
       - attach_workspace:
