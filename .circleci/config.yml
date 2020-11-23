@@ -22,12 +22,16 @@ workflows:
             tags:
               only: /^v.*/
 
-      - augment-circleci-dockerfile
+      - augment-circleci-dockerfile:
+          name: augment-circleci-dockerfile
+          requires:
+            - push-app-build-suite-to-quay
 
       - architect/push-to-docker:
           name: push-app-build-suite-circle-ci-to-quay
           requires:
             - push-app-build-suite-to-quay
+            - augment-circleci-dockerfile
           context: architect
           image: "quay.io/giantswarm/app-build-suite"
           username_envar: "QUAY_USERNAME"
