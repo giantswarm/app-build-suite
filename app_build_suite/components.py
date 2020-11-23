@@ -43,6 +43,9 @@ class Runner:
         self.run_pre_steps()
         self.run_build_steps()
         self.run_cleanup()
+        if self._failed_build is True:
+            logger.error("Exit 1 due to failed build step.")
+            sys.exit(1)
 
     def run_pre_steps(self) -> None:
         try:
