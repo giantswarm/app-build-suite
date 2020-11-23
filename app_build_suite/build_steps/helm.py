@@ -335,10 +335,13 @@ class HelmChartBuilder(BuildStep):
                 full_chart_path = str(line.split(b":")[1].strip(), "utf-8")
                 # compare our expected chart_file_name with the one returned from helm and fail if differs
                 helm_chart_file_name = os.path.basename(full_chart_path)
-                assert (
+                if helm_chart_file_name != context[context_key_chart_file_name]:
+                    raise BuildError(self.name, f"expected chart file name '{helm_chart_file_name}' got '{context[context_key_chart_file_name]}'")
                     helm_chart_file_name == context[context_key_chart_file_name]
                 ), f"expected chart file name '{helm_chart_file_name}' got '{context[context_key_chart_file_name]}'"
-                assert context[context_key_chart_full_path].endswith(
+                if context[context_key_chart_full_path].endswith(full_chart_path
+                ):
+                    raise BuildError(self.name, f"expected '{context[context_key_chart_full_path]}' to end with '{full_chart_path}'")
                     full_chart_path
                 ), f"expected '{context[context_key_chart_full_path]}' to end with '{full_chart_path}'"
                 context[context_key_chart_full_path] = full_chart_path
