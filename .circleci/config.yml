@@ -45,7 +45,8 @@ workflows:
 
 jobs:
   augment-circleci-dockerfile:
-    executor: "architect/architect"
+    docker:
+      - image: quay.io/giantswarm/busybox:1.31.0
     steps:
       - attach_workspace:
           at: .
@@ -53,7 +54,7 @@ jobs:
           name: augment circleci.Dockerfile
           command: |
             CURRENT_TAG="$(cat .docker_image_name)"
-            sed -i -e "s|FROM changeme|FROM ${CURRENT_TAG}|" /abs/circleci.Dockerfile
+            sed -i -e "s|FROM changeme|FROM ${CURRENT_TAG}|" circleci.Dockerfile
 
   run-tests:
     machine:
