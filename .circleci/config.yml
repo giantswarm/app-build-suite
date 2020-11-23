@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  architect: giantswarm/architect@0.13.0
+  architect: giantswarm/architect@dev:add-dockerfile-parameter
   codecov: codecov/codecov@1.0.2
 
 workflows:
@@ -22,7 +22,35 @@ workflows:
             tags:
               only: /^v.*/
 
+      - augment-circleci-dockerfile
+
+      - architect/push-to-docker:
+          name: push-app-build-suite-circle-ci-to-quay
+          requires:
+            - push-app-build-suite-to-quay
+          context: architect
+          image: "quay.io/giantswarm/app-build-suite"
+          username_envar: "QUAY_USERNAME"
+          password_envar: "QUAY_PASSWORD"
+          dockerfile: "./circleci.Dockerfile"
+          tag-suffix: "-circleci"
+          filters:
+            # Needed to trigger job also on git tag.
+            tags:
+              only: /^v.*/
+
 jobs:
+  augment-circleci-dockerfile:
+    executor: "architect"
+    steps:
+      - attach_workspace:
+          at: .
+      - run:
+          name: augment circleci.Dockerfile
+          command: |
+            CURRENT_TAG="$(cat .docker_image_name)"
+            sed -i -e "s|FROM changeme|FROM ${CURRENT_TAG}|" /abs/circleci.Dockerfile
+
   run-tests:
     machine:
       image: ubuntu-2004:202010-01
