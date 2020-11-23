@@ -45,17 +45,22 @@ workflows:
 
 jobs:
   augment-circleci-dockerfile:
-    docker:
-      - image: quay.io/giantswarm/alpine:3.12.1
+    executor: "architect/architect"
     steps:
       - checkout
-      - attach_workspace:
-          at: .
+      - run:
+          name: Generate container tag like architect orb does it
+          command: |
+            echo -n "quay.io/giantswarm/app-build-suite:$(architect project version)" > .docker_image_name
       - run:
           name: augment circleci.Dockerfile
           command: |
             CURRENT_TAG="$(cat .docker_image_name)"
             sed -i -e "s|FROM changeme|FROM ${CURRENT_TAG}|" circleci.Dockerfile
+      - persist_to_workspace:
+          root: "."
+          paths:
+            - "circleci.Dockerfile"
 
   run-tests:
     machine:
