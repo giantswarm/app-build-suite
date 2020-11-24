@@ -434,8 +434,7 @@ class HelmChartMetadataPreparer(BuildStep):
           - copy it into the metadata directory
         """
         catalog_url = f"{catalog_base_url}{chart_file_name}-meta/"
-        annotations = {}
-        annotations[self._key_annotation_metadata_url] = urlsplit(f"{catalog_url}main.yaml").geturl()
+        annotations = {self._key_annotation_metadata_url: urlsplit(f"{catalog_url}main.yaml").geturl()}
         for additional_file, annotation_key in self._annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):

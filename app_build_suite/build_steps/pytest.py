@@ -6,13 +6,16 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, NewType, Set, Optional, List
 
 import configargparse
-from pykube import KubeConfig, HTTPClient
+import yaml
+from pykube import KubeConfig, HTTPClient, ConfigMap
 from pytest_helm_charts import utils
+from pytest_helm_charts.giantswarm_app_platform.custom_resources import AppCR
+from pytest_helm_charts.utils import YamlDict
 
 from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
-from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL
+from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_ALL
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
-from app_build_suite.errors import ConfigError
+from app_build_suite.errors import ConfigError, TestError
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
 
 TestType = NewType("TestType", str)
@@ -21,6 +24,8 @@ TEST_FUNCTIONAL = TestType("functional")
 TEST_PERFORMANCE = TestType("performance")
 TEST_COMPATIBILITY = TestType("compatibility")
 
+context_key_chart_yaml: str = "chart_yaml"
+_chart_yaml = "Chart.yaml"
 logger = logging.getLogger(__name__)
 
 
@@ -87,10 +92,15 @@ class PytestTestFilteringPipeline(BuildStepsFilteringPipeline):
     Pipeline that combines all the steps required to use pytest as a testing framework.
     """
 
+    key_config_option_deploy_app = "--app-tests-deploy"
+    key_config_option_deploy_namespace = "--app-tests-deploy-namespace"
+    key_config_option_deploy_config_file = "--app-tests-app-config-file"
+
     def __init__(self):
         self._cluster_manager = ClusterManager()
         super().__init__(
             [
+                TestInfoProvider(),
                 FunctionalTestRunner(self._cluster_manager),
             ],
             "Pytest test options",
@@ -101,18 +111,44 @@ class PytestTestFilteringPipeline(BuildStepsFilteringPipeline):
         if self._config_parser_group is None:
             raise ValueError("'_config_parser_group' can't be None")
         self._config_parser_group.add_argument(
-            "--deploy-app-for-tests",
+            self.key_config_option_deploy_app,
             required=False,
             default=True,
             action="store_true",
             help="If 'True', then the chart built in the build step will be deployed to the test target cluster"
             " using an App CR before tests are started",
         )
+        self._config_parser_group.add_argument(
+            self.key_config_option_deploy_namespace,
+            required=False,
+            default="default",
+            help="The namespace your app under test should be deployed to for running tests.",
+        )
+        self._config_parser_group.add_argument(
+            self.key_config_option_deploy_config_file,
+            required=False,
+            help="Path for a configuration file (values file) for your app when it's deployed for testing.",
+        )
         self._cluster_manager.initialize_config(self._config_parser_group)
 
     def pre_run(self, config: argparse.Namespace) -> None:
         super().pre_run(config)
         self._cluster_manager.pre_run(config)
+        app_config_file = get_config_value_by_cmd_line_option(config, self.key_config_option_deploy_config_file)
+        if app_config_file:
+            if not os.path.isfile(app_config_file):
+                raise TestError(
+                    f"Application test run was configured to use '{app_config_file}' as app"
+                    f" config file, but it doesn't exist."
+                )
+            try:
+                with open(app_config_file, "r") as file:
+                    yaml.safe_load(file)
+            except Exception:
+                raise TestError(
+                    f"Application config file '{app_config_file}' found, but can't be loaded"
+                    f"as a correct YAML document."
+                )
 
     def cleanup(
         self,
@@ -123,6 +159,24 @@ class PytestTestFilteringPipeline(BuildStepsFilteringPipeline):
         self._cluster_manager.cleanup()
 
 
+class TestInfoProvider(BuildStep):
+    """
+    Since the whole build pipeline can change Chart.yaml file multiple times, this
+    class loads the Chart.yaml as dict into context at the beginning of testing
+    pipeline.
+    """
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_TEST_ALL}
+
+    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        with open(chart_yaml_path, "r") as file:
+            chart_yaml = yaml.safe_load(file)
+            context[context_key_chart_yaml] = chart_yaml
+
+
 class BaseTestRunner(BuildStep, ABC):
     _apptestctl_bin = "apptestctl"
     _apptestctl_bootstrap_timeout_sec = 180
@@ -131,6 +185,7 @@ class BaseTestRunner(BuildStep, ABC):
         self._cluster_manager = cluster_manager
         self._configured_cluster_type: ClusterType = ClusterType("")
         self._configured_cluster_config_file = ""
+        self._kube_client: Optional[HTTPClient] = None
 
     @property
     @abstractmethod
@@ -178,10 +233,8 @@ class BaseTestRunner(BuildStep, ABC):
             logger.error("Bootstrapping app platform on the target cluster failed")
             raise
         # wait for everything to be up - currently apptestctl doesn't do that
-        kube_config = KubeConfig.from_file(kube_config_path)
-        kube_client = HTTPClient(kube_config)
         utils.wait_for_deployments_to_run(
-            kube_client,
+            self._kube_client,
             ["app-operator-unique", "chart-operator-unique", "chartmuseum-chartmuseum"],
             "giantswarm",
             self._apptestctl_bootstrap_timeout_sec,
@@ -240,17 +293,71 @@ class BaseTestRunner(BuildStep, ABC):
             logger.info(f"Skipping tests of type {self._test_type_executed} as configured (run step).")
             return
         # this API might need a change if we need to pass some more information than just type and config file
+        logger.info(
+            f"Requesting new cluster of type '{self._configured_cluster_type}' using config file"
+            f" '{self._configured_cluster_config_file}'."
+        )
         cluster_info = self._cluster_manager.get_cluster_for_test_type(
             self._configured_cluster_type, self._configured_cluster_config_file
         )
+        logger.info("Establishing connection to the new cluster.")
+        try:
+            kube_config = KubeConfig.from_file(cluster_info.kube_config_path)
+            self._kube_client = HTTPClient(kube_config)
+        except Exception:
+            raise TestError("Can't establish connection to the new test cluster")
+
         self._ensure_app_platform_ready(cluster_info.kube_config_path)
         if config.deploy_app_for_tests:
-            self._deploy_chart_as_app(context)
+            self._deploy_chart_as_app(config, context)
         self._run_pytest()
         self._cluster_manager.release_cluster(cluster_info)
 
-    def _deploy_chart_as_app(self, context: Dict[str, Any]):
-        pass
+    def _deploy_chart_as_app(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+        namespace = get_config_value_by_cmd_line_option(
+            config, PytestTestFilteringPipeline.key_config_option_deploy_namespace
+        )
+        app_name = context[context_key_chart_yaml]["name"]
+        app_version = context[context_key_chart_yaml]["version"]
+        app: YamlDict = {
+            "apiVersion": "application.giantswarm.io/v1alpha1",
+            "kind": "App",
+            "metadata": {
+                "name": app_name,
+                "namespace": namespace,
+                "labels": {"app": app_name, "app-operator.giantswarm.io/version": "1.0.0"},
+            },
+            "spec": {
+                # FIXME: enter correct catalog name
+                "catalog": "FIXME",
+                "version": app_version,
+                "kubeConfig": {"inCluster": True},
+                "name": app_name,
+                "namespace": namespace,
+            },
+        }
+        app_config_file_path = get_config_value_by_cmd_line_option(
+            config, PytestTestFilteringPipeline.key_config_option_deploy_config_file
+        )
+        if app_config_file_path:
+            app_cm_name = f"{app_name}-cm"
+            self._deploy_app_config_map(namespace, app_cm_name, app_config_file_path)
+            app["spec"]["config"] = {"configMap": {"name": app_cm_name, "namespace": namespace}}
+
+        app_obj = AppCR(self._kube_client, app)
+        app_obj.create()
+
+    def _deploy_app_config_map(self, namespace: str, name: str, app_config_file_path: str):
+        with open(app_config_file_path) as f:
+            config_values = f.read()
+        app_cm: YamlDict = {
+            "apiVersion": "v1",
+            "kind": "ConfigMap",
+            "metadata": {"name": name, "namespace": namespace},
+            "data": {"values": config_values},
+        }
+        app_cm_obj = ConfigMap(self._kube_client, app_cm)
+        app_cm_obj.create()
 
     def _run_pytest(self):
         pass
