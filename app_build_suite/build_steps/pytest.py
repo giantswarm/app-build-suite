@@ -128,7 +128,6 @@ class BaseTestRunner(BuildStep, ABC):
 
     def __init__(self, cluster_manager: ClusterManager):
         self._cluster_manager = cluster_manager
-        self._enabled = True
         self._configured_cluster_type: ClusterType = ClusterType("")
         self._configured_cluster_config_file = ""
 
@@ -136,6 +135,21 @@ class BaseTestRunner(BuildStep, ABC):
     @abstractmethod
     def _test_type_executed(self) -> TestType:
         raise NotImplementedError
+
+    @property
+    def _config_enabled_attribute_name(self) -> str:
+        return f"--enable-{self._test_type_executed}-tests"
+
+    @property
+    def _config_cluster_type_attribute_name(self) -> str:
+        return f"--{self._test_type_executed}-tests-cluster-type"
+
+    @property
+    def _config_cluster_config_file_attribute_name(self) -> str:
+        return f"--{self._test_type_executed}-tests-cluster-config-file"
+
+    def is_enabled(self, config: argparse.Namespace) -> bool:
+        return getattr(config, self._config_enabled_attribute_name)
 
     def _ensure_app_platform_ready(self, kube_config_path: str) -> None:
         """
@@ -176,26 +190,29 @@ class BaseTestRunner(BuildStep, ABC):
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
-            f"--enable-{self._test_type_executed}-tests",
+            self._config_enabled_attribute_name,
             required=False,
             default=True,
             action="store_true",
             help=f"If 'True', then {self._test_type_executed} tests will be executed.",
         )
         config_parser.add_argument(
-            f"--{self._test_type_executed}-tests-cluster-type",
+            self._config_cluster_type_attribute_name,
             required=False,
             help=f"Cluster type to use for {self._test_type_executed} tests.",
         )
         config_parser.add_argument(
-            f"--{self._test_type_executed}-tests-cluster-config-file",
+            self._config_cluster_config_file_attribute_name,
             required=False,
             help=f"Additional configuration file for the cluster used for {self._test_type_executed} tests.",
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        cluster_type: str = getattr(config, f"{self._test_type_executed}_tests_cluster_type")
-        cluster_config_file: str = getattr(config, f"{self._test_type_executed}_tests_cluster_config_file")
+        if not self.is_enabled(config):
+            logger.info(f"Skipping tests of type {self._test_type_executed} as configured (pre-run step).")
+            return
+        cluster_type = ClusterType(getattr(config, self._config_cluster_type_attribute_name))
+        cluster_config_file: str = getattr(config, self._config_cluster_config_file_attribute_name)
         known_cluster_types = self._cluster_manager.get_registered_cluster_types()
         if cluster_type not in known_cluster_types:
             raise ConfigError(
@@ -210,12 +227,12 @@ class BaseTestRunner(BuildStep, ABC):
                 f" '{cluster_type}' requested for tests of type"
                 f" '{self._test_type_executed}' doesn't exist.",
             )
-        self._configured_cluster_type = ClusterType(cluster_type)
+        self._configured_cluster_type = cluster_type
         self._configured_cluster_config_file = cluster_config_file
 
     def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
-        if not self._enabled:
-            logger.info(f"Skipping tests of type {self._test_type_executed} as configured.")
+        if not self.is_enabled(config):
+            logger.info(f"Skipping tests of type {self._test_type_executed} as configured (run step).")
             return
         # this API might need a change if we need to pass some more information than just type and config file
         cluster_info = self._cluster_manager.get_cluster_for_test_type(
@@ -238,10 +255,6 @@ class FunctionalTestRunner(BaseTestRunner):
     """
     FunctionalTestRunner executes functional tests on top of the configured version of kind cluster
     """
-
-    def pre_run(self, config: argparse.Namespace) -> None:
-        super().pre_run(config)
-        self._enabled = config.enable_functional_tests
 
     @property
     def _test_type_executed(self) -> TestType:
