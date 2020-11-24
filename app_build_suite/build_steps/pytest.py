@@ -13,6 +13,7 @@ from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
 from app_build_suite.errors import ConfigError
+from app_build_suite.utils.config import get_config_value_by_cmd_line_option
 
 TestType = NewType("TestType", str)
 TEST_UNIT = TestType("unit")
@@ -149,7 +150,7 @@ class BaseTestRunner(BuildStep, ABC):
         return f"--{self._test_type_executed}-tests-cluster-config-file"
 
     def is_enabled(self, config: argparse.Namespace) -> bool:
-        return getattr(config, self._config_enabled_attribute_name)
+        return get_config_value_by_cmd_line_option(config, self._config_enabled_attribute_name)
 
     def _ensure_app_platform_ready(self, kube_config_path: str) -> None:
         """
@@ -211,8 +212,12 @@ class BaseTestRunner(BuildStep, ABC):
         if not self.is_enabled(config):
             logger.info(f"Skipping tests of type {self._test_type_executed} as configured (pre-run step).")
             return
-        cluster_type = ClusterType(getattr(config, self._config_cluster_type_attribute_name))
-        cluster_config_file: str = getattr(config, self._config_cluster_config_file_attribute_name)
+        cluster_type = ClusterType(
+            get_config_value_by_cmd_line_option(config, self._config_cluster_type_attribute_name)
+        )
+        cluster_config_file: str = get_config_value_by_cmd_line_option(
+            config, self._config_cluster_config_file_attribute_name
+        )
         known_cluster_types = self._cluster_manager.get_registered_cluster_types()
         if cluster_type not in known_cluster_types:
             raise ConfigError(
