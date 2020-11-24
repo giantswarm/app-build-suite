@@ -454,7 +454,7 @@ class HelmChartMetadataPreparer(BuildStep):
             chart_yaml = yaml.safe_load(file)
         original_annotations = chart_yaml.get(self._key_annotations, None)
         # try to guess the package file name. we need it for url generation in annotations
-        chart_name = os.path.basename(config.chart_dir)
+        chart_name = chart_yaml["name"]
         context[context_key_chart_file_name] = f"{chart_name}-{context[context_key_git_version]}.tgz"
         context[context_key_chart_full_path] = os.path.join(config.destination, context[context_key_chart_file_name])
         # create metadata directory
