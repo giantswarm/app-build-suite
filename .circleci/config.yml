@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-  architect: giantswarm/architect@dev:add-dockerfile-parameter
+  architect: giantswarm/architect@0.17.1
   codecov: codecov/codecov@1.0.2
 
 workflows:
