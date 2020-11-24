@@ -241,7 +241,6 @@ class BaseTestRunner(BuildStep, ABC):
             ["app-operator-unique", "chart-operator-unique", "chartmuseum-chartmuseum"],
             "giantswarm",
             self._apptestctl_bootstrap_timeout_sec,
-            missing_ok=False,
         )
         logger.info("App platform components bootstrapped and ready to use.")
 
@@ -303,6 +302,7 @@ class BaseTestRunner(BuildStep, ABC):
         cluster_info = self._cluster_manager.get_cluster_for_test_type(
             self._configured_cluster_type, self._configured_cluster_config_file
         )
+
         logger.info("Establishing connection to the new cluster.")
         try:
             kube_config = KubeConfig.from_file(cluster_info.kube_config_path)
@@ -310,20 +310,16 @@ class BaseTestRunner(BuildStep, ABC):
         except Exception:
             raise TestError("Can't establish connection to the new test cluster")
 
+        # prepare app platform and upload artifacts
         self._ensure_app_platform_ready(cluster_info.kube_config_path)
+        self._upload_chart_to_app_catalog()
+
         if config.deploy_app_for_tests:
             self._deploy_chart_as_app(config, context)
         self._run_pytest()
-        self._cluster_manager.release_cluster(cluster_info)
 
-    def cleanup(
-        self,
-        config: argparse.Namespace,
-        context: Dict[str, Any],
-        has_build_failed: bool,
-    ) -> None:
-        # TODO: delete App and CM, wait until they're gone
-        pass
+        self._delete_app()
+        self._cluster_manager.release_cluster(cluster_info)
 
     def _deploy_chart_as_app(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         namespace = get_config_value_by_cmd_line_option(
@@ -379,6 +375,12 @@ class BaseTestRunner(BuildStep, ABC):
 
     def _run_pytest(self):
         pass
+
+    def _upload_chart_to_app_catalog(self):
+        raise NotImplementedError()
+
+    def _delete_app(self):
+        raise NotImplementedError()
 
 
 class FunctionalTestRunner(BaseTestRunner):
