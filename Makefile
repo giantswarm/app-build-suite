@@ -1,39 +1,91 @@
-# Image URL to use all building/pushing image targets
-IMG ?= quay.io/giantswarm/app-build-suite
+# DO NOT EDIT. Generated with:
+#
+#    devctl gen makefile
+#
 
-export VER ?= $(shell git describe 2>/dev/null || echo "0.0.0")
-export COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo "0000000000000000000000000000000000000000")
-export SHORT_COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "0000000")
-export DATE ?= $(shell date '+%FT%T%:z')
+APPLICATION    := $(shell go list . | cut -d '/' -f 3)
+BUILDTIMESTAMP := $(shell date -u '+%FT%TZ')
+GITSHA1        := $(shell git rev-parse --verify HEAD)
+OS             := $(shell go env GOOS)
+SOURCES        := $(shell find . -name '*.go')
+VERSION        := $(shell architect project version)
+LDFLAGS        ?= -w -linkmode 'auto' -extldflags '-static' \
+  -X '$(shell go list .)/pkg/project.buildTimestamp=${BUILDTIMESTAMP}' \
+  -X '$(shell go list .)/pkg/project.gitSHA=${GITSHA1}'
+.DEFAULT_GOAL := build
 
-IMG_VER ?= ${VER}-${COMMIT}
+.PHONY: build build-darwin build-linux
+## build: builds a local binary
+build: $(APPLICATION)
+	@echo "====> $@"
+## build-darwin: builds a local binary for darwin/amd64
+build-darwin: $(APPLICATION)-darwin
+	@echo "====> $@"
+## build-linux: builds a local binary for linux/amd64
+build-linux: $(APPLICATION)-linux
+	@echo "====> $@"
 
-.PHONY: all docker-build docker-push docker-build-test test docker-test docker-test-ci
+$(APPLICATION): $(APPLICATION)-v$(VERSION)-$(OS)-amd64
+	@echo "====> $@"
+	cp -a $< $@
 
-all: docker-build
+$(APPLICATION)-darwin: $(APPLICATION)-v$(VERSION)-darwin-amd64
+	@echo "====> $@"
+	cp -a $< $@
 
-# Build the docker image from locally built binary
-docker-build:
-	echo build_ver\ =\ \"${VER}-${COMMIT}\" > app_build_suite/version.py
-	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
+$(APPLICATION)-linux: $(APPLICATION)-v$(VERSION)-linux-amd64
+	@echo "====> $@"
+	cp -a $< $@
 
-# Push the docker image
-docker-push: docker-build
-	docker push ${IMG}:${IMG_VER}
+$(APPLICATION)-v$(VERSION)-%-amd64: $(SOURCES)
+	@echo "====> $@"
+	CGO_ENABLED=0 GOOS=$* GOARCH=amd64 go build -ldflags "$(LDFLAGS)" -o $@ .
 
-docker-build-test: docker-build
-	docker build -f testrunner.Dockerfile . -t ${IMG}-test:latest
+.PHONY: install
+## install: install the application
+install:
+	@echo "====> $@"
+	go install -ldflags "$(LDFLAGS)" .
 
-test-command = --cov app_build_suite --log-cli-level info tests/
-test-command-ci = --cov-report=xml $(test-command)
-test-docker-args = run -it --rm -v ${PWD}/.coverage/:/abs/.coverage/
-test-docker-run = docker $(test-docker-args) ${IMG}-test:latest
+.PHONY: run
+## run: runs go run main.go
+run:
+	@echo "====> $@"
+	go run -ldflags "$(LDFLAGS)" -race .
 
+.PHONY: clean
+## clean: cleans the binary
+clean:
+	@echo "====> $@"
+	rm -f $(APPLICATION)*
+	go clean
+
+.PHONY: imports
+## imports: runs goimports
+imports:
+	@echo "====> $@"
+	goimports -local $(shell go list .) -w .
+
+.PHONY: lint
+## lint: runs golangci-lint
+lint:
+	@echo "====> $@"
+	golangci-lint run -E gosec -E goconst --timeout=15m ./...
+
+.PHONY: test
+## test: runs go test with default values
 test:
-	pipenv run pytest $(test-command)
+	@echo "====> $@"
+	go test -ldflags "$(LDFLAGS)" -race ./...
 
-docker-test: docker-build-test
-	$(test-docker-run) $(test-command)
+.PHONY: build-docker
+## build-docker: builds docker image to registry
+build-docker: build-linux
+	@echo "====> $@"
+	docker build -t ${APPLICATION}:${VERSION} .
 
-docker-test-ci: docker-build-test
-	$(test-docker-run) $(test-command-ci)
+.PHONY: help
+## help: prints this help message
+help:
+	@echo "Usage: \n"
+	@sed -n 's/^##//p' ${MAKEFILE_LIST} | column -t -s ':' |  sed -e 's/^/ /'
