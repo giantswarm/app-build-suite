@@ -1,2 +1,3 @@
 replace-chart-version-with-git: true
 generate-metadata: true
+catalog-base-url: http://localhost/

@@ -25,6 +25,9 @@ TEST_PERFORMANCE = TestType("performance")
 TEST_COMPATIBILITY = TestType("compatibility")
 
 context_key_chart_yaml: str = "chart_yaml"
+context_key_app_cr: str = "app_cr"
+context_key_app_cm_cr: str = "app_cm_cr"
+
 _chart_yaml = "Chart.yaml"
 logger = logging.getLogger(__name__)
 
@@ -313,6 +316,15 @@ class BaseTestRunner(BuildStep, ABC):
         self._run_pytest()
         self._cluster_manager.release_cluster(cluster_info)
 
+    def cleanup(
+        self,
+        config: argparse.Namespace,
+        context: Dict[str, Any],
+        has_build_failed: bool,
+    ) -> None:
+        # TODO: delete App and CM, wait until they're gone
+        pass
+
     def _deploy_chart_as_app(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
         namespace = get_config_value_by_cmd_line_option(
             config, PytestTestFilteringPipeline.key_config_option_deploy_namespace
@@ -342,12 +354,16 @@ class BaseTestRunner(BuildStep, ABC):
         if app_config_file_path:
             app_cm_name = f"{app_name}-cm"
             self._deploy_app_config_map(namespace, app_cm_name, app_config_file_path)
-            app["spec"]["config"] = {"configMap": {"name": app_cm_name, "namespace": namespace}}
+            cm = app["spec"]["config"] = {"configMap": {"name": app_cm_name, "namespace": namespace}}
+            context[context_key_app_cm_cr] = cm
 
         app_obj = AppCR(self._kube_client, app)
+        logger.info(f"Creating App CR to deploy application '{app_name}' in namespace '{namespace}'.")
         app_obj.create()
+        context[context_key_app_cr] = app_obj
+        # TODO: wait for app to be reported as ready
 
-    def _deploy_app_config_map(self, namespace: str, name: str, app_config_file_path: str):
+    def _deploy_app_config_map(self, namespace: str, name: str, app_config_file_path: str) -> ConfigMap:
         with open(app_config_file_path) as f:
             config_values = f.read()
         app_cm: YamlDict = {
@@ -357,7 +373,9 @@ class BaseTestRunner(BuildStep, ABC):
             "data": {"values": config_values},
         }
         app_cm_obj = ConfigMap(self._kube_client, app_cm)
+        logger.info(f"Creating ConfigMap '{name}' with options in namespace '{namespace}'.")
         app_cm_obj.create()
+        return app_cm_obj
 
     def _run_pytest(self):
         pass
