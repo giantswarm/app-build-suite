@@ -14,6 +14,7 @@ from pytest_helm_charts.utils import YamlDict
 
 from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_ALL
+from app_build_suite.build_steps.pytest import PytestTestFilteringPipeline
 from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
 from app_build_suite.errors import ConfigError, TestError
@@ -174,17 +175,6 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
         has_build_failed: bool,
     ) -> None:
         self._cluster_manager.cleanup()
-
-
-class PytestTestFilteringPipeline(BaseTestRunnersFilteringPipeline):
-    def __init__(self):
-        super().__init__(
-            [
-                TestInfoProvider(),
-                PytestFunctionalTestRunner(self._cluster_manager),
-            ],
-            "Pytest test options",
-        )
 
 
 class BaseTestRunner(BuildStep, ABC):
@@ -389,6 +379,7 @@ class BaseTestRunner(BuildStep, ABC):
         # right now, static dependency will do
         ChartMuseumAppRepository(self._kube_client).upload_artifacts(context)
 
+    # noinspection PyMethodMayBeStatic
     def _delete_app(self, context: Context):
         cast(AppCR, context[context_key_app_cr]).delete()
         cast(ConfigMap, context[context_key_app_cm_cr]).delete()
@@ -406,12 +397,3 @@ class FunctionalTestRunner(BaseTestRunner, ABC):
     @property
     def steps_provided(self) -> Set[StepType]:
         return {STEP_TEST_FUNCTIONAL}
-
-
-class PytestTestRunner(BaseTestRunner, ABC):
-    def run_tests(self):
-        pass
-
-
-class PytestFunctionalTestRunner(FunctionalTestRunner, PytestTestRunner):
-    pass

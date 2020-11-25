@@ -96,6 +96,7 @@ class HelmGitVersionSetter(BuildStep):
             help=f"Should the {_chart_yaml_chart_version_key} in {_chart_yaml} be replaced by a tag and hash from git",
         )
 
+    # noinspection PyMethodMayBeStatic
     def _is_enabled(self, config: argparse.Namespace) -> bool:
         return config.replace_chart_version_with_git or config.replace_app_version_with_git
 
@@ -429,8 +430,8 @@ class HelmChartMetadataPreparer(BuildStep):
         self, catalog_base_url: str, chart_file_name: str, chart_dir: str, meta_dir_path: str
     ) -> Context:
         """
-        Based upon the _annotatons_files_map:
-          - check if the file is availeble
+        Based upon the _annotations_files_map:
+          - check if the file is available
           - include it in the annotations
           - copy it into the metadata directory
         """
