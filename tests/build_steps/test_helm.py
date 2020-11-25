@@ -49,7 +49,7 @@ def test_prepare_metadata(monkeypatch):
         }
 
         def monkey_write_chart_yaml(_, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
-            annotation_base_url = f"{config.catalog_base_url}res_test_helm-{git_version}.tgz-meta/"
+            annotation_base_url = f"{config.catalog_base_url}hello-world-app-{git_version}.tgz-meta/"
             assert data["annotations"]["application.giantswarm.io/metadata"] == f"{annotation_base_url}main.yaml"
             assert (
                 data["annotations"]["application.giantswarm.io/values-schema"]

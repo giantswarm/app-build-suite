@@ -1,7 +1,7 @@
 """This is a module that includes main components of the app"""
 import logging
 import sys
-from typing import List, Dict, Any
+from typing import List
 
 import configargparse
 from dependency_injector import containers, providers
@@ -9,10 +9,9 @@ from dependency_injector import containers, providers
 from app_build_suite.build_steps import BuildStep
 from app_build_suite.errors import Error
 from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
+from app_build_suite.types import Context
 
 logger = logging.getLogger(__name__)
-
-Context = Dict[str, Any]
 
 
 class ComponentsContainer(containers.DeclarativeContainer):

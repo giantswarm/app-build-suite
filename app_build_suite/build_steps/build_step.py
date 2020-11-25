@@ -8,7 +8,7 @@ from typing import List, NewType, Callable, Set, cast, Optional
 import configargparse
 import semver
 
-from app_build_suite.components import Context
+from app_build_suite.types import Context
 from app_build_suite.errors import ValidationError, Error
 
 logger = logging.getLogger(__name__)

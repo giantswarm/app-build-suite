@@ -4,7 +4,7 @@ from typing import cast
 from pykube import HTTPClient, Service
 
 from app_build_suite.build_steps import helm
-from app_build_suite.components import Context
+from app_build_suite.types import Context
 from app_build_suite.errors import TestError
 
 

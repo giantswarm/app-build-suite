@@ -16,7 +16,7 @@ from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_ALL
 from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
-from app_build_suite.components import Context
+from app_build_suite.types import Context
 from app_build_suite.errors import ConfigError, TestError
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
 
