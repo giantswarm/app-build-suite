@@ -1,15 +1,16 @@
 from abc import ABC, abstractmethod
-from typing import cast, Any, Dict
+from typing import cast
 
 from pykube import HTTPClient, Service
 
 from app_build_suite.build_steps import helm
+from app_build_suite.components import Context
 from app_build_suite.errors import TestError
 
 
 class AppRepository(ABC):
     @abstractmethod
-    def upload_artifacts(self, context: Dict[str, Any]) -> None:
+    def upload_artifacts(self, context: Context) -> None:
         raise NotImplementedError()
 
 
@@ -20,7 +21,7 @@ class ChartMuseumAppRepository(AppRepository):
     def __init__(self, kube_client: HTTPClient):
         self._kube_client = kube_client
 
-    def upload_artifacts(self, context: Dict[str, Any]) -> None:
+    def upload_artifacts(self, context: Context) -> None:
         cm_srv = cast(
             Service,
             Service.objects(self._kube_client)

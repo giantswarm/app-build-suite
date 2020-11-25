@@ -3,7 +3,7 @@ import logging
 import os
 import subprocess  # nosec - we need it to execute apptestctl and test framework
 from abc import ABC, abstractmethod
-from typing import Dict, Any, NewType, Set, Optional, List, cast
+from typing import Dict, NewType, Set, Optional, List, cast
 
 import configargparse
 import yaml
@@ -16,6 +16,7 @@ from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_ALL
 from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
+from app_build_suite.components import Context
 from app_build_suite.errors import ConfigError, TestError
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
 
@@ -157,7 +158,7 @@ class PytestTestFilteringPipeline(BuildStepsFilteringPipeline):
     def cleanup(
         self,
         config: argparse.Namespace,
-        context: Dict[str, Any],
+        context: Context,
         has_build_failed: bool,
     ) -> None:
         self._cluster_manager.cleanup()
@@ -174,7 +175,7 @@ class TestInfoProvider(BuildStep):
     def steps_provided(self) -> Set[StepType]:
         return {STEP_TEST_ALL}
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
@@ -291,7 +292,7 @@ class BaseTestRunner(BuildStep, ABC):
         self._configured_cluster_type = cluster_type
         self._configured_cluster_config_file = cluster_config_file
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         if not self.is_enabled(config):
             logger.info(f"Skipping tests of type {self._test_type_executed} as configured (run step).")
             return
@@ -322,7 +323,7 @@ class BaseTestRunner(BuildStep, ABC):
         self._delete_app(context)
         self._cluster_manager.release_cluster(cluster_info)
 
-    def _deploy_chart_as_app(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def _deploy_chart_as_app(self, config: argparse.Namespace, context: Context) -> None:
         namespace = get_config_value_by_cmd_line_option(
             config, PytestTestFilteringPipeline.key_config_option_deploy_namespace
         )
@@ -377,12 +378,12 @@ class BaseTestRunner(BuildStep, ABC):
     def _run_pytest(self):
         pass
 
-    def _upload_chart_to_app_catalog(self, context: Dict[str, Any]):
+    def _upload_chart_to_app_catalog(self, context: Context):
         # TODO: in future, if we want to support multiple chart repositories, we need to make this configurable
         # right now, static dependency will do
         ChartMuseumAppRepository(self._kube_client).upload_artifacts(context)
 
-    def _delete_app(self, context: Dict[str, Any]):
+    def _delete_app(self, context: Context):
         cast(AppCR, context[context_key_app_cr]).delete()
         cast(ConfigMap, context[context_key_app_cm_cr]).delete()
 

@@ -3,11 +3,12 @@ import argparse
 import logging
 import shutil
 from abc import ABC, abstractmethod
-from typing import List, NewType, Callable, Set, cast, Dict, Any, Optional
+from typing import List, NewType, Callable, Set, cast, Optional
 
 import configargparse
 import semver
 
+from app_build_suite.components import Context
 from app_build_suite.errors import ValidationError, Error
 
 logger = logging.getLogger(__name__)
@@ -88,7 +89,7 @@ class BuildStep(ABC):
         pass  # pragma: no cover
 
     @abstractmethod
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         """
         Execute actual build action of the BuildStep.
         :param context: A context where different components can save data to share with other components.
@@ -100,7 +101,7 @@ class BuildStep(ABC):
     def cleanup(
         self,
         config: argparse.Namespace,
-        context: Dict[str, Any],
+        context: Context,
         has_build_failed: bool,
     ) -> None:
         """
@@ -189,13 +190,13 @@ class BuildStepsFilteringPipeline(BuildStep):
     def pre_run(self, config: argparse.Namespace) -> None:
         self._iterate_steps(config, "pre-run", lambda step: step.pre_run(config))
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         self._iterate_steps(config, "build", lambda step: step.run(config, context))
 
     def cleanup(
         self,
         config: argparse.Namespace,
-        context: Dict[str, Any],
+        context: Context,
         has_build_failed: bool,
     ) -> None:
         self._iterate_steps(

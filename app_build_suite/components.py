@@ -12,6 +12,8 @@ from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
 
 logger = logging.getLogger(__name__)
 
+Context = Dict[str, Any]
+
 
 class ComponentsContainer(containers.DeclarativeContainer):
     """
@@ -32,7 +34,7 @@ class Runner:
     def __init__(self, config: configargparse.Namespace, steps: List[BuildStep]):
         self._config = config
         self._steps = steps
-        self._context: Dict[str, Any] = {}
+        self._context: Context = {}
         self._failed_build = False
 
     @property
