@@ -16,8 +16,8 @@ from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_ALL
 from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
-from app_build_suite.types import Context
 from app_build_suite.errors import ConfigError, TestError
+from app_build_suite.types import Context
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
 
 TestType = NewType("TestType", str)
@@ -92,24 +92,36 @@ class ClusterManager:
             self.release_cluster(cluster_info)
 
 
-class PytestTestFilteringPipeline(BuildStepsFilteringPipeline):
+class TestInfoProvider(BuildStep):
     """
-    Pipeline that combines all the steps required to use pytest as a testing framework.
+    Since the whole build pipeline can change Chart.yaml file multiple times, this
+    class loads the Chart.yaml as dict into context at the beginning of testing
+    pipeline.
+    """
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_TEST_ALL}
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        with open(chart_yaml_path, "r") as file:
+            chart_yaml = yaml.safe_load(file)
+            context[context_key_chart_yaml] = chart_yaml
+
+
+class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
+    """
+    Pipeline that combines all the steps required to run application tests.
     """
 
     key_config_option_deploy_app = "--app-tests-deploy"
     key_config_option_deploy_namespace = "--app-tests-deploy-namespace"
     key_config_option_deploy_config_file = "--app-tests-app-config-file"
 
-    def __init__(self):
+    def __init__(self, pipeline: List[BuildStep], config_group_desc: str):
         self._cluster_manager = ClusterManager()
-        super().__init__(
-            [
-                TestInfoProvider(),
-                FunctionalTestRunner(self._cluster_manager),
-            ],
-            "Pytest test options",
-        )
+        super().__init__(pipeline, config_group_desc)
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         super().initialize_config(config_parser)
@@ -164,22 +176,15 @@ class PytestTestFilteringPipeline(BuildStepsFilteringPipeline):
         self._cluster_manager.cleanup()
 
 
-class TestInfoProvider(BuildStep):
-    """
-    Since the whole build pipeline can change Chart.yaml file multiple times, this
-    class loads the Chart.yaml as dict into context at the beginning of testing
-    pipeline.
-    """
-
-    @property
-    def steps_provided(self) -> Set[StepType]:
-        return {STEP_TEST_ALL}
-
-    def run(self, config: argparse.Namespace, context: Context) -> None:
-        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
-        with open(chart_yaml_path, "r") as file:
-            chart_yaml = yaml.safe_load(file)
-            context[context_key_chart_yaml] = chart_yaml
+class PytestTestFilteringPipeline(BaseTestRunnersFilteringPipeline):
+    def __init__(self):
+        super().__init__(
+            [
+                TestInfoProvider(),
+                PytestFunctionalTestRunner(self._cluster_manager),
+            ],
+            "Pytest test options",
+        )
 
 
 class BaseTestRunner(BuildStep, ABC):
@@ -196,6 +201,10 @@ class BaseTestRunner(BuildStep, ABC):
     @abstractmethod
     def _test_type_executed(self) -> TestType:
         raise NotImplementedError
+
+    @abstractmethod
+    def run_tests(self):
+        pass
 
     @property
     def _config_enabled_attribute_name(self) -> str:
@@ -318,7 +327,7 @@ class BaseTestRunner(BuildStep, ABC):
 
         if config.deploy_app_for_tests:
             self._deploy_chart_as_app(config, context)
-        self._run_pytest()
+        self.run_tests()
 
         self._delete_app(context)
         self._cluster_manager.release_cluster(cluster_info)
@@ -375,9 +384,6 @@ class BaseTestRunner(BuildStep, ABC):
         app_cm_obj.create()
         return app_cm_obj
 
-    def _run_pytest(self):
-        pass
-
     def _upload_chart_to_app_catalog(self, context: Context):
         # TODO: in future, if we want to support multiple chart repositories, we need to make this configurable
         # right now, static dependency will do
@@ -388,7 +394,7 @@ class BaseTestRunner(BuildStep, ABC):
         cast(ConfigMap, context[context_key_app_cm_cr]).delete()
 
 
-class FunctionalTestRunner(BaseTestRunner):
+class FunctionalTestRunner(BaseTestRunner, ABC):
     """
     FunctionalTestRunner executes functional tests on top of the configured version of kind cluster
     """
@@ -400,3 +406,12 @@ class FunctionalTestRunner(BaseTestRunner):
     @property
     def steps_provided(self) -> Set[StepType]:
         return {STEP_TEST_FUNCTIONAL}
+
+
+class PytestTestRunner(BaseTestRunner, ABC):
+    def run_tests(self):
+        pass
+
+
+class PytestFunctionalTestRunner(FunctionalTestRunner, PytestTestRunner):
+    pass
