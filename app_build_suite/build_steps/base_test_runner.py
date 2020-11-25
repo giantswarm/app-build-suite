@@ -13,7 +13,7 @@ from pytest_helm_charts.giantswarm_app_platform.custom_resources import AppCR
 from pytest_helm_charts.utils import YamlDict
 
 from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
-from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_ALL
+from app_build_suite.build_steps.build_step import StepType, STEP_TEST_ALL
 from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
 from app_build_suite.errors import ConfigError, TestError
@@ -119,9 +119,9 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
     key_config_option_deploy_namespace = "--app-tests-deploy-namespace"
     key_config_option_deploy_config_file = "--app-tests-app-config-file"
 
-    def __init__(self, pipeline: List[BuildStep], config_group_desc: str):
-        self._cluster_manager = ClusterManager()
+    def __init__(self, pipeline: List[BuildStep], config_group_desc: str, cluster_manager: ClusterManager):
         super().__init__(pipeline, config_group_desc)
+        self._cluster_manager = cluster_manager
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         super().initialize_config(config_parser)
@@ -374,7 +374,7 @@ class BaseTestRunner(BuildStep, ABC):
         return app_cm_obj
 
     def _upload_chart_to_app_catalog(self, context: Context):
-        # TODO: in future, if we want to support multiple chart repositories, we need to make this configurable
+        # in future, if we want to support multiple chart repositories, we need to make this configurable
         # right now, static dependency will do
         ChartMuseumAppRepository(self._kube_client).upload_artifacts(context)
 
@@ -382,17 +382,3 @@ class BaseTestRunner(BuildStep, ABC):
     def _delete_app(self, context: Context):
         cast(AppCR, context[context_key_app_cr]).delete()
         cast(ConfigMap, context[context_key_app_cm_cr]).delete()
-
-
-class FunctionalTestRunner(BaseTestRunner, ABC):
-    """
-    FunctionalTestRunner executes functional tests on top of the configured version of kind cluster
-    """
-
-    @property
-    def _test_type_executed(self) -> TestType:
-        return TEST_FUNCTIONAL
-
-    @property
-    def steps_provided(self) -> Set[StepType]:
-        return {STEP_TEST_FUNCTIONAL}
