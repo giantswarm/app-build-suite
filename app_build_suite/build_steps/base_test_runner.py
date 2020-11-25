@@ -14,7 +14,6 @@ from pytest_helm_charts.utils import YamlDict
 
 from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_ALL
-from app_build_suite.build_steps.pytest import PytestTestFilteringPipeline
 from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
 from app_build_suite.errors import ConfigError, TestError
@@ -324,7 +323,7 @@ class BaseTestRunner(BuildStep, ABC):
 
     def _deploy_chart_as_app(self, config: argparse.Namespace, context: Context) -> None:
         namespace = get_config_value_by_cmd_line_option(
-            config, PytestTestFilteringPipeline.key_config_option_deploy_namespace
+            config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_namespace
         )
         app_name = context[context_key_chart_yaml]["name"]
         app_version = context[context_key_chart_yaml]["version"]
@@ -346,7 +345,7 @@ class BaseTestRunner(BuildStep, ABC):
             },
         }
         app_config_file_path = get_config_value_by_cmd_line_option(
-            config, PytestTestFilteringPipeline.key_config_option_deploy_config_file
+            config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_config_file
         )
         if app_config_file_path:
             app_cm_name = f"{app_name}-cm"
