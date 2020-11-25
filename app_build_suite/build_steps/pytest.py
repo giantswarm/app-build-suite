@@ -3,7 +3,7 @@ import logging
 import os
 import subprocess  # nosec - we need it to execute apptestctl and test framework
 from abc import ABC, abstractmethod
-from typing import Dict, Any, NewType, Set, Optional, List
+from typing import Dict, Any, NewType, Set, Optional, List, cast
 
 import configargparse
 import yaml
@@ -14,6 +14,7 @@ from pytest_helm_charts.utils import YamlDict
 
 from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_ALL
+from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
 from app_build_suite.errors import ConfigError, TestError
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
@@ -312,13 +313,13 @@ class BaseTestRunner(BuildStep, ABC):
 
         # prepare app platform and upload artifacts
         self._ensure_app_platform_ready(cluster_info.kube_config_path)
-        self._upload_chart_to_app_catalog()
+        self._upload_chart_to_app_catalog(context)
 
         if config.deploy_app_for_tests:
             self._deploy_chart_as_app(config, context)
         self._run_pytest()
 
-        self._delete_app()
+        self._delete_app(context)
         self._cluster_manager.release_cluster(cluster_info)
 
     def _deploy_chart_as_app(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
@@ -376,11 +377,14 @@ class BaseTestRunner(BuildStep, ABC):
     def _run_pytest(self):
         pass
 
-    def _upload_chart_to_app_catalog(self):
-        raise NotImplementedError()
+    def _upload_chart_to_app_catalog(self, context: Dict[str, Any]):
+        # TODO: in future, if we want to support multiple chart repositories, we need to make this configurable
+        # right now, static dependency will do
+        ChartMuseumAppRepository(self._kube_client).upload_artifacts(context)
 
-    def _delete_app(self):
-        raise NotImplementedError()
+    def _delete_app(self, context: Dict[str, Any]):
+        cast(AppCR, context[context_key_app_cr]).delete()
+        cast(ConfigMap, context[context_key_app_cm_cr]).delete()
 
 
 class FunctionalTestRunner(BaseTestRunner):
