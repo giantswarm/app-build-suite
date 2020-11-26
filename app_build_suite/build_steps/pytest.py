@@ -1,7 +1,7 @@
 import argparse
 import os
 from abc import ABC
-from typing import Set
+from typing import Set, cast
 
 import configargparse
 
@@ -26,13 +26,16 @@ class PytestTestFilteringPipeline(BaseTestRunnersFilteringPipeline):
                 TestInfoProvider(),
                 PytestFunctionalTestRunner(cluster_manager),
             ],
-            "Pytest test options",
             cluster_manager,
         )
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         super().initialize_config(config_parser)
-        config_parser.add_argument(
+        self._config_parser_group = cast(
+            configargparse.ArgParser,
+            config_parser.add_argument_group("App testing - pytest specific options"),
+        )
+        self._config_parser_group.add_argument(
             self.key_config_option_pytest_dir,
             required=False,
             default=os.path.join("tests", "abs"),

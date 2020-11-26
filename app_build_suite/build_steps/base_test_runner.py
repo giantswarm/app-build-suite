@@ -115,12 +115,13 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
     Pipeline that combines all the steps required to run application tests.
     """
 
+    key_config_group_name = "App testing options"
     key_config_option_deploy_app = "--app-tests-deploy"
     key_config_option_deploy_namespace = "--app-tests-deploy-namespace"
     key_config_option_deploy_config_file = "--app-tests-app-config-file"
 
-    def __init__(self, pipeline: List[BuildStep], config_group_desc: str, cluster_manager: ClusterManager):
-        super().__init__(pipeline, config_group_desc)
+    def __init__(self, pipeline: List[BuildStep], cluster_manager: ClusterManager):
+        super().__init__(pipeline, self.key_config_group_name)
         self._cluster_manager = cluster_manager
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
