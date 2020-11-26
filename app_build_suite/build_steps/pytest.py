@@ -72,25 +72,25 @@ class PytestTestRunner(BaseTestRunner, ABC):
                 f" doesn't exist. Skipping pytest run."
             )
             self._skip_tests = True
+            return
         if not any(f.endswith(".py") for f in os.listdir(pytest_dir)):
             logger.warning(
                 f"Pytest tests were requested, but no python source code file was found in"
                 f" directory '{pytest_dir}'. Skipping pytest run."
             )
             self._skip_tests = True
+            return
         if shutil.which(self._pipenv_bin) is None:
             raise ValidationError(
                 self.name,
                 f"In order to install pytest virtual env, you need to have " f"'{self._pipenv_bin}' installed.",
             )
 
-    def run(self, config: argparse.Namespace, context: Context) -> None:
-        if not self._skip_tests:
-            super().run(config, context)
-        else:
-            logger.warning("Not running any pytest tests, as validation failed in pre_run step.")
-
     def run_tests(self, config: argparse.Namespace, context: Context) -> None:
+        if self._skip_tests:
+            logger.warning("Not running any pytest tests, as validation failed in pre_run step.")
+            return
+
         if not self._cluster_info:
             raise TestError("Cluster info is missing, can't run tests.")
 
