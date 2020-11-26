@@ -68,11 +68,15 @@ class ClusterManager:
             logger.debug(f"Executing pre-run of cluster provider for clusters of type {cluster_type}")
             provider.pre_run(config)
 
-    def get_cluster_for_test_type(self, cluster_type: ClusterType, cluster_config_file: str) -> ClusterInfo:
+    def get_cluster_for_test_type(
+        self, cluster_type: ClusterType, cluster_config_file: str, config: argparse.Namespace
+    ) -> ClusterInfo:
         """ clusters can be requested in parallel - creation mus be non-blocking!"""
         if cluster_type not in self._cluster_providers.keys():
             raise ValueError(f"Unknown cluster type '{cluster_type}'.")
-        cluster_info = self._cluster_providers[cluster_type].get_cluster(cluster_type, config_file=cluster_config_file)
+        cluster_info = self._cluster_providers[cluster_type].get_cluster(
+            cluster_type, config, config_file=cluster_config_file
+        )
         self._clusters.append(cluster_info)
         return cluster_info
 
@@ -186,6 +190,7 @@ class BaseTestRunner(BuildStep, ABC):
         self._configured_cluster_type: ClusterType = ClusterType("")
         self._configured_cluster_config_file = ""
         self._kube_client: Optional[HTTPClient] = None
+        self._cluster_info: Optional[ClusterInfo] = None
 
     @property
     @abstractmethod
@@ -193,8 +198,8 @@ class BaseTestRunner(BuildStep, ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def run_tests(self):
-        pass
+    def run_tests(self, config: argparse.Namespace, context: Context):
+        raise NotImplementedError
 
     @property
     def _config_enabled_attribute_name(self) -> str:
@@ -300,27 +305,27 @@ class BaseTestRunner(BuildStep, ABC):
             f"Requesting new cluster of type '{self._configured_cluster_type}' using config file"
             f" '{self._configured_cluster_config_file}'."
         )
-        cluster_info = self._cluster_manager.get_cluster_for_test_type(
-            self._configured_cluster_type, self._configured_cluster_config_file
+        self._cluster_info = self._cluster_manager.get_cluster_for_test_type(
+            self._configured_cluster_type, self._configured_cluster_config_file, config
         )
 
         logger.info("Establishing connection to the new cluster.")
         try:
-            kube_config = KubeConfig.from_file(cluster_info.kube_config_path)
+            kube_config = KubeConfig.from_file(self._cluster_info.kube_config_path)
             self._kube_client = HTTPClient(kube_config)
         except Exception:
             raise TestError("Can't establish connection to the new test cluster")
 
         # prepare app platform and upload artifacts
-        self._ensure_app_platform_ready(cluster_info.kube_config_path)
+        self._ensure_app_platform_ready(self._cluster_info.kube_config_path)
         self._upload_chart_to_app_catalog(context)
 
         if config.deploy_app_for_tests:
             self._deploy_chart_as_app(config, context)
-        self.run_tests()
+        self.run_tests(config, context)
 
         self._delete_app(context)
-        self._cluster_manager.release_cluster(cluster_info)
+        self._cluster_manager.release_cluster(self._cluster_info)
 
     def _deploy_chart_as_app(self, config: argparse.Namespace, context: Context) -> None:
         namespace = get_config_value_by_cmd_line_option(
