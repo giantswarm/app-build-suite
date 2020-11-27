@@ -28,7 +28,7 @@ ENV KUBECTL_VER="1.18.9"
 ENV CT_VER="3.1.1"
 ARG CT_YAMALE_VER="3.0.4"
 ARG CT_YAMLLINT_VER="1.25.0"
-ENV APPTESTCTL_VER="0.4.1"
+ENV APPTESTCTL_VER="0.5.0"
 
 # install dependencies
 RUN apt-get update && \
