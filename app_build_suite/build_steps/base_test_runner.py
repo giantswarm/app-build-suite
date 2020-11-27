@@ -319,7 +319,7 @@ class BaseTestRunner(BuildStep, ABC):
         self._ensure_app_platform_ready(self._cluster_info.kube_config_path)
         self._upload_chart_to_app_catalog(context)
 
-        if config.deploy_app_for_tests:
+        if get_config_value_by_cmd_line_option(config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app):
             self._deploy_chart_as_app(config, context)
         self.run_tests(config, context)
 
@@ -341,8 +341,7 @@ class BaseTestRunner(BuildStep, ABC):
                 "labels": {"app": app_name, "app-operator.giantswarm.io/version": "1.0.0"},
             },
             "spec": {
-                # FIXME: enter correct catalog name
-                "catalog": "FIXME",
+                "catalog": "chartmuseum",
                 "version": app_version,
                 "kubeConfig": {"inCluster": True},
                 "name": app_name,
