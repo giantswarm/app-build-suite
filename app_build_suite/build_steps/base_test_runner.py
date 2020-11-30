@@ -309,12 +309,17 @@ class BaseTestRunner(BuildStep, ABC):
         self._ensure_app_platform_ready(self._cluster_info.kube_config_path)
         self._upload_chart_to_app_catalog(context)
 
-        if get_config_value_by_cmd_line_option(config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app):
-            self._deploy_chart_as_app(config, context)
-        self.run_tests(config, context)
-
-        self._delete_app(context)
-        self._cluster_manager.release_cluster(self._cluster_info)
+        try:
+            if get_config_value_by_cmd_line_option(
+                config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app
+            ):
+                self._deploy_chart_as_app(config, context)
+            self.run_tests(config, context)
+        except Exception as e:
+            raise TestError(f"Application deployment failed: {e}")
+        finally:
+            self._delete_app(config, context)
+            self._cluster_manager.release_cluster(self._cluster_info)
 
     def _deploy_chart_as_app(self, config: argparse.Namespace, context: Context) -> None:
         namespace = get_config_value_by_cmd_line_option(
@@ -328,7 +333,7 @@ class BaseTestRunner(BuildStep, ABC):
             "metadata": {
                 "name": app_name,
                 "namespace": namespace,
-                "labels": {"app": app_name, "app-operator.giantswarm.io/version": "1.0.0"},
+                "labels": {"app": app_name, "app-operator.giantswarm.io/version": "0.0.0"},
             },
             "spec": {
                 "catalog": "chartmuseum",
@@ -373,6 +378,10 @@ class BaseTestRunner(BuildStep, ABC):
         ChartMuseumAppRepository(self._kube_client).upload_artifacts(context)
 
     # noinspection PyMethodMayBeStatic
-    def _delete_app(self, context: Context):
+    def _delete_app(self, config: argparse.Namespace, context: Context):
         cast(AppCR, context[context_key_app_cr]).delete()
-        cast(ConfigMap, context[context_key_app_cm_cr]).delete()
+        app_config_file_path = get_config_value_by_cmd_line_option(
+            config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_config_file
+        )
+        if app_config_file_path:
+            cast(ConfigMap, context[context_key_app_cm_cr]).delete()
