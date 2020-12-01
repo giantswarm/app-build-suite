@@ -341,7 +341,10 @@ class BaseTestRunner(BuildStep, ABC):
             app_obj,
             self._app_deployment_timeout_min,
             "deployed",
-            condition_fun=lambda a: a.obj["status"]["release"]["status"].lower() == "deployed",
+            condition_fun=lambda a: "status" in a.obj
+            and "release" in a.obj["status"]
+            and "status" in a.obj["status"]["release"]
+            and a.obj["status"]["release"]["status"].lower() == "deployed",
         )
 
     def _wait_for_app_to_be_deleted(self, app_obj: AppCR):
