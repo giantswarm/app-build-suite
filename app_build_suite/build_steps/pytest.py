@@ -12,11 +12,11 @@ from app_build_suite.build_steps.base_test_runner import (
     BaseTestRunnersFilteringPipeline,
     TestInfoProvider,
     BaseTestRunner,
-    ClusterManager,
     TestType,
     TEST_FUNCTIONAL,
     context_key_chart_yaml,
 )
+from app_build_suite.build_steps.cluster_manager import ClusterManager
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL
 from app_build_suite.errors import ValidationError, TestError
 from app_build_suite.types import Context

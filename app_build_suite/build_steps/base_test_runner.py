@@ -4,7 +4,7 @@ import os
 import subprocess  # nosec - we need it to execute apptestctl and test framework
 import time
 from abc import ABC, abstractmethod
-from typing import Dict, NewType, Set, Optional, List, cast, Callable
+from typing import NewType, Set, Optional, List, cast, Callable
 
 import configargparse
 import pykube
@@ -15,8 +15,9 @@ from pytest_helm_charts.utils import YamlDict
 
 from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_ALL
+from app_build_suite.build_steps.cluster_manager import ClusterManager
 from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
-from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterProvider, ClusterType
+from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterType
 from app_build_suite.errors import ConfigError, TestError
 from app_build_suite.types import Context
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
@@ -33,86 +34,6 @@ context_key_app_cm_cr: str = "app_cm_cr"
 
 _chart_yaml = "Chart.yaml"
 logger = logging.getLogger(__name__)
-
-
-class ClusterManager:
-    """
-    This class manages creation and destruction of clusters required to execute tests.
-    Cluster are re-used, so when a cluster of specific 'provider' type and 'version' already exists,
-    we return the existing (saved internally) cluster. If it doesn't exist, it is created and saved.
-    Each cluster is given an ID taken (if only possible) from the underlying provider, to be able
-    to correlate clusters created here with what's really running in the infrastructure.
-    """
-
-    def __init__(self):
-        # config is necessary for cluster providers to configure clusters; we'll set it once config is loaded
-        self._config: Optional[argparse.Namespace] = None
-        # list to track created clusters
-        self._clusters: List[ClusterInfo] = []
-        # dictionary to keep cluster providers
-        self._cluster_providers: Dict[ClusterType, ClusterProvider] = {}
-        # find and create cluster providers
-        for cls in ClusterProvider.__subclasses__():
-            instance = cls()
-            self._cluster_providers[instance.provided_cluster_type] = instance
-
-    def get_registered_cluster_types(self) -> List[ClusterType]:
-        return [k for k in self._cluster_providers.keys()]
-
-    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
-        for cluster_type, provider in self._cluster_providers.items():
-            logger.debug(f"Initializing configuration of cluster provider for clusters of type {cluster_type}")
-            provider.initialize_config(config_parser)
-
-    def pre_run(self, config: argparse.Namespace) -> None:
-        for cluster_type, provider in self._cluster_providers.items():
-            logger.debug(f"Executing pre-run of cluster provider for clusters of type {cluster_type}")
-            provider.pre_run(config)
-
-    def get_cluster_for_test_type(
-        self, cluster_type: ClusterType, cluster_config_file: str, config: argparse.Namespace
-    ) -> ClusterInfo:
-        """ clusters can be requested in parallel - creation mus be non-blocking!"""
-        if cluster_type not in self._cluster_providers.keys():
-            raise ValueError(f"Unknown cluster type '{cluster_type}'.")
-        cluster_info = self._cluster_providers[cluster_type].get_cluster(
-            cluster_type, config, config_file=cluster_config_file
-        )
-        self._clusters.append(cluster_info)
-        return cluster_info
-
-    def release_cluster(self, cluster_info: ClusterInfo) -> None:
-        if cluster_info not in self._clusters:
-            raise ValueError(f"Cluster {cluster_info} is not registered as managed here.")
-        cluster_info.managing_provider.delete_cluster(cluster_info)
-        self._clusters.remove(cluster_info)
-
-    def cleanup(self) -> None:
-        """
-        A finalizer of ClusterManager - requests destruction of any cluster previously created,
-        saved and not yet destroyed.
-        :return:
-        """
-        for cluster_info in self._clusters:
-            self.release_cluster(cluster_info)
-
-
-class TestInfoProvider(BuildStep):
-    """
-    Since the whole build pipeline can change Chart.yaml file multiple times, this
-    class loads the Chart.yaml as dict into context at the beginning of testing
-    pipeline.
-    """
-
-    @property
-    def steps_provided(self) -> Set[StepType]:
-        return {STEP_TEST_ALL}
-
-    def run(self, config: argparse.Namespace, context: Context) -> None:
-        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
-        with open(chart_yaml_path, "r") as file:
-            chart_yaml = yaml.safe_load(file)
-            context[context_key_chart_yaml] = chart_yaml
 
 
 class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
@@ -180,6 +101,24 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
         has_build_failed: bool,
     ) -> None:
         self._cluster_manager.cleanup()
+
+
+class TestInfoProvider(BuildStep):
+    """
+    Since the whole build pipeline can change Chart.yaml file multiple times, this
+    class loads the Chart.yaml as dict into context at the beginning of testing
+    pipeline.
+    """
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_TEST_ALL}
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        with open(chart_yaml_path, "r") as file:
+            chart_yaml = yaml.safe_load(file)
+            context[context_key_chart_yaml] = chart_yaml
 
 
 class BaseTestRunner(BuildStep, ABC):
