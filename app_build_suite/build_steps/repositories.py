@@ -1,12 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import cast
 
-import requests
 from pykube import HTTPClient, Service
 
 from app_build_suite.build_steps import helm
-from app_build_suite.types import Context
 from app_build_suite.errors import TestError
+from app_build_suite.types import Context
 
 
 class AppRepository(ABC):
@@ -36,16 +35,6 @@ class ChartMuseumAppRepository(AppRepository):
             )
         chart_filename = context[helm.context_key_chart_file_name]
         with open(chart_filename, "rb") as f:
-            files = {chart_filename: f}
-            headers = {"Content-Type": "application/octet-stream", "Expect": "100-continue", "Connection": "keep-alive"}
-            resp = requests.post("http://localhost:8080/api/charts", stream=True, data=f, headers=headers)
-            resp = requests.post("http://localhost:8080/api/charts", files=files)
-            resp = cm_srv.proxy_http_post("/api/charts/", files=files)
+            resp = cm_srv.proxy_http_post("/api/charts/", data=f.read())
             if not resp.ok:
                 raise TestError("Error uploading chart to chartmuseum")
-        # with open(chart_filename, "rb") as f:
-        #    # resp = cm_srv.proxy_http_post("/api/charts", data=chart_file_data, headers={'Content-Type':
-        #    'application/octet-stream'})
-        #    resp = cm_srv.proxy_http_post(f"/api/charts/", data=f.read())
-        #    if not resp.ok:
-        #        raise TestError("Error uploading chart to chartmuseum")

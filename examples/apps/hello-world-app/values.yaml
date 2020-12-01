@@ -4,7 +4,7 @@ oldColor: green
 image:
   registry: 'quay.io'
   name: 'giantswarm/hello-world-app'
-  tag: 'v0.0.1'
+  tag: '0.0.1'
 
 resource:
   default:

@@ -2,10 +2,12 @@ import argparse
 import logging
 import os
 import subprocess  # nosec - we need it to execute apptestctl and test framework
+import time
 from abc import ABC, abstractmethod
-from typing import Dict, NewType, Set, Optional, List, cast
+from typing import Dict, NewType, Set, Optional, List, cast, Callable
 
 import configargparse
+import pykube
 import yaml
 from pykube import KubeConfig, HTTPClient, ConfigMap
 from pytest_helm_charts.giantswarm_app_platform.custom_resources import AppCR
@@ -183,6 +185,8 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
 class BaseTestRunner(BuildStep, ABC):
     _apptestctl_bin = "apptestctl"
     _apptestctl_bootstrap_timeout_sec = 180
+    _app_deployment_timeout_min = 60
+    _app_deletion_timeout_min = 10
 
     def __init__(self, cluster_manager: ClusterManager):
         self._cluster_manager = cluster_manager
@@ -355,8 +359,59 @@ class BaseTestRunner(BuildStep, ABC):
         app_obj = AppCR(self._kube_client, app)
         logger.info(f"Creating App CR to deploy application '{app_name}' in namespace '{namespace}'.")
         app_obj.create()
+        self._wait_for_app_to_be_deployed(app_obj)
         context[context_key_app_cr] = app_obj
-        # TODO: wait for app to be reported as ready
+
+    # this is on purpose not taken from `utils` in pytest-helm-chart, as it will have to be
+    # rewritten into an async version
+    def _wait_for_app_condition(
+        self,
+        app_obj: AppCR,
+        timeout_sec: int,
+        condition_name: str,
+        condition_fun: Callable[[AppCR], bool] = None,
+        expected_exception: pykube.exceptions.HTTPError = None,
+    ):
+        if condition_fun is None and expected_exception is None:
+            raise ValueError("Either 'condition_fun' or 'expected_exception' has to be not None")
+        success = False
+        while timeout_sec > 0:
+            try:
+                app_obj.reload()
+            except pykube.exceptions.KubernetesError as e:
+                if expected_exception is not None and type(e) is pykube.exceptions.HTTPError:
+                    he = cast(pykube.exceptions.HTTPError, e)
+                    if he.code == expected_exception.code:
+                        success = True
+                        break
+                raise
+            if condition_fun is not None and condition_fun(app_obj):
+                success = True
+                break
+            logger.debug(f"Waiting for app '{app_obj.name}' to be {condition_name}.")
+            time.sleep(1)
+            timeout_sec -= 1
+        if not success:
+            raise TestError(
+                f"Application not ready: '{app_obj.name}' failed to be {condition_name} in "
+                f"'{app_obj.namespace} within {self._app_deployment_timeout_min} minutes."
+            )
+
+    def _wait_for_app_to_be_deployed(self, app_obj: AppCR):
+        self._wait_for_app_condition(
+            app_obj,
+            self._app_deployment_timeout_min,
+            "deployed",
+            condition_fun=lambda a: a.obj["status"]["release"]["status"].lower() == "deployed",
+        )
+
+    def _wait_for_app_to_be_deleted(self, app_obj: AppCR):
+        self._wait_for_app_condition(
+            app_obj,
+            self._app_deletion_timeout_min,
+            "deleted",
+            expected_exception=pykube.exceptions.HTTPError(code=404, message=""),
+        )
 
     def _deploy_app_config_map(self, namespace: str, name: str, app_config_file_path: str) -> ConfigMap:
         with open(app_config_file_path) as f:
@@ -379,9 +434,12 @@ class BaseTestRunner(BuildStep, ABC):
 
     # noinspection PyMethodMayBeStatic
     def _delete_app(self, config: argparse.Namespace, context: Context):
-        cast(AppCR, context[context_key_app_cr]).delete()
+        app_obj = cast(AppCR, context[context_key_app_cr])
+        app_obj.delete()
         app_config_file_path = get_config_value_by_cmd_line_option(
             config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_config_file
         )
         if app_config_file_path:
             cast(ConfigMap, context[context_key_app_cm_cr]).delete()
+
+        self._wait_for_app_to_be_deleted(app_obj)
