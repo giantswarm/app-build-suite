@@ -342,7 +342,7 @@ class HelmChartBuilder(BuildStep):
                         self.name,
                         f"unexpected chart path '{helm_chart_file_name}' != '{context[context_key_chart_file_name]}'",
                     )
-                if context[context_key_chart_full_path].endswith(full_chart_path):
+                if not context[context_key_chart_full_path].endswith(full_chart_path):
                     raise BuildError(
                         self.name, f"expected '{context[context_key_chart_full_path]}' to end with '{full_chart_path}'"
                     )
