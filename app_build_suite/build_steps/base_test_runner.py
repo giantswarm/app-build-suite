@@ -124,8 +124,8 @@ class TestInfoProvider(BuildStep):
 class BaseTestRunner(BuildStep, ABC):
     _apptestctl_bin = "apptestctl"
     _apptestctl_bootstrap_timeout_sec = 180
-    _app_deployment_timeout_min = 60
-    _app_deletion_timeout_min = 10
+    _app_deployment_timeout_sec = 1800
+    _app_deletion_timeout_sec = 600
 
     def __init__(self, cluster_manager: ClusterManager):
         self._cluster_manager = cluster_manager
@@ -333,13 +333,13 @@ class BaseTestRunner(BuildStep, ABC):
         if not success:
             raise TestError(
                 f"Application not ready: '{app_obj.name}' failed to be {condition_name} in "
-                f"'{app_obj.namespace} within {self._app_deployment_timeout_min} minutes."
+                f"'{app_obj.namespace} within {self._app_deployment_timeout_sec} minutes."
             )
 
     def _wait_for_app_to_be_deployed(self, app_obj: AppCR):
         self._wait_for_app_condition(
             app_obj,
-            self._app_deployment_timeout_min,
+            self._app_deployment_timeout_sec,
             "deployed",
             condition_fun=lambda a: "status" in a.obj
             and "release" in a.obj["status"]
@@ -350,7 +350,7 @@ class BaseTestRunner(BuildStep, ABC):
     def _wait_for_app_to_be_deleted(self, app_obj: AppCR):
         self._wait_for_app_condition(
             app_obj,
-            self._app_deletion_timeout_min,
+            self._app_deletion_timeout_sec,
             "deleted",
             expected_exception=pykube.exceptions.HTTPError(code=404, message=""),
         )

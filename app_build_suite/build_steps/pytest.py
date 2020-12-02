@@ -59,6 +59,7 @@ class PytestTestRunner(BaseTestRunner, ABC):
     def __init__(self, cluster_manager: ClusterManager):
         super().__init__(cluster_manager)
         self._skip_tests = False
+        self._pytest_dir = ""
 
     def pre_run(self, config: argparse.Namespace) -> None:
         super().pre_run(config)
@@ -66,6 +67,7 @@ class PytestTestRunner(BaseTestRunner, ABC):
         pytest_dir = get_config_value_by_cmd_line_option(
             config, PytestTestFilteringPipeline.key_config_option_pytest_dir
         )
+        pytest_dir = os.path.join(config.chart_dir, pytest_dir)
         if not os.path.isdir(pytest_dir):
             logger.warning(
                 f"Pytest tests were requested, but the configured test source code directory '{pytest_dir}'"
@@ -85,6 +87,7 @@ class PytestTestRunner(BaseTestRunner, ABC):
                 self.name,
                 f"In order to install pytest virtual env, you need to have " f"'{self._pipenv_bin}' installed.",
             )
+        self._pytest_dir = pytest_dir
 
     def run_tests(self, config: argparse.Namespace, context: Context) -> None:
         if self._skip_tests:
@@ -94,17 +97,14 @@ class PytestTestRunner(BaseTestRunner, ABC):
         if not self._cluster_info:
             raise TestError("Cluster info is missing, can't run tests.")
 
-        pytest_dir = get_config_value_by_cmd_line_option(
-            config, PytestTestFilteringPipeline.key_config_option_pytest_dir
-        )
-
         args = [self._pipenv_bin, "install", "--deploy"]
         logger.info(
-            f"Running {self._pipenv_bin} tool in '{pytest_dir}' directory to install virtual env " f"for running tests."
+            f"Running {self._pipenv_bin} tool in '{self._pytest_dir}' directory to install virtual env "
+            f"for running tests."
         )
-        run_res = subprocess.run(args, cwd=pytest_dir)  # nosec, no user input here
+        run_res = subprocess.run(args, cwd=self._pytest_dir)  # nosec, no user input here
         if run_res.returncode != 0:
-            raise TestError(f"Running '{args}' in directory '{pytest_dir}' failed.")
+            raise TestError(f"Running '{args}' in directory '{self._pytest_dir}' failed.")
 
         app_config_file_path = get_config_value_by_cmd_line_option(
             config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_config_file
@@ -114,29 +114,30 @@ class PytestTestRunner(BaseTestRunner, ABC):
             if self._cluster_info.overridden_cluster_type
             else self._cluster_info.cluster_type
         )
+        kube_config = os.path.abspath(self._cluster_info.kube_config_path)
         cluster_version = self._cluster_info.version
         args = [
             self._pytest_bin,
             "-m",
             self._test_type_executed,
-            "-cluster-type",
-            self._configured_cluster_type,
-            "-kube-config",
-            self._cluster_info.kube_config_path,
-            "-values-file",
-            app_config_file_path,
+            "--cluster-type",
+            cluster_type,
+            "--kube-config",
+            kube_config,
             "--chart-version",
             context[context_key_chart_yaml]["version"],
             "--chart-extra-info",
             f"external_cluster_type={cluster_type}," f"external_cluster_version={cluster_version}",
             "--log-cli-level",
             "info",
-            "--junitxml=test_results",
+            "--junitxml=test_results.xml",
         ]
-        logger.info(f"Running {self._pytest_bin} tool in '{pytest_dir}' directory.")
-        run_res = subprocess.run(args, cwd=pytest_dir)  # nosec, no user input here
+        if app_config_file_path:
+            args += ["--values-file", app_config_file_path]
+        logger.info(f"Running {self._pytest_bin} tool in '{self._pytest_dir}' directory.")
+        run_res = subprocess.run(args, cwd=self._pytest_dir)  # nosec, no user input here
         if run_res.returncode != 0:
-            raise TestError(f"Pytest tests failed: running '{args}' in directory '{pytest_dir}' failed.")
+            raise TestError(f"Pytest tests failed: running '{args}' in directory '{self._pytest_dir}' failed.")
 
 
 class PytestFunctionalTestRunner(PytestTestRunner):

@@ -22,8 +22,8 @@ from app_build_suite.build_steps.build_step import (
     BuildStepsFilteringPipeline,
     STEP_METADATA,
 )
-from app_build_suite.types import Context
 from app_build_suite.errors import ValidationError, BuildError
+from app_build_suite.types import Context
 from app_build_suite.utils.files import get_file_sha256
 from app_build_suite.utils.git import GitRepoVersionInfo
 
@@ -343,12 +343,12 @@ class HelmChartBuilder(BuildStep):
                         self.name,
                         f"unexpected chart path '{helm_chart_file_name}' != '{context[context_key_chart_file_name]}'",
                     )
-                if not full_chart_path.endswith(context[context_key_chart_full_path]):
+                if full_chart_path != context[context_key_chart_full_path]:
                     raise BuildError(
-                        self.name, f"expected '{full_chart_path}' to end with '{context[context_key_chart_full_path]}'"
+                        self.name,
+                        f"unexpected helm build result: path reported in output '{full_chart_path}' "
+                        f"is not equal to '{context[context_key_chart_full_path]}'",
                     )
-                context[context_key_chart_full_path] = full_chart_path
-                context[context_key_chart_file_name] = helm_chart_file_name
         if run_res.returncode != 0:
             logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart build failed")

@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 from typing import cast
 
@@ -6,6 +7,9 @@ from pykube import HTTPClient, Service
 from app_build_suite.build_steps import helm
 from app_build_suite.errors import TestError
 from app_build_suite.types import Context
+
+
+logger = logging.getLogger(__name__)
 
 
 class AppRepository(ABC):
@@ -33,7 +37,8 @@ class ChartMuseumAppRepository(AppRepository):
                 f"Repository service '{self._cm_service_name}' not found in namespace"
                 f" '{self._cm_service_namespace}'. Can't upload chart."
             )
-        chart_filename = context[helm.context_key_chart_file_name]
+        chart_filename = context[helm.context_key_chart_full_path]
+        logger.info(f"Uploading file '{chart_filename}' to chart-museum.")
         with open(chart_filename, "rb") as f:
             resp = cm_srv.proxy_http_post("/api/charts/", data=f.read())
             if not resp.ok:
