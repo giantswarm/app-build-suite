@@ -335,6 +335,7 @@ class HelmChartBuilder(BuildStep):
             logger.info(str(line, "utf-8"))
             if line.startswith(b"Successfully packaged chart and saved it to"):
                 full_chart_path = str(line.split(b":")[1].strip(), "utf-8")
+                full_chart_path = os.path.abspath(full_chart_path)
                 # compare our expected chart_file_name with the one returned from helm and fail if differs
                 helm_chart_file_name = os.path.basename(full_chart_path)
                 if helm_chart_file_name != context[context_key_chart_file_name]:
@@ -342,9 +343,9 @@ class HelmChartBuilder(BuildStep):
                         self.name,
                         f"unexpected chart path '{helm_chart_file_name}' != '{context[context_key_chart_file_name]}'",
                     )
-                if not context[context_key_chart_full_path].endswith(full_chart_path):
+                if not full_chart_path.endswith(context[context_key_chart_full_path]):
                     raise BuildError(
-                        self.name, f"expected '{context[context_key_chart_full_path]}' to end with '{full_chart_path}'"
+                        self.name, f"expected '{full_chart_path}' to end with '{context[context_key_chart_full_path]}'"
                     )
                 context[context_key_chart_full_path] = full_chart_path
                 context[context_key_chart_file_name] = helm_chart_file_name
@@ -458,7 +459,9 @@ class HelmChartMetadataPreparer(BuildStep):
         # try to guess the package file name. we need it for url generation in annotations
         chart_name = chart_yaml["name"]
         context[context_key_chart_file_name] = f"{chart_name}-{context[context_key_git_version]}.tgz"
-        context[context_key_chart_full_path] = os.path.join(config.destination, context[context_key_chart_file_name])
+        context[context_key_chart_full_path] = os.path.abspath(
+            os.path.join(config.destination, context[context_key_chart_file_name])
+        )
         # create metadata directory
         context[context_key_meta_dir_path] = f"{context[context_key_chart_full_path]}-meta"
         pathlib.Path(context[context_key_meta_dir_path]).mkdir(parents=True, exist_ok=True)
