@@ -7,12 +7,12 @@ ENV PYTHONFAULTHANDLER 1
 ENV ABS_DIR="/abs"
 ENV PIPENV_VER="2020.11.15"
 RUN mkdir $ABS_DIR
+RUN pip install --no-cache-dir pipenv==${PIPENV_VER}
 WORKDIR $ABS_DIR
 
 
 FROM base as builder
 # pip prerequesties
-RUN pip install --no-cache-dir pipenv==${PIPENV_VER}
 RUN apt-get update && \
     apt-get install --no-install-recommends -y gcc && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
