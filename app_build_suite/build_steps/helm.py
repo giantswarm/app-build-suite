@@ -554,11 +554,20 @@ class HelmChartYAMLRestorer(BuildStep):
         )
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
+        # nothing to do here, we run in cleanup
+        pass
+
+    def cleanup(
+        self,
+        config: argparse.Namespace,
+        context: Context,
+        has_build_failed: bool,
+    ) -> None:
         if config.keep_chart_changes:
             logger.info(f"Skipping restore of {_chart_yaml}.")
             return
         if context[context_key_changes_made]:
-            logger.debug(f"Restoring backup {_chart_yaml}.back to {_chart_yaml}")
+            logger.info(f"Restoring backup {_chart_yaml}.back to {_chart_yaml}")
             chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
             shutil.move(chart_yaml_path + ".back", chart_yaml_path)
 
