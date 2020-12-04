@@ -17,4 +17,4 @@ restrictions:
 sources:
 - https://github.com/giantswarm/hello-world-app
 upstreamChartURL: https://github.com/giantswarm/hello-world-app
-version: 0.0.1-9e04eeeaeb6132e500ee8f87d95cc46078389446
+version: 0.0.1-dev
