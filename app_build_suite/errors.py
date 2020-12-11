@@ -10,6 +10,9 @@ class Error(Exception):
         super().__init__()
         self.msg = message
 
+    def __str__(self) -> str:
+        return self.msg
+
 
 class ConfigError(Error):
     """
@@ -21,6 +24,9 @@ class ConfigError(Error):
     def __init__(self, config_option: str, message: str):
         super().__init__(message)
         self.config_option = config_option
+
+    def __str__(self) -> str:
+        return f"Error for config option '{self.config_option}': {self.msg}"
 
 
 class ValidationError(Error):
@@ -35,6 +41,9 @@ class ValidationError(Error):
         super().__init__(message)
         self.source = source
 
+    def __str__(self) -> str:
+        return f"Source: '{self.source}', message: {self.msg}."
+
 
 class BuildError(Error):
     """
@@ -46,3 +55,15 @@ class BuildError(Error):
     def __init__(self, source: str, message: str):
         super().__init__(message)
         self.source = source
+
+    def __str__(self) -> str:
+        return f"Source: '{self.source}', message: {self.msg}."
+
+
+class TestError(Error):
+    """
+    TestError is raised in the test phase only
+    """
+
+    def __str__(self) -> str:
+        return self.msg

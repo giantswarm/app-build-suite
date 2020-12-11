@@ -138,3 +138,5 @@ helm.back/
 *.tgz
 app_build_suite/version.py
 *-meta/
+kube.config
+build/

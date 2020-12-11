@@ -1,18 +1,20 @@
-apiVersion: v1
-name: hello-world-app
-version: v0.0.1
-appVersion: v0.0.1
-home: https://github.com/giantswarm/hello-world-app
-description: A chart that deploys a basic hello world site and lets you test values merging of user values configmap and secrets.
-icon: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/app-icon.png
-sources:
-  - https://github.com/giantswarm/hello-world-app
 annotations:
-  application.giantswarm.io/values-schema: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/helm/hello-world-app/values.schema.json
+  application.giantswarm.io/metadata: http://localhost/hello-world-app-0.0.1-9e04eeeaeb6132e500ee8f87d95cc46078389446.tgz-meta/main.yaml
   application.giantswarm.io/readme: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/README.md
-upstreamChartURL: https://github.com/giantswarm/hello-world-app
+  application.giantswarm.io/values-schema: http://localhost/hello-world-app-0.0.1-9e04eeeaeb6132e500ee8f87d95cc46078389446.tgz-meta/values.schema.json
+apiVersion: v1
+appVersion: v0.0.1
+description: A chart that deploys a basic hello world site and lets you test values
+  merging of user values configmap and secrets.
+home: https://github.com/giantswarm/hello-world-app
+icon: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/app-icon.png
+name: hello-world-app
 restrictions:
   clusterSingleton: false
-  namespaceSingleton: true
   fixedNamespace: helloworld
   gpuInstances: false
+  namespaceSingleton: true
+sources:
+- https://github.com/giantswarm/hello-world-app
+upstreamChartURL: https://github.com/giantswarm/hello-world-app
+version: 0.0.1-dev

@@ -1,14 +1,15 @@
 """This is a module that includes main components of the app"""
 import logging
 import sys
-from typing import List, Dict, Any
+from typing import List
 
 import configargparse
 from dependency_injector import containers, providers
 
 from app_build_suite.build_steps import BuildStep
-from app_build_suite.build_steps.errors import Error
+from app_build_suite.errors import Error
 from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
+from app_build_suite.types import Context
 
 logger = logging.getLogger(__name__)
 
@@ -32,7 +33,7 @@ class Runner:
     def __init__(self, config: configargparse.Namespace, steps: List[BuildStep]):
         self._config = config
         self._steps = steps
-        self._context: Dict[str, Any] = {}
+        self._context: Context = {}
         self._failed_build = False
 
     @property
@@ -51,21 +52,21 @@ class Runner:
         try:
             for step in self._steps:
                 step.pre_run(self._config)
-        except Error:
-            logger.error("Error when running pre-steps. Exiting.")
+        except Error as e:
+            logger.error(f"Error when running pre-steps: {e}. Exiting.")
             sys.exit(1)
 
     def run_build_steps(self) -> None:
         try:
             for step in self._steps:
                 step.run(self._config, self._context)
-        except Error:
-            logger.error("Error when running build. No further build steps will be performed, moving to cleanup.")
+        except Error as e:
+            logger.error(f"Error when running build: {e}. No further build steps will be performed, moving to cleanup.")
             self._failed_build = True
 
     def run_cleanup(self) -> None:
         for step in self._steps:
             try:
                 step.cleanup(self._config, self._context, self._failed_build)
-            except Error:
-                logger.error("Last cleanup step failed, moving to the next one.")
+            except Error as e:
+                logger.error(f"Last cleanup step failed: {e}. Moving to the next one.")

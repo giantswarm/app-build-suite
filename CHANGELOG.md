@@ -10,7 +10,4 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
   - versions skip the leading 'v' now if it was present in git tag (backward compatible naming)
 - **breaking change**:
   - config file is now loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
-
-### added
-
-- Initial commit
+- testing basic classes and pipelines

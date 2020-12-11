@@ -6,7 +6,7 @@ import pathlib
 import shutil
 import subprocess  # nosec
 from datetime import datetime, timezone
-from typing import List, Optional, Any, Dict, Set
+from typing import List, Optional, Set
 from urllib.parse import urlsplit
 
 import configargparse
@@ -22,7 +22,8 @@ from app_build_suite.build_steps.build_step import (
     BuildStepsFilteringPipeline,
     STEP_METADATA,
 )
-from app_build_suite.build_steps.errors import ValidationError, BuildError
+from app_build_suite.errors import ValidationError, BuildError
+from app_build_suite.types import Context
 from app_build_suite.utils.files import get_file_sha256
 from app_build_suite.utils.git import GitRepoVersionInfo
 
@@ -66,7 +67,7 @@ class HelmBuilderValidator(BuildStep):
             return
         raise ValidationError(self.name, f"Can't find '{_chart_yaml}' or '{_values_yaml}' files.")
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         pass
 
 
@@ -95,6 +96,7 @@ class HelmGitVersionSetter(BuildStep):
             help=f"Should the {_chart_yaml_chart_version_key} in {_chart_yaml} be replaced by a tag and hash from git",
         )
 
+    # noinspection PyMethodMayBeStatic
     def _is_enabled(self, config: argparse.Namespace) -> bool:
         return config.replace_chart_version_with_git or config.replace_app_version_with_git
 
@@ -111,7 +113,7 @@ class HelmGitVersionSetter(BuildStep):
         if not self.repo_info.is_git_repo:
             raise ValidationError(self.name, f"Can't find valid git repository in {config.chart_dir}")
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         """
         Gets the git-version, then replaces keys in Chart.yaml
         :param config: the config object
@@ -251,7 +253,7 @@ class HelmChartToolLinter(BuildStep):
                     )
                 self._additional_helm_repos.append(entry)
 
-    def run(self, config: argparse.Namespace, _: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, _: Context) -> None:
         args = [
             self._ct_bin,
             "lint",
@@ -313,7 +315,7 @@ class HelmChartBuilder(BuildStep):
         version = version_entries.split(":")[1].strip('"')
         self._assert_version_in_range(self._helm_bin, version, self._min_helm_version, self._max_helm_version)
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         """
         Runs 'helm package' to build the chart.
         :param config: the config object
@@ -333,6 +335,7 @@ class HelmChartBuilder(BuildStep):
             logger.info(str(line, "utf-8"))
             if line.startswith(b"Successfully packaged chart and saved it to"):
                 full_chart_path = str(line.split(b":")[1].strip(), "utf-8")
+                full_chart_path = os.path.abspath(full_chart_path)
                 # compare our expected chart_file_name with the one returned from helm and fail if differs
                 helm_chart_file_name = os.path.basename(full_chart_path)
                 if helm_chart_file_name != context[context_key_chart_file_name]:
@@ -340,12 +343,12 @@ class HelmChartBuilder(BuildStep):
                         self.name,
                         f"unexpected chart path '{helm_chart_file_name}' != '{context[context_key_chart_file_name]}'",
                     )
-                if not context[context_key_chart_full_path].endswith(full_chart_path):
+                if full_chart_path != context[context_key_chart_full_path]:
                     raise BuildError(
-                        self.name, f"expected '{context[context_key_chart_full_path]}' to end with '{full_chart_path}'"
+                        self.name,
+                        f"unexpected helm build result: path reported in output '{full_chart_path}' "
+                        f"is not equal to '{context[context_key_chart_full_path]}'",
                     )
-                context[context_key_chart_full_path] = full_chart_path
-                context[context_key_chart_file_name] = helm_chart_file_name
         if run_res.returncode != 0:
             logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart build failed")
@@ -394,10 +397,10 @@ class HelmChartMetadataPreparer(BuildStep):
             return
         if config.generate_metadata and not config.catalog_base_url:
             raise ValidationError(
-                self.name, ("config option --generate-metadata requires non-empty option --catalog-base-url")
+                self.name, "config option --generate-metadata requires non-empty option --catalog-base-url"
             )
         if not config.catalog_base_url.endswith("/"):
-            raise ValidationError(self.name, ("config option --catalog-base-url value should end with a /"))
+            raise ValidationError(self.name, "config option --catalog-base-url value should end with a /")
         # first step of validation should be done already by 'ct' with correct schema (unless explicitly disabled)
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
@@ -420,22 +423,21 @@ class HelmChartMetadataPreparer(BuildStep):
                     raise ValidationError(self.name, f"Value of '{option}' is not a correct boolean.")
 
     @staticmethod
-    def write_chart_yaml(chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+    def write_chart_yaml(chart_yaml_file_name: str, data: Context) -> None:
         with open(chart_yaml_file_name, "w") as f:
             yaml.dump(data, f, default_flow_style=False)
 
     def build_file_annotations(
         self, catalog_base_url: str, chart_file_name: str, chart_dir: str, meta_dir_path: str
-    ) -> Dict[str, Any]:
+    ) -> Context:
         """
-        Based upon the _annotatons_files_map:
-          - check if the file is availeble
+        Based upon the _annotations_files_map:
+          - check if the file is available
           - include it in the annotations
           - copy it into the metadata directory
         """
         catalog_url = f"{catalog_base_url}{chart_file_name}-meta/"
-        annotations = {}
-        annotations[self._key_annotation_metadata_url] = urlsplit(f"{catalog_url}main.yaml").geturl()
+        annotations = {self._key_annotation_metadata_url: urlsplit(f"{catalog_url}main.yaml").geturl()}
         for additional_file, annotation_key in self._annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
@@ -445,7 +447,7 @@ class HelmChartMetadataPreparer(BuildStep):
 
         return annotations
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         if not config.generate_metadata:
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
@@ -455,9 +457,12 @@ class HelmChartMetadataPreparer(BuildStep):
             chart_yaml = yaml.safe_load(file)
         original_annotations = chart_yaml.get(self._key_annotations, None)
         # try to guess the package file name. we need it for url generation in annotations
-        chart_name = os.path.basename(config.chart_dir)
-        context[context_key_chart_file_name] = f"{chart_name}-{context[context_key_git_version]}.tgz"
-        context[context_key_chart_full_path] = os.path.join(config.destination, context[context_key_chart_file_name])
+        chart_name = chart_yaml["name"]
+        chart_version = chart_yaml["version"]
+        context[context_key_chart_file_name] = f"{chart_name}-{chart_version}.tgz"
+        context[context_key_chart_full_path] = os.path.abspath(
+            os.path.join(config.destination, context[context_key_chart_file_name])
+        )
         # create metadata directory
         context[context_key_meta_dir_path] = f"{context[context_key_chart_full_path]}-meta"
         pathlib.Path(context[context_key_meta_dir_path]).mkdir(parents=True, exist_ok=True)
@@ -507,11 +512,11 @@ class HelmChartMetadataFinalizer(BuildStep):
         return datetime.utcnow().replace(tzinfo=timezone.utc, microsecond=0).isoformat()
 
     @staticmethod
-    def write_meta_file(meta_file_name: str, meta: Dict[str, Any]) -> None:
+    def write_meta_file(meta_file_name: str, meta: Context) -> None:
         with open(meta_file_name, "w") as f:
             yaml.dump(meta, f, default_flow_style=False)
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         if not config.generate_metadata:
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
@@ -548,12 +553,21 @@ class HelmChartYAMLRestorer(BuildStep):
             help=f"Should the changes made in {_chart_yaml} be kept",
         )
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        # nothing to do here, we run in cleanup
+        pass
+
+    def cleanup(
+        self,
+        config: argparse.Namespace,
+        context: Context,
+        has_build_failed: bool,
+    ) -> None:
         if config.keep_chart_changes:
             logger.info(f"Skipping restore of {_chart_yaml}.")
             return
         if context[context_key_changes_made]:
-            logger.debug(f"Restoring backup {_chart_yaml}.back to {_chart_yaml}")
+            logger.info(f"Restoring backup {_chart_yaml}.back to {_chart_yaml}")
             chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
             shutil.move(chart_yaml_path + ".back", chart_yaml_path)
 

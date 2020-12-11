@@ -1,5 +1,6 @@
 """Main module. Loads configuration and executes main control loops."""
 import logging
+import os
 import sys
 from typing import List, NewType
 
@@ -11,7 +12,8 @@ from app_build_suite.build_steps import (
     ALL_STEPS,
 )
 from app_build_suite.build_steps.build_step import STEP_ALL
-from app_build_suite.build_steps.errors import ConfigError
+from app_build_suite.build_steps.pytest import PytestTestFilteringPipeline
+from app_build_suite.errors import ConfigError
 from .components import ComponentsContainer, Runner
 
 ver = "0.0.1-dev"
@@ -35,6 +37,7 @@ def get_version() -> str:
 def get_pipeline(container: ComponentsContainer) -> List[BuildStepsFilteringPipeline]:
     return [
         container.builder(),
+        PytestTestFilteringPipeline(),
     ]
 
 
@@ -73,11 +76,25 @@ def configure_global_options(config_parser: configargparse.ArgParser):
     )
 
 
+def get_default_config_file_path() -> str:
+    # this is the only place where we check for command line option directly,
+    # as that's the only way to change where we load the file from
+    # FIXME: it's also hacky, as it relies on helm pipeline to provide the "-c" option
+    opt = "-c"
+    base_dir = ""
+    if opt in sys.argv:
+        c_ind = sys.argv.index(opt)
+        base_dir = sys.argv[c_ind + 1]
+    config_path = os.path.join(base_dir, ".abs", "main.yaml")
+    return config_path
+
+
 def get_global_config_parser(add_help: bool = True) -> configargparse.ArgParser:
+    config_file_path = get_default_config_file_path()
     config_parser = configargparse.ArgParser(
         prog=app_name,
         add_config_file_help=True,
-        default_config_files=[".abs/main.yaml"],
+        default_config_files=[config_file_path],
         description="Build and test Giant Swarm App Platform app.",
         add_env_var_help=True,
         auto_env_var_prefix="ABS_",

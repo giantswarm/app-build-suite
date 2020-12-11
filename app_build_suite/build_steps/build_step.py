@@ -3,12 +3,13 @@ import argparse
 import logging
 import shutil
 from abc import ABC, abstractmethod
-from typing import List, NewType, Callable, Set, cast, Dict, Any
+from typing import List, NewType, Callable, Set, cast, Optional
 
 import configargparse
 import semver
 
-from app_build_suite.build_steps.errors import ValidationError, Error
+from app_build_suite.errors import ValidationError, Error
+from app_build_suite.types import Context
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +19,19 @@ STEP_BUILD = StepType("build")
 STEP_METADATA = StepType("metadata")
 STEP_TEST_ALL = StepType("test_all")
 STEP_TEST_UNIT = StepType("test_unit")
-ALL_STEPS = {STEP_ALL, STEP_BUILD, STEP_METADATA, STEP_TEST_ALL, STEP_TEST_UNIT}
+STEP_TEST_FUNCTIONAL = StepType("test_functional")
+STEP_TEST_PERFORMANCE = StepType("test_performance")
+STEP_TEST_COMPATIBILITY = StepType("test_compatibility")
+ALL_STEPS = {
+    STEP_ALL,
+    STEP_BUILD,
+    STEP_METADATA,
+    STEP_TEST_ALL,
+    STEP_TEST_UNIT,
+    STEP_TEST_FUNCTIONAL,
+    STEP_TEST_PERFORMANCE,
+    STEP_TEST_COMPATIBILITY,
+}
 
 
 class BuildStep(ABC):
@@ -76,7 +89,7 @@ class BuildStep(ABC):
         pass  # pragma: no cover
 
     @abstractmethod
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         """
         Execute actual build action of the BuildStep.
         :param context: A context where different components can save data to share with other components.
@@ -88,7 +101,7 @@ class BuildStep(ABC):
     def cleanup(
         self,
         config: argparse.Namespace,
-        context: Dict[str, Any],
+        context: Context,
         has_build_failed: bool,
     ) -> None:
         """
@@ -157,6 +170,7 @@ class BuildStepsFilteringPipeline(BuildStep):
         """
         self._config_group_desc = config_group_desc
         self._pipeline = pipeline
+        self._config_parser_group: Optional[configargparse.ArgParser] = None
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -166,23 +180,23 @@ class BuildStepsFilteringPipeline(BuildStep):
         return all_steps
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
-        group = cast(
+        self._config_parser_group = cast(
             configargparse.ArgParser,
             config_parser.add_argument_group(self._config_group_desc),
         )
         for build_step in self._pipeline:
-            build_step.initialize_config(group)
+            build_step.initialize_config(self._config_parser_group)
 
     def pre_run(self, config: argparse.Namespace) -> None:
         self._iterate_steps(config, "pre-run", lambda step: step.pre_run(config))
 
-    def run(self, config: argparse.Namespace, context: Dict[str, Any]) -> None:
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         self._iterate_steps(config, "build", lambda step: step.run(config, context))
 
     def cleanup(
         self,
         config: argparse.Namespace,
-        context: Dict[str, Any],
+        context: Context,
         has_build_failed: bool,
     ) -> None:
         self._iterate_steps(
