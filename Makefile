@@ -28,10 +28,10 @@ release: release_ver_to_code docker-build-image
 
 release_ver_to_code:
 	$(call check_defined, TAG)
-	echo "build_ver = \"${VER}\"\n" > app_build_suite/version.py
-	$(eval IMG_VER := ${VER})
+	echo "build_ver = \"${TAG}\"\n" > app_build_suite/version.py
+	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
-	sed -i "s/:latest/:${VER}/" dabs.sh
+	sed -i "s/:latest/:${TAG}/" dabs.sh
 
 # Build the docker image from locally built binary
 docker-build: docker-build-ver docker-build-image
