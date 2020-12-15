@@ -23,7 +23,8 @@ release: release_ver_to_code docker-build-image
 	git commit -am "Release ${TAG}"
 	git tag ${TAG}
 	mv dabs.sh.back dabs.sh
-	echo "build_ver = \"${VER}-dev\"\n" > app_build_suite/version.py
+	echo "build_ver = \"${TAG}-dev\"\n" > app_build_suite/version.py
+	git commit -am "Post-release version set for ${TAG}"
 
 release_ver_to_code:
 	$(call check_defined, TAG)
