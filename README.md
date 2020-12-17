@@ -9,34 +9,22 @@ A tool to build and release apps for app platform
 *Big fat warning* This is development version!
 ---
 
-## How to use
+## How to use app-build-suite
 
-The easiest way is to make a docker image:
-
-```bash
-make docker-build
-```
-
-Then run using the easy docker run script `dabs`. For example,
-for a chart present in `helm/giantswarm-todo-app`, run:
+Executing `dabs.sh` is the most straight forward way to run app-build-suite.
+For example, for a chart present in `helm/giantswarm-todo-app`, run:
 
 ```bash
 ./dabs.sh -c helm/giantswarm-todo-app
 ```
 
+To build a container image with local changes:
+
+```bash
+make docker-build
+```
+
 
 ## How to contribute
 
-Setup dev environment:
-
-- python >= 3.8
-- pipenv
-
-Then, checkout the repo and run:
-
-```bash
-# to create venv
-pipenv install --dev
-# to configure quality check triggers
-pipenv run pre-commit install
-```
+Check out the [contribution guidelines](docs/CONTRIBUTION.md).
