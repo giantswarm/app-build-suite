@@ -4,7 +4,7 @@ import os
 import shutil
 import subprocess  # nosec, needed to invoke pytest as external process
 from abc import ABC
-from typing import Set, cast
+from typing import Set, cast, List
 
 import configargparse
 
@@ -16,8 +16,8 @@ from app_build_suite.build_steps.base_test_runner import (
     TEST_FUNCTIONAL,
     context_key_chart_yaml,
 )
-from app_build_suite.build_steps.cluster_manager import ClusterManager
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL
+from app_build_suite.build_steps.cluster_manager import ClusterManager
 from app_build_suite.errors import ValidationError, TestError
 from app_build_suite.types import Context
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
@@ -75,7 +75,7 @@ class PytestTestRunner(BaseTestRunner, ABC):
             )
             self._skip_tests = True
             return
-        if not any(f.endswith(".py") for f in os.listdir(pytest_dir)):
+        if not any(f.endswith(".py") for f in cast(List[str], os.listdir(pytest_dir))):
             logger.warning(
                 f"Pytest tests were requested, but no python source code file was found in"
                 f" directory '{pytest_dir}'. Skipping pytest run."
@@ -149,5 +149,5 @@ class PytestFunctionalTestRunner(PytestTestRunner):
         return TEST_FUNCTIONAL
 
     @property
-    def steps_provided(self) -> Set[StepType]:
+    def specific_test_steps_provided(self) -> Set[StepType]:
         return {STEP_TEST_FUNCTIONAL}
