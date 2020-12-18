@@ -49,6 +49,18 @@ like this:
 
 ```bash
 kind create cluster
+kind get kubeconfig > ./kube.config
+```
+
+Then you can configure `abs` to run `functional` tests on top of that kind cluster:
+
+```bash
+dabs.sh -c examples/apps/hello-world-app \
+  --functional-tests-cluster-type external \
+  --external-cluster-kubeconfig-path kube.config \
+  --external-cluster-type kind \
+  --external-cluster-version "1.19.0" \
+  --destination build
 ```
 
 ### Usage
