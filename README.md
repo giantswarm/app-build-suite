@@ -48,7 +48,7 @@ of type `external`, which is a cluster you provide externally to the `abs` tool.
 like this:
 
 ```bash
-
+kind create cluster
 ```
 
 ### Usage
@@ -61,6 +61,12 @@ dabs.sh -h
 
 to get help about all the available config options.
 
+## How does it work
+
+TODO:
+- build pipelines
+- build steps
+
 ## How to contribute
 
-Check out the [contribution guidelines](docs/CONTRIBUTION.md).
+Check out the [contribution guidelines](docs/CONTRIBUTING.md).

@@ -18,6 +18,14 @@ pipenv run pre-commit install
 
 Directory `examples/apps/hello-world-app` contains an example app to run app-build-suite against.
 
+You also need a bunch of binary tools, which normally are present in the docker image, but for developing
+locally, you need to install them on your own. You can list all the required tools and versions currently used
+by running:
+
+```bash
+dabs.sh versions
+```
+
 ## Development setup (with docker)
 
 It is possible to skip installing Python locally and utilize docker by mounting the repository into a running container.
