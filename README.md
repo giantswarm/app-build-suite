@@ -75,9 +75,28 @@ to get help about all the available config options.
 
 ## How does it work
 
-TODO:
-- build pipelines
-- build steps
+This tool works by executing a series of so called `Build Steps`. Each build step can be configurable
+(run `./dabs.sh -h` to check), but also you can skip any step required or just run only some steps.
+This idea is fundamental for integrating `abs` with other workflows, like in the CI/CD system or
+on your local machine. Check `dabs.sh -h` output for step names available to `--steps` and `--skip-steps`
+flags.
+
+### Configuration
+
+Every configuration option in `abs` can be configured in 3 ways. Starting from the highest to the lowest
+priority, these are:
+
+- command line arguments,
+- environment variables,
+- config file (default config file is `.abs/main.yaml` and it's searched in the running directory or the
+  directory specified with `-c` option).
+
+When you run `./dabs.sh -h` it shows you command line options and the relevant environment variables names. Options
+for a config file are the same as for command line, just with truncated leading `--`. You can check
+[this example](examples/apps/hello-world-app/.abs/main.yaml).
+
+The configuration is made this way so you can put your defaults into the config file, yet override them with
+env variables or command line when needed. This way you can easily override configs for stuff like CI/CD builds.
 
 ## How to contribute
 
