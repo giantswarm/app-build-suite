@@ -1,8 +1,8 @@
 FROM quay.io/giantswarm/alpine:3.12 AS binaries
 
-ARG HELM_VER="3.3.4"
-ARG KUBECTL_VER="1.18.9"
-ARG CT_VER="3.1.1"
+ARG HELM_VER="3.4.2"
+ARG KUBECTL_VER="1.20.1"
+ARG CT_VER="3.3.1"
 ARG APPTESTCTL_VER="0.5.2"
 
 RUN apk add --no-cache ca-certificates curl \
