@@ -171,6 +171,9 @@ class BuildStepsFilteringPipeline(BuildStep):
         self._config_group_desc = config_group_desc
         self._pipeline = pipeline
         self._config_parser_group: Optional[configargparse.ArgParser] = None
+        self._all_pre_runs_skipped = False
+        self._all_runs_skipped = False
+        self._all_cleanups_skipped = False
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -188,10 +191,10 @@ class BuildStepsFilteringPipeline(BuildStep):
             build_step.initialize_config(self._config_parser_group)
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        self._iterate_steps(config, "pre-run", lambda step: step.pre_run(config))
+        self._all_pre_runs_skipped = self._iterate_steps(config, "pre-run", lambda step: step.pre_run(config))
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
-        self._iterate_steps(config, "build", lambda step: step.run(config, context))
+        self._all_runs_skipped = self._iterate_steps(config, "build", lambda step: step.run(config, context))
 
     def cleanup(
         self,
@@ -199,7 +202,7 @@ class BuildStepsFilteringPipeline(BuildStep):
         context: Context,
         has_build_failed: bool,
     ) -> None:
-        self._iterate_steps(
+        self._all_cleanups_skipped = self._iterate_steps(
             config,
             "cleanup",
             lambda step: step.cleanup(config, context, has_build_failed),
@@ -210,13 +213,15 @@ class BuildStepsFilteringPipeline(BuildStep):
         config: configargparse.Namespace,
         stage: str,
         step_function: Callable[[BuildStep], None],
-    ) -> None:
+    ) -> bool:
+        all_steps_skipped = True
         for step in self._pipeline:
             execute_all = STEP_ALL in config.steps
             is_requested_step = any(s in step.steps_provided for s in config.steps)
             is_requested_skip = any(s in step.steps_provided for s in config.skip_steps)
             if (execute_all or is_requested_step) and not is_requested_skip:
                 logger.info(f"Running {stage} step for {step.name}")
+                all_steps_skipped = False
                 try:
                     step_function(step)
                 except Error as e:
@@ -224,3 +229,4 @@ class BuildStepsFilteringPipeline(BuildStep):
                     raise
             else:
                 logger.info(f"Skipping {stage} step for {step.name} as it was not configured to run.")
+        return all_steps_skipped

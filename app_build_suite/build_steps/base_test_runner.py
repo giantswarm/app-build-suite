@@ -77,6 +77,8 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
 
     def pre_run(self, config: argparse.Namespace) -> None:
         super().pre_run(config)
+        if self._all_pre_runs_skipped:
+            return
         self._cluster_manager.pre_run(config)
         app_config_file = get_config_value_by_cmd_line_option(config, self.key_config_option_deploy_config_file)
         if app_config_file:
@@ -133,6 +135,15 @@ class BaseTestRunner(BuildStep, ABC):
         self._configured_cluster_config_file = ""
         self._kube_client: Optional[HTTPClient] = None
         self._cluster_info: Optional[ClusterInfo] = None
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_TEST_ALL}.union(self.specific_test_steps_provided)
+
+    @property
+    @abstractmethod
+    def specific_test_steps_provided(self) -> Set[StepType]:
+        raise NotImplementedError()
 
     @property
     @abstractmethod
