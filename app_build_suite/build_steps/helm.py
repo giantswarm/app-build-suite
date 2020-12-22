@@ -169,7 +169,7 @@ class HelmChartToolLinter(BuildStep):
     _metadata_schema = "gs_metadata_chart_schema.yaml"
 
     def __init__(self):
-        self._additional_helm_repos = ["stable=https://kubernetes-charts.storage.googleapis.com/"]
+        self._additional_helm_repos = ["stable=https://charts.helm.sh/stable"]
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
