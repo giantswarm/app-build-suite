@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pytest-helm-charts = "*"
+pytest-helm-charts = ">=0.3.1"
 
 [dev-packages]
 
