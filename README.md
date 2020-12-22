@@ -75,11 +75,17 @@ to get help about all the available config options.
 
 ## How does it work
 
-This tool works by executing a series of so called `Build Steps`. Each build step can be configurable
-(run `./dabs.sh -h` to check), but also you can skip any step required or just run only some steps.
+This tool works by executing a series of so called `Build Steps`. Each build step is configurable
+(run `./dabs.sh -h` to check), but also you can skip any step provided or just run only a subset of all steps.
 This idea is fundamental for integrating `abs` with other workflows, like in the CI/CD system or
 on your local machine. Check `dabs.sh -h` output for step names available to `--steps` and `--skip-steps`
 flags.
+
+To skip or include multiple step names, separate them with space, like in this example:
+
+```bash
+dabs.sh -c examples/apps/hello-world-app --skip-steps test_unit test_performance
+```
 
 ### Configuration
 
