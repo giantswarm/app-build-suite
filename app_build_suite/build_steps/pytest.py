@@ -18,6 +18,7 @@ from app_build_suite.build_steps.base_test_runner import (
 )
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL
 from app_build_suite.build_steps.cluster_manager import ClusterManager
+from app_build_suite.build_steps.helm import context_key_chart_file_name
 from app_build_suite.errors import ValidationError, TestError
 from app_build_suite.types import Context
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
@@ -124,10 +125,12 @@ class PytestTestRunner(BaseTestRunner, ABC):
             cluster_type,
             "--kube-config",
             kube_config,
+            "--chart-path",
+            context[context_key_chart_file_name],
             "--chart-version",
             context[context_key_chart_yaml]["version"],
             "--chart-extra-info",
-            f"external_cluster_type={cluster_type}," f"external_cluster_version={cluster_version}",
+            f"external_cluster_version={cluster_version}",
             "--log-cli-level",
             "info",
             "--junitxml=test_results.xml",
