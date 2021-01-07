@@ -1,19 +1,26 @@
+# DO NOT EDIT. Generated with:
+#
+#    devctl@4.0.1
+#
 version: 2
 updates:
-  - package-ecosystem: "pip"
+  - package-ecosystem: docker
     directory: "/"
     schedule:
-      interval: "weekly"
-    assignees:
-      - piontec
-    open-pull-requests-limit: 1
-    labels:
-      - dependencies
-      - python
-  - package-ecosystem: "docker"
+      interval: weekly
+      time: "04:00"
+    open-pull-requests-limit: 10
+  - package-ecosystem: github-actions
     directory: "/"
     schedule:
-      interval: "weekly"
-    assignees:
-      - piontec
-    open-pull-requests-limit: 1
+      interval: weekly
+      time: "04:00"
+    open-pull-requests-limit: 10
+    ignore:
+      - dependency-name: zricethezav/gitleaks-action
+  - package-ecosystem: pip
+    directory: "/"
+    schedule:
+      interval: weekly
+      time: "04:00"
+    open-pull-requests-limit: 10
