@@ -7,7 +7,12 @@ orbs:
 workflows:
   test:
     jobs:
-      - run-tests
+      - run-tests:
+          name: run-tests
+          filters:
+            # Needed to trigger job also on git tag.
+            tags:
+              only: /^v.*/
 
       - architect/push-to-docker:
           name: push-app-build-suite-to-quay
@@ -26,6 +31,10 @@ workflows:
           name: augment-circleci-dockerfile
           requires:
             - push-app-build-suite-to-quay
+          filters:
+            # Needed to trigger job also on git tag.
+            tags:
+              only: /^v.*/
 
       - architect/push-to-docker:
           name: push-app-build-suite-circle-ci-to-quay
