@@ -126,6 +126,8 @@ class TestInfoProvider(BuildStep):
 class BaseTestRunner(BuildStep, ABC):
     _apptestctl_bin = "apptestctl"
     _apptestctl_bootstrap_timeout_sec = 180
+    _min_apptestctl_version = "0.6.0"
+    _max_apptestctl_version = "1.0.0"
     _app_deployment_timeout_sec = 1800
     _app_deletion_timeout_sec = 600
 
@@ -215,7 +217,16 @@ class BaseTestRunner(BuildStep, ABC):
         if not self.is_enabled(config):
             logger.info(f"Skipping tests of type {self._test_type_executed} as configured (pre-run step).")
             return
-        # TODO: verify version of apptestctl when possible
+        # verify if binary present
+        self._assert_binary_present_in_path(self._apptestctl_bin)
+        # verify version
+        run_res = subprocess.run([self._apptestctl_bin, "version"], capture_output=True)  # nosec
+        version_line = str(run_res.stdout.splitlines()[0], "utf-8")
+        version = version_line.split(":")[1].strip()
+        self._assert_version_in_range(
+            self._apptestctl_bin, version, self._min_apptestctl_version, self._max_apptestctl_version
+        )
+
         cluster_type = ClusterType(
             get_config_value_by_cmd_line_option(config, self._config_cluster_type_attribute_name)
         )
