@@ -4,15 +4,18 @@ metadata:
   name: {{ tpl .Values.resource.default.name . }}
   labels:
     app: {{ tpl .Values.resource.default.name . }}
+    color: {{ .Values.color }}
 spec:
   replicas: 5
   selector:
     matchLabels:
       app: {{ tpl .Values.resource.default.name . }}
+      color: {{ .Values.color }}
   template:
     metadata:
       labels:
         app: {{ tpl .Values.resource.default.name . }}
+        color: {{ .Values.color }}
     spec:
       serviceAccountName: {{ tpl .Values.resource.default.name . }}-service-account
       securityContext:

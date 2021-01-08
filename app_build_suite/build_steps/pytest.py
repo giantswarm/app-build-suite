@@ -135,7 +135,7 @@ class PytestTestRunner(BaseTestRunner, ABC):
             f"external_cluster_version={cluster_version}",
             "--log-cli-level",
             "info",
-            "--junitxml=test_results.xml",
+            f"--junitxml=test_results_{self._test_type_executed}.xml",
         ]
         if app_config_file_path:
             args += ["--values-file", app_config_file_path]
