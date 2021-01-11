@@ -125,7 +125,10 @@ tests for it for you. There are a few assumptions related to how testing invoked
 
 First, we assume that each test framework that you can use for developing tests for your app can
 label the tests and run only the set of tests labelled. `abs` expects all tests to have at least one
-of the following labels: `smoke`, `functional`.
+of the following labels: `smoke`, `functional`. It uses the labels to run only certain tests, so `abs`
+runs all `smoke` tests first, then all `functional` tests. As concrete example, this mechanism is implemented
+as [marks in pytest](https://docs.pytest.org/en/stable/mark.html) or
+[tags in go test](https://golang.org/pkg/go/build/#hdr-Build_Constraints).
 
 The idea is that `abs` invokes first the testing framework with `smoke` filter, so that only smoke tests
 are invoked. Smoke tests are expected to be very basic and short-lived, so they provide an immediate
