@@ -3,7 +3,7 @@ FROM quay.io/giantswarm/alpine:3.12 AS binaries
 ARG HELM_VER="3.4.2"
 ARG KUBECTL_VER="1.20.1"
 ARG CT_VER="3.3.1"
-ARG APPTESTCTL_VER="0.6.0"
+ARG APPTESTCTL_VER="0.6.1"
 
 RUN apk add --no-cache ca-certificates curl \
     && mkdir -p /binaries \
