@@ -153,7 +153,7 @@ This testing pipeline is implemented using the well established [`pytest`](https
 testing framework. It can be used for testing any apps, no matter if the application was originally written
 in python or not. To make testing easier, we are also providing
 [`pytest-helm-charts`](https://github.com/giantswarm/pytest-helm-charts) plugin, which makes writing
-tests for kubernetes deployed apps easier. See [examples/apps/hello-world-app/tests/abs] for complete
+tests for kubernetes deployed apps easier. See [examples/apps/hello-world-app/tests/abs](examples/apps/hello-world-app/tests/abs) for a complete
 usage example.
 
 To make your tests automatically invokable from `abs`, you must adhere to the following rules:
