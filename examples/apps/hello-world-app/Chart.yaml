@@ -1,7 +1,7 @@
 annotations:
-  application.giantswarm.io/metadata: http://localhost/hello-world-app-0.0.1-9e04eeeaeb6132e500ee8f87d95cc46078389446.tgz-meta/main.yaml
+  application.giantswarm.io/metadata: http://localhost/hello-world-app-0.1.2-afa16c6818f4330aa3ce8a70d04118a6a7b4aa44.tgz-meta/main.yaml
   application.giantswarm.io/readme: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/README.md
-  application.giantswarm.io/values-schema: http://localhost/hello-world-app-0.0.1-9e04eeeaeb6132e500ee8f87d95cc46078389446.tgz-meta/values.schema.json
+  application.giantswarm.io/values-schema: http://localhost/hello-world-app-0.1.2-afa16c6818f4330aa3ce8a70d04118a6a7b4aa44.tgz-meta/values.schema.json
 apiVersion: v1
 appVersion: v0.0.1
 description: A chart that deploys a basic hello world site and lets you test values
@@ -17,4 +17,4 @@ restrictions:
 sources:
 - https://github.com/giantswarm/hello-world-app
 upstreamChartURL: https://github.com/giantswarm/hello-world-app
-version: 0.0.1-dev
+version: 0.1.2-afa16c6818f4330aa3ce8a70d04118a6a7b4aa44

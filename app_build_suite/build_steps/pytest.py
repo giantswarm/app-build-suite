@@ -15,8 +15,9 @@ from app_build_suite.build_steps.base_test_runner import (
     TestType,
     TEST_FUNCTIONAL,
     context_key_chart_yaml,
+    TEST_SMOKE,
 )
-from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL
+from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_SMOKE
 from app_build_suite.build_steps.cluster_manager import ClusterManager
 from app_build_suite.build_steps.helm import context_key_chart_file_name
 from app_build_suite.errors import ValidationError, TestError
@@ -34,6 +35,7 @@ class PytestTestFilteringPipeline(BaseTestRunnersFilteringPipeline):
         super().__init__(
             [
                 TestInfoProvider(),
+                PytestSmokeTestRunner(cluster_manager),
                 PytestFunctionalTestRunner(cluster_manager),
             ],
             cluster_manager,
@@ -133,7 +135,7 @@ class PytestTestRunner(BaseTestRunner, ABC):
             f"external_cluster_version={cluster_version}",
             "--log-cli-level",
             "info",
-            "--junitxml=test_results.xml",
+            f"--junitxml=test_results_{self._test_type_executed}.xml",
         ]
         if app_config_file_path:
             args += ["--values-file", app_config_file_path]
@@ -154,3 +156,16 @@ class PytestFunctionalTestRunner(PytestTestRunner):
     @property
     def specific_test_steps_provided(self) -> Set[StepType]:
         return {STEP_TEST_FUNCTIONAL}
+
+
+class PytestSmokeTestRunner(PytestTestRunner):
+    def __init__(self, cluster_manager: ClusterManager):
+        super().__init__(cluster_manager)
+
+    @property
+    def _test_type_executed(self) -> TestType:
+        return TEST_SMOKE
+
+    @property
+    def specific_test_steps_provided(self) -> Set[StepType]:
+        return {STEP_TEST_SMOKE}

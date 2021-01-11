@@ -23,7 +23,7 @@ from app_build_suite.types import Context
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
 
 TestType = NewType("TestType", str)
-TEST_UNIT = TestType("unit")
+TEST_SMOKE = TestType("smoke")
 TEST_FUNCTIONAL = TestType("functional")
 TEST_PERFORMANCE = TestType("performance")
 TEST_COMPATIBILITY = TestType("compatibility")
