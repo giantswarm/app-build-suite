@@ -2,7 +2,7 @@ import argparse
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import NewType
+from typing import NewType, Optional
 
 import configargparse
 
@@ -17,7 +17,7 @@ class ClusterInfo:
     cluster_type: ClusterType
     # some cluster providers are used as a proxy to other providers; then the real (end) cluster
     # type should be put here; example: cluster_type = "external", overridden_cluster_type = "kind"
-    overridden_cluster_type: ClusterType
+    overridden_cluster_type: Optional[ClusterType]
     # as defined by cluster provider
     version: str
     # from the real cluster provider

@@ -1,15 +1,14 @@
 """Basic building block for implementing BuildSteps and Pipelines"""
 import argparse
 import logging
-import shutil
 from abc import ABC, abstractmethod
 from typing import List, NewType, Callable, Set, cast, Optional
 
 import configargparse
-import semver
 
-from app_build_suite.errors import ValidationError, Error
+from app_build_suite.errors import Error
 from app_build_suite.types import Context
+from app_build_suite.utils import files, config as abs_config
 
 logger = logging.getLogger(__name__)
 
@@ -122,11 +121,7 @@ class BuildStep(ABC):
         :param bin_name: The name of the binary executable.
         :return: None.
         """
-        if shutil.which(bin_name) is None:
-            raise ValidationError(
-                self.name,
-                f"Can't find {bin_name} executable. Please make sure it's installed.",
-            )
+        files.assert_binary_present_in_path(self.name, bin_name)
 
     def _assert_version_in_range(self, app_name: str, version: str, min_version: str, max_version_exc: str) -> None:
         """
@@ -138,21 +133,7 @@ class BuildStep(ABC):
         :param max_version_exc: proper semver version string to check for (excludes this version)
         :return:
         """
-        if version.startswith("v"):
-            version = version[1:]
-        parsed_ver = semver.VersionInfo.parse(version)
-        parsed_min_version = semver.VersionInfo.parse(min_version)
-        parsed_max_version = semver.VersionInfo.parse(max_version_exc)
-        if parsed_ver < parsed_min_version:
-            raise ValidationError(
-                self.name,
-                f"Min version '{min_version}' of '{app_name}' is required, '{parsed_ver}' found.",
-            )
-        if parsed_ver >= parsed_max_version:
-            raise ValidationError(
-                self.name,
-                f"Version '{parsed_ver}' of '{app_name}' is detected, but lower than {max_version_exc} is required.",
-            )
+        abs_config.assert_version_in_range(self.name, app_name, version, min_version, max_version_exc)
 
 
 class BuildStepsFilteringPipeline(BuildStep):
