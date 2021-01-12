@@ -4,7 +4,7 @@ import os
 import subprocess  # nosec - we need it to execute apptestctl and test framework
 import time
 from abc import ABC, abstractmethod
-from typing import NewType, Set, Optional, List, cast, Callable
+from typing import Set, Optional, List, cast, Callable
 
 import configargparse
 import pykube
@@ -17,16 +17,11 @@ from app_build_suite.build_steps import BuildStepsFilteringPipeline, BuildStep
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_ALL
 from app_build_suite.build_steps.cluster_manager import ClusterManager
 from app_build_suite.build_steps.repositories import ChartMuseumAppRepository
+from app_build_suite.build_steps.test_stage_helpers import config_option_cluster_type_for_test_type, TestType
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterType
 from app_build_suite.errors import ConfigError, TestError
 from app_build_suite.types import Context
 from app_build_suite.utils.config import get_config_value_by_cmd_line_option
-
-TestType = NewType("TestType", str)
-TEST_SMOKE = TestType("smoke")
-TEST_FUNCTIONAL = TestType("functional")
-TEST_PERFORMANCE = TestType("performance")
-TEST_COMPATIBILITY = TestType("compatibility")
 
 context_key_chart_yaml: str = "chart_yaml"
 context_key_app_cr: str = "app_cr"
@@ -162,7 +157,7 @@ class BaseTestRunner(BuildStep, ABC):
 
     @property
     def _config_cluster_type_attribute_name(self) -> str:
-        return f"--{self._test_type_executed}-tests-cluster-type"
+        return config_option_cluster_type_for_test_type(self._test_type_executed)
 
     @property
     def _config_cluster_config_file_attribute_name(self) -> str:

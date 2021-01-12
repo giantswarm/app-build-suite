@@ -8,7 +8,7 @@ import configargparse
 
 from app_build_suite.cluster_providers import cluster_provider
 from app_build_suite.errors import ConfigError, TestError
-from app_build_suite.utils import files
+from app_build_suite.utils import files, config as config_abs
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         return ClusterTypeKind
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        # FIXME: there's a generic config file option for that
         config_parser.add_argument(
             self.key_config_option_kind_config_path,
             required=False,
@@ -44,7 +45,7 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         run_res = subprocess.run([self._kind_bin, "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
         version = version_line.split(" ")[1].strip()
-        config.assert_version_in_range(
+        config_abs.assert_version_in_range(
             self.__class__.__name__, self._kind_bin, version, self._kind_min_version, self._kind_max_version
         )
 
@@ -61,12 +62,12 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         logger.info(f"Creating KinD cluster with ID '{cluster_name}'...")
         if config.kind_cluster_config_path:
             kind_args.extend(["--config", config.kind_cluster_config_path])
-        run_res = subprocess.run(kind_args, capture_output=True, stderr=subprocess.STDOUT, text=True)  # nosec
-        logger.debug(run_res.stdout)
+        run_res = subprocess.run(kind_args, capture_output=True, text=True)  # nosec
+        logger.debug(run_res.stderr)
         if run_res.returncode != 0:
             raise TestError(f"Error when creating KinD cluster. Exit code is: {run_res.returncode}")
-        cluster_version_line = run_res.stdout.splitlines()[1]
-        cluster_version = cluster_version_line.split(":)")[1].strip()
+        cluster_version_line = run_res.stderr.splitlines()[1]
+        cluster_version = cluster_version_line.split(":")[1].split(")")[0].strip()
         logger.info("KinD cluster started successfully")
         return cluster_provider.ClusterInfo(
             cluster_type=self.provided_cluster_type,
@@ -81,8 +82,8 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         logger.info(f"Deleting KinD cluster with ID '{cluster_info.cluster_id}'...")
         kube_config_path = self.__get_kube_config_from_name(cluster_info.cluster_id)
         kind_args = [self._kind_bin, "delete", "cluster", "--name", cluster_info.cluster_id]
-        run_res = subprocess.run(kind_args, capture_output=True, stderr=subprocess.STDOUT, text=True)  # nosec
-        logger.debug(run_res.stdout)
+        run_res = subprocess.run(kind_args, capture_output=True, text=True)  # nosec
+        logger.debug(run_res.stderr)
         if run_res.returncode != 0:
             raise TestError(f"Error when deleting KinD cluster. Exit code is: {run_res.returncode}")
         os.remove(kube_config_path)
