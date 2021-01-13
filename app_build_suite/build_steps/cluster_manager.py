@@ -64,6 +64,8 @@ class ClusterManager:
         if cluster_type not in self._cluster_providers.keys():
             raise ValueError(f"Unknown cluster type '{cluster_type}'.")
         logger.debug(f"Checking if we already have a ready cluster of {cluster_type} type.")
+        # FIXME: !!! BUG !!! Clusters need to be identified not only by cluster_type, but config file
+        # used to creat them as well!
         found_clusters = [c for c in self._clusters if c.cluster_type == cluster_type]
         if len(found_clusters) > 1:
             logger.error(
