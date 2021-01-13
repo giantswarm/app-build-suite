@@ -63,14 +63,27 @@ class ClusterManager:
         """ clusters can be requested in parallel - creation mus be non-blocking!"""
         if cluster_type not in self._cluster_providers.keys():
             raise ValueError(f"Unknown cluster type '{cluster_type}'.")
+        logger.debug(f"Checking if we already have a ready cluster of {cluster_type} type.")
+        found_clusters = [c for c in self._clusters if c.cluster_type == cluster_type]
+        if len(found_clusters) > 1:
+            logger.error(
+                f"Error: {len(found_clusters)} clusters of type {cluster_type} found. This should never"
+                f"happen. Still, I'm able to continue."
+            )
+        if len(found_clusters) == 1:
+            logger.info(
+                f"Using already created cluster with ID '{found_clusters[0].cluster_id}' of type "
+                f"'{found_clusters[0].cluster_type}'."
+            )
+            return found_clusters[0]
+        logger.info(f"Existing cluster of type '{cluster_type}' not found, requesting creation.")
         cluster_info = self._cluster_providers[cluster_type].get_cluster(
             cluster_type, config, config_file=cluster_config_file
         )
         self._clusters.append(cluster_info)
         return cluster_info
 
-    def release_cluster(self, cluster_info: ClusterInfo) -> None:
-        # FIXME: release_cluster is called after every completed test, so shouldn't delete a cluster by definition
+    def delete_cluster(self, cluster_info: ClusterInfo) -> None:
         if cluster_info not in self._clusters:
             raise ValueError(f"Cluster {cluster_info} is not registered as managed here.")
         cluster_info.managing_provider.delete_cluster(cluster_info)
@@ -83,4 +96,4 @@ class ClusterManager:
         :return:
         """
         for cluster_info in self._clusters:
-            self.release_cluster(cluster_info)
+            self.delete_cluster(cluster_info)

@@ -7,7 +7,7 @@ import uuid
 import configargparse
 
 from app_build_suite.cluster_providers import cluster_provider
-from app_build_suite.errors import ConfigError, TestError
+from app_build_suite.errors import TestError
 from app_build_suite.utils import files, config as config_abs
 
 logger = logging.getLogger(__name__)
@@ -26,19 +26,9 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         return ClusterTypeKind
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
-        # FIXME: there's a generic config file option for that
-        config_parser.add_argument(
-            self.key_config_option_kind_config_path,
-            required=False,
-            help="A path to the kind config file that provides details for configuring kind cluster",
-        )
+        pass
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        if config.kind_cluster_config_path and not os.path.isfile(config.external_cluster_kubeconfig_path):
-            raise ConfigError(
-                self.key_config_option_kind_config_path,
-                f"Kind config file {config.external_cluster_kubeconfig_path} not found.",
-            )
         # verify if binary present
         files.assert_binary_present_in_path(self.__class__.__name__, self._kind_bin)
         # verify version
@@ -60,8 +50,8 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         kube_config_path = self.__get_kube_config_from_name(cluster_name)
         kind_args = [self._kind_bin, "create", "cluster", "--name", cluster_name, "--kubeconfig", kube_config_path]
         logger.info(f"Creating KinD cluster with ID '{cluster_name}'...")
-        if config.kind_cluster_config_path:
-            kind_args.extend(["--config", config.kind_cluster_config_path])
+        if "config_file" in kwargs and kwargs["config_file"]:
+            kind_args.extend(["--config", kwargs["config_file"]])
         run_res = subprocess.run(kind_args, capture_output=True, text=True)  # nosec
         logger.debug(run_res.stderr)
         if run_res.returncode != 0:

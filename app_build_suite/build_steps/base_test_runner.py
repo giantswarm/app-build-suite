@@ -279,7 +279,6 @@ class BaseTestRunner(BuildStep, ABC):
             raise TestError(f"Application deployment failed: {e}")
         finally:
             self._delete_app(config, context)
-            self._cluster_manager.release_cluster(self._cluster_info)
 
     def _deploy_chart_as_app(self, config: argparse.Namespace, context: Context) -> None:
         namespace = get_config_value_by_cmd_line_option(
