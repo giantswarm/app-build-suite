@@ -77,6 +77,7 @@ class ExternalClusterProvider(cluster_provider.ClusterProvider):
             cluster_id="unknown",
             kube_config_path=self.__kubeconfig_path,
             managing_provider=self,
+            config_file="",
         )
 
     def delete_cluster(self, cluster_info: cluster_provider.ClusterInfo):

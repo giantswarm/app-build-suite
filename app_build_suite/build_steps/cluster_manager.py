@@ -1,10 +1,13 @@
 import argparse
 import logging
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Set
 
 import configargparse
 
+from app_build_suite.build_steps import test_stage_helpers
+from app_build_suite.build_steps.test_stage_helpers import TEST_TYPE_ALL
 from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterType, ClusterProvider
+from app_build_suite.utils.config import get_config_value_by_cmd_line_option
 
 logger = logging.getLogger(__name__)
 
@@ -33,13 +36,24 @@ class ClusterManager:
     def get_registered_cluster_types(self) -> List[ClusterType]:
         return [k for k in self._cluster_providers.keys()]
 
+    # noinspection PyMethodMayBeStatic
+    def get_used_cluster_types(self, config: argparse.Namespace) -> Set[ClusterType]:
+        used_cluster_types: Set[ClusterType] = set()
+        for test_type in TEST_TYPE_ALL:
+            config_option_cluster_for_test = test_stage_helpers.config_option_cluster_type_for_test_type(test_type)
+            cluster_type_str = get_config_value_by_cmd_line_option(config, config_option_cluster_for_test)
+            if cluster_type_str:
+                used_cluster_types.add(ClusterType(cluster_type_str))
+        return used_cluster_types
+
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         for cluster_type, provider in self._cluster_providers.items():
             logger.debug(f"Initializing configuration of cluster provider for clusters of type {cluster_type}")
             provider.initialize_config(config_parser)
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        for cluster_type, provider in self._cluster_providers.items():
+        for cluster_type in self.get_used_cluster_types(config):
+            provider = self._cluster_providers[cluster_type]
             logger.debug(f"Executing pre-run of cluster provider for clusters of type {cluster_type}")
             provider.pre_run(config)
 
@@ -49,13 +63,32 @@ class ClusterManager:
         """ clusters can be requested in parallel - creation mus be non-blocking!"""
         if cluster_type not in self._cluster_providers.keys():
             raise ValueError(f"Unknown cluster type '{cluster_type}'.")
+        logger.debug(f"Checking if we already have a ready cluster of {cluster_type} type.")
+        found_clusters = [
+            c for c in self._clusters if c.cluster_type == cluster_type and c.config_file == cluster_config_file
+        ]
+        if len(found_clusters) > 1:
+            logger.error(
+                f"Error: {len(found_clusters)} clusters of type {cluster_type} with config file '{cluster_config_file}'"
+                f" found. This should never happen. Still, I'm able to continue."
+            )
+        if len(found_clusters) == 1:
+            logger.info(
+                f"Using already created cluster with ID '{found_clusters[0].cluster_id}' of type "
+                f"'{found_clusters[0].cluster_type}'."
+            )
+            return found_clusters[0]
+        logger.info(
+            f"Existing cluster of type '{cluster_type}' with config file '{cluster_config_file}'"
+            f" not found, requesting creation."
+        )
         cluster_info = self._cluster_providers[cluster_type].get_cluster(
             cluster_type, config, config_file=cluster_config_file
         )
         self._clusters.append(cluster_info)
         return cluster_info
 
-    def release_cluster(self, cluster_info: ClusterInfo) -> None:
+    def delete_cluster(self, cluster_info: ClusterInfo) -> None:
         if cluster_info not in self._clusters:
             raise ValueError(f"Cluster {cluster_info} is not registered as managed here.")
         cluster_info.managing_provider.delete_cluster(cluster_info)
@@ -68,4 +101,4 @@ class ClusterManager:
         :return:
         """
         for cluster_info in self._clusters:
-            self.release_cluster(cluster_info)
+            self.delete_cluster(cluster_info)

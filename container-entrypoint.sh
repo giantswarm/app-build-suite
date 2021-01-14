@@ -21,8 +21,9 @@ if [ $# -eq 1 ] && [ "$1" == "versions" ]; then
 fi
 
 if [ "${USE_UID:-0}" -ne 0 ] && [ "${USE_GID:-0}" -ne 0 ]; then
-  groupadd -f -g "$USE_UID" abs
-  useradd -g "$USE_GID" -M -l -u "$USE_UID" abs -d "$ABS_DIR" -s /bin/bash || true
+  groupadd -f -g "$USE_GID" abs
+  groupadd -f -g "$DOCKER_GID" docker
+  useradd -g "$USE_GID" -G docker -M -l -u "$USE_UID" abs -d "$ABS_DIR" -s /bin/bash || true
 fi
 
 chown -R "$USE_UID":"$USE_GID" "$ABS_DIR"

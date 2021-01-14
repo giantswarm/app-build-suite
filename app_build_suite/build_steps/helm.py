@@ -338,12 +338,15 @@ class HelmChartBuilder(BuildStep):
                 full_chart_path = os.path.abspath(full_chart_path)
                 # compare our expected chart_file_name with the one returned from helm and fail if differs
                 helm_chart_file_name = os.path.basename(full_chart_path)
-                if helm_chart_file_name != context[context_key_chart_file_name]:
+                if (
+                    context_key_chart_file_name in context
+                    and helm_chart_file_name != context[context_key_chart_file_name]
+                ):
                     raise BuildError(
                         self.name,
                         f"unexpected chart path '{helm_chart_file_name}' != '{context[context_key_chart_file_name]}'",
                     )
-                if full_chart_path != context[context_key_chart_full_path]:
+                if context_key_chart_full_path in context and full_chart_path != context[context_key_chart_full_path]:
                     raise BuildError(
                         self.name,
                         f"unexpected helm build result: path reported in output '{full_chart_path}' "
@@ -566,7 +569,7 @@ class HelmChartYAMLRestorer(BuildStep):
         if config.keep_chart_changes:
             logger.info(f"Skipping restore of {_chart_yaml}.")
             return
-        if context[context_key_changes_made]:
+        if context_key_changes_made in context and context[context_key_changes_made]:
             logger.info(f"Restoring backup {_chart_yaml}.back to {_chart_yaml}")
             chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
             shutil.move(chart_yaml_path + ".back", chart_yaml_path)

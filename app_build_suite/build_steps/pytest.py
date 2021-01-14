@@ -12,11 +12,9 @@ from app_build_suite.build_steps.base_test_runner import (
     BaseTestRunnersFilteringPipeline,
     TestInfoProvider,
     BaseTestRunner,
-    TestType,
-    TEST_FUNCTIONAL,
     context_key_chart_yaml,
-    TEST_SMOKE,
 )
+from app_build_suite.build_steps.test_stage_helpers import TestType, TEST_SMOKE, TEST_FUNCTIONAL
 from app_build_suite.build_steps.build_step import StepType, STEP_TEST_FUNCTIONAL, STEP_TEST_SMOKE
 from app_build_suite.build_steps.cluster_manager import ClusterManager
 from app_build_suite.build_steps.helm import context_key_chart_file_name

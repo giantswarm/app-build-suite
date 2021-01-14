@@ -4,6 +4,8 @@ ARG HELM_VER="3.4.2"
 ARG KUBECTL_VER="1.20.1"
 ARG CT_VER="3.3.1"
 ARG APPTESTCTL_VER="0.6.1"
+ARG DOCKER_VER="20.10.2"
+ARG KIND_VER="0.9.0"
 
 RUN apk add --no-cache ca-certificates curl \
     && mkdir -p /binaries \
@@ -13,7 +15,10 @@ RUN apk add --no-cache ca-certificates curl \
     && curl -SL https://github.com/giantswarm/apptestctl/releases/download/v${APPTESTCTL_VER}/apptestctl-v${APPTESTCTL_VER}-linux-amd64.tar.gz | \
        tar -C /binaries --strip-components 1 -xvzf - apptestctl-v${APPTESTCTL_VER}-linux-amd64/apptestctl \
     && curl -SL https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER}_linux_amd64.tar.gz | \
-       tar -C /binaries -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml && mv /binaries/etc /etc/ct
+       tar -C /binaries -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml && mv /binaries/etc /etc/ct \
+    && curl -SL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VER}.tgz | \
+       tar -C /binaries --strip-components 1 -xvzf - docker/docker \
+    && curl -SL https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VER}/kind-linux-amd64 -o /binaries/kind
 
 COPY container-entrypoint.sh /binaries
 
