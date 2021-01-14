@@ -53,8 +53,8 @@ workflows:
               only: /^v.*/
       - publish-github-release:
           name: publish-github-release-for-dabs
-          #          requires:
-          #            - push-app-build-suite-circle-ci-to-quay
+          requires:
+            - push-app-build-suite-circle-ci-to-quay
           filters:
             branches:
               ignore: /.*/
