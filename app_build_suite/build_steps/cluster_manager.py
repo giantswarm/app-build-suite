@@ -64,13 +64,13 @@ class ClusterManager:
         if cluster_type not in self._cluster_providers.keys():
             raise ValueError(f"Unknown cluster type '{cluster_type}'.")
         logger.debug(f"Checking if we already have a ready cluster of {cluster_type} type.")
-        # FIXME: !!! BUG !!! Clusters need to be identified not only by cluster_type, but config file
-        # used to creat them as well!
-        found_clusters = [c for c in self._clusters if c.cluster_type == cluster_type]
+        found_clusters = [
+            c for c in self._clusters if c.cluster_type == cluster_type and c.config_file == cluster_config_file
+        ]
         if len(found_clusters) > 1:
             logger.error(
-                f"Error: {len(found_clusters)} clusters of type {cluster_type} found. This should never"
-                f"happen. Still, I'm able to continue."
+                f"Error: {len(found_clusters)} clusters of type {cluster_type} with config file '{cluster_config_file}'"
+                f" found. This should never happen. Still, I'm able to continue."
             )
         if len(found_clusters) == 1:
             logger.info(
@@ -78,7 +78,10 @@ class ClusterManager:
                 f"'{found_clusters[0].cluster_type}'."
             )
             return found_clusters[0]
-        logger.info(f"Existing cluster of type '{cluster_type}' not found, requesting creation.")
+        logger.info(
+            f"Existing cluster of type '{cluster_type}' with config file '{cluster_config_file}'"
+            f" not found, requesting creation."
+        )
         cluster_info = self._cluster_providers[cluster_type].get_cluster(
             cluster_type, config, config_file=cluster_config_file
         )

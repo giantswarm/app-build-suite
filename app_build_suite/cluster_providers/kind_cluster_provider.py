@@ -50,8 +50,10 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         kube_config_path = self.__get_kube_config_from_name(cluster_name)
         kind_args = [self._kind_bin, "create", "cluster", "--name", cluster_name, "--kubeconfig", kube_config_path]
         logger.info(f"Creating KinD cluster with ID '{cluster_name}'...")
+        config_file = ""
         if "config_file" in kwargs and kwargs["config_file"]:
-            kind_args.extend(["--config", kwargs["config_file"]])
+            config_file = kwargs["config_file"]
+            kind_args.extend(["--config", config_file])
         run_res = subprocess.run(kind_args, capture_output=True, text=True)  # nosec
         logger.debug(run_res.stderr)
         if run_res.returncode != 0:
@@ -66,6 +68,7 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
             cluster_id=cluster_name,
             kube_config_path=kube_config_path,
             managing_provider=self,
+            config_file=config_file,
         )
 
     def delete_cluster(self, cluster_info: cluster_provider.ClusterInfo):

@@ -26,6 +26,8 @@ class ClusterInfo:
     kube_config_path: str
     # cluster provider instance responsible for managing this cluster (needs forward type declaration)
     managing_provider: "ClusterProvider"
+    # cluster might have an optional config file used to create that cluster
+    config_file: str
 
 
 class ClusterProvider(ABC):
