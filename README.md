@@ -26,7 +26,9 @@ This tool is development and CI/CD tool that allows you to:
 ### Installation
 
 `abs` is distributed as a docker image, so the easiest way to install and use it is to get our `dabs.sh`
-script, which is a wrapper script to make launching the docker image easier.
+script from [releases](https://github.com/giantswarm/app-build-suite/releases). `dabs.sh` is a wrapper script
+that launches for you `abs` inside a docker container and provides all the necessary docker options required
+to make it work.
 
 Alternatively, you can just checkout this repository and build the docker image yourself by running:
 
