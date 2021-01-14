@@ -51,6 +51,16 @@ workflows:
             # Needed to trigger job also on git tag.
             tags:
               only: /^v.*/
+      - publish-github-release:
+          name: publish-github-release-for-dabs
+          requires:
+            - push-app-build-suite-circle-ci-to-quay
+          filters:
+            branches:
+              only: /master/
+            tags:
+              only: /^v.*/
+
 
 jobs:
   augment-circleci-dockerfile:
@@ -84,3 +94,13 @@ jobs:
 
       - codecov/upload:
           file: .coverage/coverage.xml
+
+  publish-github-release:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            VERSION=$(my-binary --version)
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${VERSION} ./dabs.sh
