@@ -5,6 +5,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- `kind` is now supported as an internal cluster creation mechanism
+
 ## [0.1.2] - 2021-01-07
 
 ### Added
