@@ -1,4 +1,4 @@
-FROM quay.io/giantswarm/alpine:3.12 AS binaries
+FROM alpine:3.12.3 AS binaries
 
 ARG HELM_VER="3.4.2"
 ARG KUBECTL_VER="1.20.1"
