@@ -80,9 +80,11 @@ def get_default_config_file_path() -> str:
     # this is the only place where we check for command line option directly,
     # as that's the only way to change where we load the file from
     # FIXME: it's also hacky, as it relies on helm pipeline to provide the "-c" option
-    opt = "-c"
+    short_opt = "-c"
+    long_opt = "--chart-dir"
     base_dir = ""
-    if opt in sys.argv:
+    if short_opt in sys.argv or long_opt in sys.argv:
+        opt = short_opt if short_opt in sys.argv else long_opt
         c_ind = sys.argv.index(opt)
         base_dir = sys.argv[c_ind + 1]
     config_path = os.path.join(base_dir, ".abs", "main.yaml")
