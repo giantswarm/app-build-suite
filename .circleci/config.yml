@@ -57,7 +57,7 @@ workflows:
             - push-app-build-suite-circle-ci-to-quay
           filters:
             branches:
-              only: /master/
+              ignore: /.*/
             tags:
               only: /^v.*/
 
@@ -102,5 +102,4 @@ jobs:
       - run:
           name: "Publish Release on GitHub"
           command: |
-            VERSION=$(my-binary --version)
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${VERSION} ./dabs.sh
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./dabs.sh
