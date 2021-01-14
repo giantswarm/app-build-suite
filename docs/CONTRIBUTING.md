@@ -103,4 +103,4 @@ To create a release, switch to the `master` branch, make sure everything you wan
 
 This will prepare the files in the repository, commit them and create a new git tag. Review the created commits. When satisfied, publish the new release with:
 
-    git push --tags origin master
+    git push origin vX.Y.Z
