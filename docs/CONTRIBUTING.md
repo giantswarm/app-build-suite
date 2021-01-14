@@ -92,3 +92,15 @@ As an example, please have a look at
 ## Tests
 
 We encourage adding tests. Execute them with `make docker-test`
+
+## Releases
+
+At this point, this repository does not make use of the release automation implemented in GitHub actions.
+
+To create a release, switch to the `master` branch, make sure everything you want to have in your release is commited and documented in the CHANGELOG.md file and your git stage is clean. Now execute:
+
+    make release TAG=vX.Y.Z
+
+This will prepare the files in the repository, commit them and create a new git tag. Review the created commits. When satisfied, publish the new release with:
+
+    git push origin vX.Y.Z
