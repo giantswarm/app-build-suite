@@ -4,10 +4,13 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [0.1.5] - 2021-01-15
+
 ### Changes
 
 - Breaking: `step_unit` name was misleading, renamed now to `step_validate`
 - fix: loading the config file from the root of current working dir. Note: you can safely add `chart-dir` option to the config file, if the file is placed in work dir root
+
 ## [0.1.4] - 2021-01-14
 
 - fixed release process to correctly attach `dabs.sh` as build artefact
@@ -32,7 +35,8 @@ Initial release
   - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.1.4...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.1.5...HEAD
+[0.1.5]: https://github.com/giantswarm/app-build-suite/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/giantswarm/app-build-suite/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/giantswarm/app-build-suite/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/giantswarm/app-build-suite/compare/v0.1.1...v0.1.2
