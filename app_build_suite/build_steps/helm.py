@@ -18,7 +18,7 @@ from app_build_suite.build_steps.build_step import (
     StepType,
     STEP_BUILD,
     ALL_STEPS,
-    STEP_TEST_UNIT,
+    STEP_VALIDATE,
     BuildStepsFilteringPipeline,
     STEP_METADATA,
 )
@@ -161,7 +161,7 @@ class HelmChartToolLinter(BuildStep):
 
     @property
     def steps_provided(self) -> Set[StepType]:
-        return {STEP_TEST_UNIT}
+        return {STEP_VALIDATE}
 
     _ct_bin = "ct"
     _min_ct_version = "3.1.0"

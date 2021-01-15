@@ -5,6 +5,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 ## [Unreleased]
 
 - fix: loading the config file from the root of current working dir
+- change: `step_unit` name was misleading, renamed now to `step_validate`
+- note: you can safely add `chart-dir` option to the config file, if the file is placed in work dir root
 
 ## [0.1.4] - 2021-01-14
 
