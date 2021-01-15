@@ -79,6 +79,10 @@ COPY app_build_suite/ ${ABS_DIR}/app_build_suite/
 
 WORKDIR $ABS_DIR/workdir
 
+# we assume the user will be using UID==1000 and GID=1000; if that's not true, we'll run `chown`
+# in the container's startup script
+RUN chown -R 1000:1000 $ABS_DIR
+
 ENTRYPOINT ["container-entrypoint.sh"]
 
 CMD ["-h"]
