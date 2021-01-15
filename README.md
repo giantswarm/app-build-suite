@@ -230,8 +230,9 @@ priority, these are:
 
 - command line arguments,
 - environment variables,
-- config file (default config file is `.abs/main.yaml` and it's searched in the running directory or the
-  directory specified with `-c` option).
+- config file (`abs` tries first to load the config file from the chart's directory `.abs/main.yaml` file; if
+  it doesn't exist, then it tries to load the default config file from the current working directory's
+  `.abs.main.yaml`).
 
 When you run `./dabs.sh -h` it shows you command line options and the relevant environment variables names. Options
 for a config file are the same as for command line, just with truncated leading `--`. You can check

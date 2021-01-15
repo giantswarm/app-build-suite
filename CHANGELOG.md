@@ -4,6 +4,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- fix: loading the config file from the root of current working dir
+
 ## [0.1.4] - 2021-01-14
 
 - fixed release process to correctly attach `dabs.sh` as build artefact
