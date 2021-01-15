@@ -82,12 +82,18 @@ def get_default_config_file_path() -> str:
     # FIXME: it's also hacky, as it relies on helm pipeline to provide the "-c" option
     short_opt = "-c"
     long_opt = "--chart-dir"
-    base_dir = ""
+    base_dir = os.getcwd()
+    charts_config_path = ""
     if short_opt in sys.argv or long_opt in sys.argv:
         opt = short_opt if short_opt in sys.argv else long_opt
         c_ind = sys.argv.index(opt)
-        base_dir = sys.argv[c_ind + 1]
-    config_path = os.path.join(base_dir, ".abs", "main.yaml")
+        chart_dir = sys.argv[c_ind + 1]
+        charts_config_path = os.path.join(base_dir, chart_dir, ".abs", "main.yaml")
+    if os.path.isfile(charts_config_path):
+        config_path = charts_config_path
+    else:
+        config_path = os.path.join(base_dir, ".abs", "main.yaml")
+    logger.debug(f"Using {config_path} as configuration file path.")
     return config_path
 
 
