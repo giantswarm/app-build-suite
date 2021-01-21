@@ -7,6 +7,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 ### Fixed
 
 - Do not fail if `replace-chart-version-with-git` nor `replace-app-version-with-git` config options are specified.
+- Do not try to create the App CR if it already exists.
+- Do not try to remove the App CR if app deployment was skipped.
 
 ## [0.1.5] - 2021-01-15
 
