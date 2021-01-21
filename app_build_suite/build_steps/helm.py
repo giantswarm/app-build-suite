@@ -480,7 +480,10 @@ class HelmChartMetadataPreparer(BuildStep):
             ),
         }
         # save Chart.yaml
-        if not context[context_key_changes_made] and original_annotations != chart_yaml[self._key_annotations]:
+        if (
+            not context.get(context_key_changes_made, False)
+            and original_annotations != chart_yaml[self._key_annotations]
+        ):
             logger.debug(f"Saving backup of {_chart_yaml} in {_chart_yaml}.back")
             shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
             context[context_key_changes_made] = True
