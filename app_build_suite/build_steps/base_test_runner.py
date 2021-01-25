@@ -402,7 +402,9 @@ class BaseTestRunner(BuildStep, ABC):
 
     # noinspection PyMethodMayBeStatic
     def _delete_app(self, config: argparse.Namespace, context: Context):
-        if not get_config_value_by_cmd_line_option(config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app):
+        if not get_config_value_by_cmd_line_option(
+            config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app
+        ):
             return
         app_obj = cast(AppCR, context[context_key_app_cr])
         app_obj.delete()
