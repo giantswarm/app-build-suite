@@ -34,11 +34,13 @@ context_key_chart_file_name: str = "chart_file_name"
 context_key_git_version: str = "git_version"
 context_key_changes_made: str = "changes_made"
 context_key_meta_dir_path: str = "meta_dir_path"
+context_key_chart_lock_changes_made: str = "chart_lock_changes_made"
 
 _chart_yaml_app_version_key = "appVersion"
 _chart_yaml_chart_version_key = "version"
 _chart_yaml = "Chart.yaml"
 _values_yaml = "values.yaml"
+_chart_lock = "Chart.lock"
 
 
 class HelmBuilderValidator(BuildStep):
@@ -120,6 +122,7 @@ class HelmGitVersionSetter(BuildStep):
         :param context: the context object
         :return: None
         """
+        context[context_key_changes_made] = False
         if not self._is_enabled(config):
             logger.debug("No version override options requested, ending step.")
             return
@@ -132,7 +135,6 @@ class HelmGitVersionSetter(BuildStep):
         context[context_key_git_version] = git_version
 
         new_lines: List[str] = []
-        context[context_key_changes_made] = False
         chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
         with open(chart_yaml_path, "r") as file:
             lines = file.readlines()
@@ -274,6 +276,82 @@ class HelmChartToolLinter(BuildStep):
         if run_res.returncode != 0:
             logger.error(f"{self._ct_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Linting failed")
+
+
+class HelmRequirementsUpdater(BuildStep):
+    """
+    Executes helm dependency update.
+    """
+
+    _helm_bin = "helm"
+    _min_helm_version = "3.2.0"
+    _max_helm_version = "4.0.0"
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_BUILD}
+
+    # noinspection PyMethodMayBeStatic
+    def _should_run(self, config: argparse.Namespace) -> bool:
+        return config.replace_chart_version_with_git
+
+    # noinspection PyMethodMayBeStatic
+    def _chart_lock_exists(self, config: argparse.Namespace) -> bool:
+        return os.path.isfile(os.path.join(config.chart_dir, _chart_lock))
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if the required version of helm is installed and if the lock file is present.
+        :param config: the config object
+        :return: None
+        """
+        if not self._should_run(config):
+            logger.debug("No chart version override requested, skipping dependency update.")
+            return
+        if not self._chart_lock_exists(config):
+            logger.debug(f"No {_chart_lock} file exists, skipping dependency update.")
+            return
+        self._assert_binary_present_in_path(self._helm_bin)
+        run_res = subprocess.run([self._helm_bin, "version"], capture_output=True)  # nosec
+        version_line = str(run_res.stdout.splitlines()[0], "utf-8")
+        prefix = "version.BuildInfo"
+        if version_line.startswith(prefix):
+            version_line = version_line[len(prefix) :].strip("{}")
+        else:
+            raise ValidationError(self.name, f"Can't parse '{self._helm_bin}' version number.")
+        version_entries = version_line.split(",")[0]
+        version = version_entries.split(":")[1].strip('"')
+        self._assert_version_in_range(self._helm_bin, version, self._min_helm_version, self._max_helm_version)
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """
+        Runs 'helm dependencies update' to update or generate a Chart.lock file.
+        :param config: the config object
+        :param context: the context object
+        :return: None
+        """
+        context[context_key_chart_lock_changes_made] = False
+        chart_lock_path = os.path.join(config.chart_dir, _chart_lock)
+        if not self._should_run(config):
+            logger.debug("No chart version override requested. Dependency update not required, ending step.")
+            return
+        if not self._chart_lock_exists(config):
+            logger.debug(f"No {_chart_lock} file exists, skipping dependency update.")
+            return
+        logger.debug(f"Saving backup of {_chart_lock} in {_chart_lock}.back")
+        shutil.copy2(chart_lock_path, chart_lock_path + ".back")
+        args = [
+            self._helm_bin,
+            "dependencies",
+            "update",
+            config.chart_dir,
+        ]
+        logger.info(f"Updating Chart.lock with 'helm dependencies update {config.chart_dir}'")
+        context[context_key_chart_lock_changes_made] = True
+        run_res = subprocess.run(args, capture_output=True)  # nosec, input params checked above in pre_run
+        if run_res.returncode != 0:
+            logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
+            raise BuildError(self.name, "Chart dependency update failed")
 
 
 class HelmChartBuilder(BuildStep):
@@ -576,6 +654,10 @@ class HelmChartYAMLRestorer(BuildStep):
             logger.info(f"Restoring backup {_chart_yaml}.back to {_chart_yaml}")
             chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
             shutil.move(chart_yaml_path + ".back", chart_yaml_path)
+        if context_key_chart_lock_changes_made in context and context[context_key_chart_lock_changes_made]:
+            logger.info(f"Restoring backup {_chart_lock}.back to {_chart_lock}")
+            chart_lock_path = os.path.join(config.chart_dir, _chart_lock)
+            shutil.move(chart_lock_path + ".back", chart_lock_path)
 
 
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
@@ -588,6 +670,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
             [
                 HelmBuilderValidator(),
                 HelmGitVersionSetter(),
+                HelmRequirementsUpdater(),
                 HelmChartToolLinter(),
                 HelmChartMetadataPreparer(),
                 HelmChartBuilder(),
