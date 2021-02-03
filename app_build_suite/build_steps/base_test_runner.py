@@ -312,11 +312,18 @@ class BaseTestRunner(BuildStep, ABC):
             context[context_key_app_cm_cr] = cm
 
         app_obj = AppCR(self._kube_client, app)
-        logger.info(
-            f"Creating App CR for app '{app_name}' to be deployed in namespace '{namespace}' in"
-            f" version '{app_version}'."
-        )
-        app_obj.create()
+        if not app_obj.exists():
+            logger.info(
+                f"Creating App CR for app '{app_name}' to be deployed in namespace '{namespace}' in"
+                f" version '{app_version}'."
+            )
+            app_obj.create()
+        else:
+            logger.info(
+                f"Skipping App CR creation for app '{app_name}' in namespace '{namespace}' in"
+                f" version '{app_version}'."
+            )
+
         self._wait_for_app_to_be_deployed(app_obj)
         context[context_key_app_cr] = app_obj
 
@@ -395,6 +402,10 @@ class BaseTestRunner(BuildStep, ABC):
 
     # noinspection PyMethodMayBeStatic
     def _delete_app(self, config: argparse.Namespace, context: Context):
+        if not get_config_value_by_cmd_line_option(
+            config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app
+        ):
+            return
         app_obj = cast(AppCR, context[context_key_app_cr])
         app_obj.delete()
         app_config_file_path = get_config_value_by_cmd_line_option(
