@@ -103,7 +103,7 @@ class PytestTestRunner(BaseTestRunner, ABC):
             f"Running {self._pipenv_bin} tool in '{self._pytest_dir}' directory to install virtual env "
             f"for running tests."
         )
-        run_res = run_and_log(args, print_debug=True, cwd=self._pytest_dir)  # nosec, no user input here
+        run_res = run_and_log(args, cwd=self._pytest_dir)  # nosec, no user input here
         if run_res.returncode != 0:
             raise TestError(f"Running '{args}' in directory '{self._pytest_dir}' failed.")
 
@@ -140,7 +140,7 @@ class PytestTestRunner(BaseTestRunner, ABC):
         if app_config_file_path:
             args += ["--values-file", app_config_file_path]
         logger.info(f"Running {self._pytest_bin} tool in '{self._pytest_dir}' directory.")
-        run_res = run_and_log(args, print_debug=True, cwd=self._pytest_dir)  # nosec, no user input here
+        run_res = run_and_log(args, cwd=self._pytest_dir)  # nosec, no user input here
         if run_res.returncode != 0:
             raise TestError(f"Pytest tests failed: running '{args}' in directory '{self._pytest_dir}' failed.")
 

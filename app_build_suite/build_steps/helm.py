@@ -204,7 +204,7 @@ class HelmChartToolLinter(BuildStep):
         self._assert_binary_present_in_path(self._ct_bin)
         # verify version
         run_res = run_and_log([self._ct_bin, "version"], capture_output=True)  # nosec
-        version_line = str(run_res.stdout.splitlines()[0], "utf-8")
+        version_line = run_res.stdout.splitlines()[0]
         version = version_line.split(":")[1].strip()
         self._assert_version_in_range(self._ct_bin, version, self._min_ct_version, self._max_ct_version)
         # validate config options
@@ -270,7 +270,9 @@ class HelmChartToolLinter(BuildStep):
         if config.ct_schema is not None:
             args.append(f"--chart-yaml-schema={config.ct_schema}")
         logger.info("Running chart tool linting")
-        run_res = run_and_log(args, print_debug=True)  # nosec, input params checked above in pre_run
+        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
+        for line in run_res.stdout.splitlines():
+            logger.info(line)
         if run_res.returncode != 0:
             logger.error(f"{self._ct_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Linting failed")
@@ -311,7 +313,7 @@ class HelmRequirementsUpdater(BuildStep):
             return
         self._assert_binary_present_in_path(self._helm_bin)
         run_res = run_and_log([self._helm_bin, "version"], capture_output=True)  # nosec
-        version_line = str(run_res.stdout.splitlines()[0], "utf-8")
+        version_line = run_res.stdout.splitlines()[0]
         prefix = "version.BuildInfo"
         if version_line.startswith(prefix):
             version_line = version_line[len(prefix) :].strip("{}")
@@ -346,7 +348,7 @@ class HelmRequirementsUpdater(BuildStep):
         ]
         logger.info(f"Updating Chart.lock with 'helm dependencies update {config.chart_dir}'")
         context[context_key_chart_lock_changes_made] = True
-        run_res = run_and_log(args, print_debug=True)  # nosec, input params checked above in pre_run
+        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
         if run_res.returncode != 0:
             logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart dependency update failed")
@@ -381,7 +383,7 @@ class HelmChartBuilder(BuildStep):
         """
         self._assert_binary_present_in_path(self._helm_bin)
         run_res = run_and_log([self._helm_bin, "version"], capture_output=True)  # nosec
-        version_line = str(run_res.stdout.splitlines()[0], "utf-8")
+        version_line = run_res.stdout.splitlines()[0]
         prefix = "version.BuildInfo"
         if version_line.startswith(prefix):
             version_line = version_line[len(prefix) :].strip("{}")
@@ -406,8 +408,9 @@ class HelmChartBuilder(BuildStep):
             config.destination,
         ]
         logger.info("Building chart with 'helm package'")
-        run_res = run_and_log(args, print_debug=True)  # nosec, input params checked above in pre_run
+        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
         for line in run_res.stdout.splitlines():
+            logger.info(line)
             if line.startswith("Successfully packaged chart and saved it to"):
                 full_chart_path = line.split(":")[1].strip()
                 full_chart_path = os.path.abspath(full_chart_path)
