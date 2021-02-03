@@ -118,6 +118,8 @@ class PytestTestRunner(BaseTestRunner, ABC):
         kube_config = os.path.abspath(self._cluster_info.kube_config_path)
         cluster_version = self._cluster_info.version
         args = [
+            self._pipenv_bin,
+            "run",
             self._pytest_bin,
             "-m",
             self._test_type_executed,
