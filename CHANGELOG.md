@@ -4,6 +4,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [0.1.6] - 2021-02-03
+
 ### Fixed
 
 - Do not fail if `replace-chart-version-with-git` nor `replace-app-version-with-git` config options are specified.
