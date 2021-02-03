@@ -11,6 +11,11 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 - Do not try to remove the App CR if app deployment was skipped.
 - Handle Chart.lock file if it exists and `replace-chart-version-with-git` is specified.
 
+### Added
+
+- Each command executed is now printed to stdout. If '--debug' is enabled, also full stdout and stderr of each command
+  executed is printed
+
 ## [0.1.5] - 2021-01-15
 
 ### Changes

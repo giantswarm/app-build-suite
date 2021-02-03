@@ -1,7 +1,6 @@
 import argparse
 import logging
 import os
-import subprocess  # nosec
 import uuid
 
 import configargparse
@@ -9,6 +8,7 @@ import configargparse
 from app_build_suite.cluster_providers import cluster_provider
 from app_build_suite.errors import TestError
 from app_build_suite.utils import files, config as config_abs
+from app_build_suite.utils.processes import run_and_log
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +32,8 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         # verify if binary present
         files.assert_binary_present_in_path(self.__class__.__name__, self._kind_bin)
         # verify version
-        run_res = subprocess.run([self._kind_bin, "version"], capture_output=True)  # nosec
-        version_line = str(run_res.stdout.splitlines()[0], "utf-8")
+        run_res = run_and_log([self._kind_bin, "version"], print_debug=True)  # nosec
+        version_line = run_res.stdout.splitlines()[0]
         version = version_line.split(" ")[1].strip()
         config_abs.assert_version_in_range(
             self.__class__.__name__, self._kind_bin, version, self._kind_min_version, self._kind_max_version
@@ -54,7 +54,7 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         if "config_file" in kwargs and kwargs["config_file"]:
             config_file = kwargs["config_file"]
             kind_args.extend(["--config", config_file])
-        run_res = subprocess.run(kind_args, capture_output=True, text=True)  # nosec
+        run_res = run_and_log(kind_args, print_debug=True)  # nosec
         logger.debug(run_res.stderr)
         if run_res.returncode != 0:
             raise TestError(f"Error when creating KinD cluster. Exit code is: {run_res.returncode}")
@@ -75,7 +75,7 @@ class KindClusterProvider(cluster_provider.ClusterProvider):
         logger.info(f"Deleting KinD cluster with ID '{cluster_info.cluster_id}'...")
         kube_config_path = self.__get_kube_config_from_name(cluster_info.cluster_id)
         kind_args = [self._kind_bin, "delete", "cluster", "--name", cluster_info.cluster_id]
-        run_res = subprocess.run(kind_args, capture_output=True, text=True)  # nosec
+        run_res = run_and_log(kind_args, print_debug=True)  # nosec
         logger.debug(run_res.stderr)
         if run_res.returncode != 0:
             raise TestError(f"Error when deleting KinD cluster. Exit code is: {run_res.returncode}")
