@@ -4,6 +4,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [0.1.7] - 2021-02-03
+
 ### Changed
 
 - Remove capturing of external processes stdout and stderr - they are now printed live by the process itself.
@@ -53,7 +55,9 @@ Initial release
   - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.1.7...HEAD
+[0.1.6]: https://github.com/giantswarm/app-build-suite/compare/v0.1.6...v0.1.7
+[0.1.6]: https://github.com/giantswarm/app-build-suite/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/giantswarm/app-build-suite/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/giantswarm/app-build-suite/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/giantswarm/app-build-suite/compare/v0.1.2...v0.1.3
