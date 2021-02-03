@@ -310,7 +310,7 @@ class HelmRequirementsUpdater(BuildStep):
             logger.debug(f"No {_chart_lock} file exists, skipping dependency update.")
             return
         self._assert_binary_present_in_path(self._helm_bin)
-        run_res = subprocess.run([self._helm_bin, "version"], capture_output=True)  # nosec
+        run_res = run_and_log([self._helm_bin, "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
         prefix = "version.BuildInfo"
         if version_line.startswith(prefix):
@@ -346,7 +346,7 @@ class HelmRequirementsUpdater(BuildStep):
         ]
         logger.info(f"Updating Chart.lock with 'helm dependencies update {config.chart_dir}'")
         context[context_key_chart_lock_changes_made] = True
-        run_res = subprocess.run(args, capture_output=True)  # nosec, input params checked above in pre_run
+        run_res = run_and_log(args, print_debug=True)  # nosec, input params checked above in pre_run
         if run_res.returncode != 0:
             logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart dependency update failed")
