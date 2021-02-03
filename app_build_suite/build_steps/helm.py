@@ -4,7 +4,6 @@ import logging
 import os
 import pathlib
 import shutil
-import subprocess  # nosec
 from datetime import datetime, timezone
 from typing import List, Optional, Set
 from urllib.parse import urlsplit
@@ -26,6 +25,7 @@ from app_build_suite.errors import ValidationError, BuildError
 from app_build_suite.types import Context
 from app_build_suite.utils.files import get_file_sha256
 from app_build_suite.utils.git import GitRepoVersionInfo
+from app_build_suite.utils.processes import run_and_log
 
 logger = logging.getLogger(__name__)
 
@@ -203,7 +203,7 @@ class HelmChartToolLinter(BuildStep):
         # verify if binary present
         self._assert_binary_present_in_path(self._ct_bin)
         # verify version
-        run_res = subprocess.run([self._ct_bin, "version"], capture_output=True)  # nosec
+        run_res = run_and_log([self._ct_bin, "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
         version = version_line.split(":")[1].strip()
         self._assert_version_in_range(self._ct_bin, version, self._min_ct_version, self._max_ct_version)
@@ -270,9 +270,7 @@ class HelmChartToolLinter(BuildStep):
         if config.ct_schema is not None:
             args.append(f"--chart-yaml-schema={config.ct_schema}")
         logger.info("Running chart tool linting")
-        run_res = subprocess.run(args, capture_output=True)  # nosec, input params checked above in pre_run
-        for line in run_res.stdout.splitlines():
-            logger.info(str(line, "utf-8"))
+        run_res = run_and_log(args, print_debug=True)  # nosec, input params checked above in pre_run
         if run_res.returncode != 0:
             logger.error(f"{self._ct_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Linting failed")
@@ -382,7 +380,7 @@ class HelmChartBuilder(BuildStep):
         :return: None
         """
         self._assert_binary_present_in_path(self._helm_bin)
-        run_res = subprocess.run([self._helm_bin, "version"], capture_output=True)  # nosec
+        run_res = run_and_log([self._helm_bin, "version"], capture_output=True)  # nosec
         version_line = str(run_res.stdout.splitlines()[0], "utf-8")
         prefix = "version.BuildInfo"
         if version_line.startswith(prefix):
@@ -408,11 +406,10 @@ class HelmChartBuilder(BuildStep):
             config.destination,
         ]
         logger.info("Building chart with 'helm package'")
-        run_res = subprocess.run(args, capture_output=True)  # nosec, input params checked above in pre_run
+        run_res = run_and_log(args, print_debug=True)  # nosec, input params checked above in pre_run
         for line in run_res.stdout.splitlines():
-            logger.info(str(line, "utf-8"))
-            if line.startswith(b"Successfully packaged chart and saved it to"):
-                full_chart_path = str(line.split(b":")[1].strip(), "utf-8")
+            if line.startswith("Successfully packaged chart and saved it to"):
+                full_chart_path = line.split(":")[1].strip()
                 full_chart_path = os.path.abspath(full_chart_path)
                 # compare our expected chart_file_name with the one returned from helm and fail if differs
                 helm_chart_file_name = os.path.basename(full_chart_path)
