@@ -6,22 +6,10 @@ logger = logging.getLogger(__name__)
 
 
 def run_and_log(args: List[str], **kwargs: Any) -> subprocess.CompletedProcess:
-    print_debug = "print_debug" in kwargs and bool(kwargs["print_debug"])
     logger.info("Running command:")
     logger.info(" ".join(args))
-    if print_debug:
-        if "text" not in kwargs:
-            kwargs["text"] = True
-        if "capture_output" not in kwargs:
-            kwargs["capture_output"] = True
-        del kwargs["print_debug"]
+    if "text" not in kwargs:
+        kwargs["text"] = True
     run_res = subprocess.run(args, **kwargs)  # nosec
-    if print_debug:
-        logger.debug("Command stdout is:")
-        for line in run_res.stdout.splitlines():
-            logger.debug(line)
-        logger.debug("Command stderr is:")
-        for line in run_res.stderr.splitlines():
-            logger.debug(line)
-    logger.info("Command executed")
+    logger.info(f"Command executed, exit code: {run_res.returncode}.")
     return run_res

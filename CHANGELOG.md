@@ -4,6 +4,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+### Changed
+
+- Remove capturing of external processes stdout and stderr - they are now printed live by the process itself.
+
 ## [0.1.6] - 2021-02-03
 
 ### Fixed
