@@ -4,24 +4,12 @@ import sys
 from typing import List
 
 import configargparse
-from dependency_injector import containers, providers
 
 from app_build_suite.build_steps import BuildStep
 from app_build_suite.errors import Error
-from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
 from app_build_suite.types import Context
 
 logger = logging.getLogger(__name__)
-
-
-class ComponentsContainer(containers.DeclarativeContainer):
-    """
-    A dependency injection container for easily switching build or test runtimes.
-    """
-
-    config = providers.Configuration()
-
-    builder = providers.Selector(config.build_engine, helm3=providers.Singleton(HelmBuildFilteringPipeline))
 
 
 class Runner:
