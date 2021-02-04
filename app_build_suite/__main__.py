@@ -12,9 +12,10 @@ from app_build_suite.build_steps import (
     ALL_STEPS,
 )
 from app_build_suite.build_steps.build_step import STEP_ALL
+from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
 from app_build_suite.build_steps.pytest import PytestTestFilteringPipeline
 from app_build_suite.errors import ConfigError
-from .components import ComponentsContainer, Runner
+from .components import Runner
 
 ver = "0.0.1-dev"
 app_name = "app_build_suite"
@@ -34,9 +35,10 @@ def get_version() -> str:
         return ver
 
 
-def get_pipeline(container: ComponentsContainer) -> List[BuildStepsFilteringPipeline]:
+def get_pipeline() -> List[BuildStepsFilteringPipeline]:
     return [
-        container.builder(),
+        # FIXME: once we have more than 1 build or test engine, this has to be configurable
+        HelmBuildFilteringPipeline(),
         PytestTestFilteringPipeline(),
     ]
 
@@ -156,12 +158,7 @@ def main():
     if global_only_config.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    container = ComponentsContainer()
-    container.config.from_dict(
-        {"build_engine": global_only_config.build_engine},
-    )
-
-    steps = get_pipeline(container)
+    steps = get_pipeline()
     config = get_config(steps)
     runner = Runner(config, steps)
     runner.run()
