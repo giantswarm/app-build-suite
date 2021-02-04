@@ -307,8 +307,8 @@ class BaseTestRunner(BuildStep, ABC):
         )
         if app_config_file_path:
             app_cm_name = f"{app_name}-cm"
-            self._deploy_app_config_map(namespace, app_cm_name, app_config_file_path)
-            cm = app["spec"]["config"] = {"configMap": {"name": app_cm_name, "namespace": namespace}}
+            cm = self._deploy_app_config_map(namespace, app_cm_name, app_config_file_path)
+            app["spec"]["config"] = {"configMap": {"name": app_cm_name, "namespace": namespace}}
             context[context_key_app_cm_cr] = cm
 
         app_obj = AppCR(self._kube_client, app)
@@ -319,9 +319,8 @@ class BaseTestRunner(BuildStep, ABC):
             )
             app_obj.create()
         else:
-            logger.info(
-                f"Skipping App CR creation for app '{app_name}' in namespace '{namespace}' in"
-                f" version '{app_version}'."
+            logger.warning(
+                f"App CR already exists: skipping App CR creation for app '{app_name}' in namespace '{namespace}'."
             )
 
         self._wait_for_app_to_be_deployed(app_obj)
@@ -391,7 +390,7 @@ class BaseTestRunner(BuildStep, ABC):
             "data": {"values": config_values},
         }
         app_cm_obj = ConfigMap(self._kube_client, app_cm)
-        logger.info(f"Creating ConfigMap '{name}' with options in namespace '{namespace}'.")
+        logger.info(f"Creating ConfigMap '{name}' with App values in namespace '{namespace}'.")
         app_cm_obj.create()
         return app_cm_obj
 
@@ -407,11 +406,14 @@ class BaseTestRunner(BuildStep, ABC):
         ):
             return
         app_obj = cast(AppCR, context[context_key_app_cr])
+        logger.info("Deleting App CR")
         app_obj.delete()
         app_config_file_path = get_config_value_by_cmd_line_option(
             config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_config_file
         )
         if app_config_file_path:
+            logger.info("Deleting values ConfigMap")
             cast(ConfigMap, context[context_key_app_cm_cr]).delete()
 
         self._wait_for_app_to_be_deleted(app_obj)
+        logger.info("Application deleted")
