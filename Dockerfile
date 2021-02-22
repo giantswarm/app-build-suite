@@ -1,4 +1,4 @@
-FROM alpine:3.13.1 AS binaries
+FROM alpine:3.13.2 AS binaries
 
 ARG HELM_VER="3.4.2"
 ARG KUBECTL_VER="1.20.1"
