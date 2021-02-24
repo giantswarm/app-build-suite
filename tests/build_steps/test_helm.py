@@ -1,4 +1,5 @@
 import os.path
+import re
 from typing import Dict, Any
 from unittest.mock import mock_open, patch
 
@@ -105,7 +106,13 @@ def test_generate_metadata(monkeypatch):
         monkeypatch.setattr(
             app_build_suite.build_steps.helm.HelmChartMetadataFinalizer,
             "get_build_timestamp",
-            lambda _: "1020-10-20T10:20:10+00:00",
+            lambda _: "1020-10-20T10:20:10.000000",
         )
         step.run(config, context)
         m.assert_called_with(input_chart_path, "r")
+
+
+def test_format_timestamp_to_match_helms():
+    ts_str = HelmChartMetadataFinalizer.get_build_timestamp()
+    ts_regex = re.compile("^[0-9]{4}-(1[0-2]|0[1-9])-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9](.[0-9]+)?Z?$")
+    assert ts_regex.fullmatch(ts_str)
