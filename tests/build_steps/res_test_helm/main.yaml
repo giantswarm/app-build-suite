@@ -1,6 +1,6 @@
 chartApiVersion: v1
 chartFile: hello-world-app-v0.0.1.tgz
-dateCreated: "1020-10-20T10:20:10+00:00"
+dateCreated: "1020-10-20T10:20:10.000000"
 digest: "123"
 restrictions:
   clusterSingleton: false
