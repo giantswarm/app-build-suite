@@ -4,7 +4,7 @@ import logging
 import os
 import pathlib
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime
 from typing import List, Optional, Set
 from urllib.parse import urlsplit
 
@@ -593,7 +593,7 @@ class HelmChartMetadataFinalizer(BuildStep):
 
     @staticmethod
     def get_build_timestamp() -> str:
-        return datetime.utcnow().replace(tzinfo=timezone.utc, microsecond=0).isoformat()
+        return datetime.utcnow().isoformat(timespec="microseconds")
 
     @staticmethod
     def write_meta_file(meta_file_name: str, meta: Context) -> None:
