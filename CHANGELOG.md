@@ -4,6 +4,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+### Added
+
+- `icon` and `home` attributes are now copied over from `Chart.yaml` to metadata's `main.yaml`
+
 ### Changed
 
 - in metadata files, `dateCreated` is now formated the same way as in `index.yaml` created by helm
