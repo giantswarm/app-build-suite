@@ -4,9 +4,13 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
-### Added
+### Changed
 
 - in metadata files, `dateCreated` is now formated the same way as in `index.yaml` created by helm
+
+### Fixed
+
+- `compatibleProviders` is now added to `ct`'s schema file and is correctly validated
 
 ## [0.1.7] - 2021-02-03
 
