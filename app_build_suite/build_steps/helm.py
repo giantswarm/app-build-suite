@@ -586,6 +586,8 @@ class HelmChartMetadataFinalizer(BuildStep):
     _key_chart_api_version = "chartApiVersion"
     _key_api_version = "apiVersion"
     _key_annotations = "annotations"
+    _key_icon = "icon"
+    _key_home = "home"
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -614,7 +616,13 @@ class HelmChartMetadataFinalizer(BuildStep):
         meta[self._key_date_created] = self.get_build_timestamp()
         meta[self._key_chart_api_version] = chart_yaml[self._key_api_version]
         # optional metadata
-        for key in [self._key_upstream_chart_url, self._key_restrictions, self._key_annotations]:
+        for key in [
+            self._key_upstream_chart_url,
+            self._key_restrictions,
+            self._key_annotations,
+            self._key_icon,
+            self._key_home,
+        ]:
             if key in chart_yaml:
                 meta[key] = chart_yaml[key]
         # save metadata file
