@@ -121,7 +121,7 @@ class TestInfoProvider(BuildStep):
 class BaseTestRunner(BuildStep, ABC):
     _apptestctl_bin = "apptestctl"
     _apptestctl_bootstrap_timeout_sec = 180
-    _min_apptestctl_version = "0.6.1"
+    _min_apptestctl_version = "0.7.0"
     _max_apptestctl_version = "1.0.0"
     _app_deployment_timeout_sec = 1800
     _app_deletion_timeout_sec = 600

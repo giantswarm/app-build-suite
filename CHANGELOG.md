@@ -11,6 +11,11 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 ### Changed
 
 - in metadata files, `dateCreated` is now formated the same way as in `index.yaml` created by helm
+- update binary dependencies:
+  - helm: 3.5.2
+  - chart-test: 3.3.1
+  - apptestctl: 0.7.0
+  - docker: 20.10.3
 
 ### Fixed
 
