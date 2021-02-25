@@ -16,3 +16,4 @@ restrictions:
   namespaceSingleton: true
   fixedNamespace: helloworld
   gpuInstances: false
+  compatibleProviders: [aws,azure]

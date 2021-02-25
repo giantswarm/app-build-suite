@@ -24,6 +24,7 @@ gs-restrictions:
   namespaceSingleton: bool(required=False)
   fixedNamespace: str(required=False)
   gpuInstances: bool(required=False)
+  compatibleProviders: list(str(), required=False)
 ---
 maintainer:
   name: str()

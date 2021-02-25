@@ -7,6 +7,7 @@ restrictions:
   fixedNamespace: helloworld
   gpuInstances: false
   namespaceSingleton: true
+  compatibleProviders: [aws,azure]
 upstreamChartURL: https://github.com/giantswarm/hello-world-app
 annotations:
   application.giantswarm.io/values-schema: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/helm/hello-world-app/values.schema.json
