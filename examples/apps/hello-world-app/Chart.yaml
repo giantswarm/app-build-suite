@@ -14,6 +14,7 @@ restrictions:
   fixedNamespace: helloworld
   gpuInstances: false
   namespaceSingleton: true
+  compatibleProviders: [aws,azure]
 sources:
 - https://github.com/giantswarm/hello-world-app
 upstreamChartURL: https://github.com/giantswarm/hello-world-app
