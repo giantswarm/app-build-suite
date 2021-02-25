@@ -16,6 +16,7 @@ COPY run-tests-in-docker.sh .
 COPY Pipfile .
 COPY Pipfile.lock .
 COPY tests/ tests/
+COPY examples/ examples/
 COPY .git/ ./.git/
 RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --clear --dev
 RUN pipenv run pre-commit install-hooks
