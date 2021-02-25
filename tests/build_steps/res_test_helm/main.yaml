@@ -9,6 +9,8 @@ restrictions:
   namespaceSingleton: true
   compatibleProviders: [aws,azure]
 upstreamChartURL: https://github.com/giantswarm/hello-world-app
+home: https://github.com/giantswarm/hello-world-app
+icon: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/app-icon.png
 annotations:
   application.giantswarm.io/values-schema: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/helm/hello-world-app/values.schema.json
   application.giantswarm.io/readme: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/README.md
