@@ -37,7 +37,7 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
     """
 
     key_config_group_name = "App testing options"
-    key_config_option_deploy_app = "--app-tests-deploy"
+    key_config_option_skip_deploy_app = "--app-tests-skip-app-deploy"
     key_config_option_deploy_namespace = "--app-tests-deploy-namespace"
     key_config_option_deploy_config_file = "--app-tests-app-config-file"
 
@@ -50,12 +50,10 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
         if self._config_parser_group is None:
             raise ValueError("'_config_parser_group' can't be None")
         self._config_parser_group.add_argument(
-            self.key_config_option_deploy_app,
+            self.key_config_option_skip_deploy_app,
             required=False,
-            default=True,
             action="store_true",
-            help="If 'True', then the chart built in the build step will be deployed to the test target cluster"
-            " using an App CR before tests are started",
+            help="Skip automated app deployment for the test run to the test cluster (using an App CR).",
         )
         self._config_parser_group.add_argument(
             self.key_config_option_deploy_namespace,
@@ -270,8 +268,8 @@ class BaseTestRunner(BuildStep, ABC):
         self._upload_chart_to_app_catalog(context)
 
         try:
-            if get_config_value_by_cmd_line_option(
-                config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app
+            if not get_config_value_by_cmd_line_option(
+                config, BaseTestRunnersFilteringPipeline.key_config_option_skip_deploy_app
             ):
                 self._deploy_chart_as_app(config, context)
             self.run_tests(config, context)
@@ -401,8 +399,8 @@ class BaseTestRunner(BuildStep, ABC):
 
     # noinspection PyMethodMayBeStatic
     def _delete_app(self, config: argparse.Namespace, context: Context):
-        if not get_config_value_by_cmd_line_option(
-            config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app
+        if get_config_value_by_cmd_line_option(
+            config, BaseTestRunnersFilteringPipeline.key_config_option_skip_deploy_app
         ):
             return
         app_obj = cast(AppCR, context[context_key_app_cr])
