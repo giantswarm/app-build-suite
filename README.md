@@ -1,11 +1,13 @@
+# app-build-suite
+
 [![build](https://circleci.com/gh/giantswarm/app-build-suite.svg?style=svg)](https://circleci.com/gh/giantswarm/app-build-suite)
 [![codecov](https://codecov.io/gh/giantswarm/app-build-suite/branch/master/graph/badge.svg)](https://codecov.io/gh/giantswarm/app-build-suite)
 [![Apache License](https://img.shields.io/badge/license-apache-blue.svg)](https://pypi.org/project/pytest-helm-charts/)
 
-# app-build-suite
-A tool to build and test apps for Giant Swarm App Platform.
+A tool to build and test apps (Helm Charts) for
+[Giant Swarm App Platform](https://docs.giantswarm.io/app-platform/).
 
-This tool is development and CI/CD tool that allows you to:
+This tool is a development and CI/CD tool that allows you to:
 
 - build your helm chart
   - do some simple variable replacements before building the chart
@@ -19,6 +21,7 @@ This tool is development and CI/CD tool that allows you to:
 
 ---
 *Big fat warning* This tool is available as a development version!
+
 ---
 
 ## How to use app-build-suite
@@ -36,10 +39,13 @@ Alternatively, you can just checkout this repository and build the docker image 
 make docker-build
 ```
 
-### Getting started
+### Quick start
 
 Executing `dabs.sh` is the most straight forward way to run `app-build-suite`.
-For example, for our sample chart present in this repository in `examples/apps/hello-world-app`, run:
+As an example, we have included a chart in this repository in
+[`examples/apps/hello-world-app`](examples/apps/hello-world-app/). It's configuration file for
+`abs` is in the [`.abs/main.yaml`](examples/apps/hello-world-app/.abs/main.yaml) file. To build the chart
+using `dabs.sh` and the provided config file, run:
 
 ```bash
 dabs.sh -c examples/apps/hello-world-app --skip-steps test_all
@@ -67,22 +73,29 @@ dabs.sh -c examples/apps/hello-world-app \
   --destination build
 ```
 
-### Usage
+### Full usage help
 
-Please run:
+To get an overview of available options, please run:
 
 ```bash
 dabs.sh -h
 ```
 
-to get help about all the available config options.
+To learn what they mean and how to use them, please follow to
+[execution steps and their config options](#execution-steps-details-and-configuration).
 
-## How does it work
+## Tuning app-build-suite execution and running parts of the build process
 
-This tool works by executing a series of so called `Build Steps`. Each build step is configurable
-(run `./dabs.sh -h` to check), but also you can skip any step provided or just run only a subset of all steps.
-This idea is fundamental for integrating `abs` with other workflows, like in the CI/CD system or
-on your local machine. Check `dabs.sh -h` output for step names available to `--steps` and `--skip-steps`
+This tool works by executing a series of so called `Build Steps`. In general, one `BuildSteps` is about
+a single step in the build, like running a single external tool. Most of the build steps are configurable
+(run `./dabs.sh -h` to check available options and go to
+[steps details and configuration](#execution-steps-details-and-configuration) for detailed description).
+
+The important property in `app-build-suite` is that you can only execute a subset of all the build steps.
+This idea should be useful for integrating `abs` with other workflows, like CI/CD systems or for
+running parts of the build process on your local machine during development. You can either run only a
+selected set of steps using `--steps` option or you can run all if them excluding some
+using `--skip-steps`. Check `dabs.sh -h` output for step names available to `--steps` and `--skip-steps`
 flags.
 
 To skip or include multiple step names, separate them with space, like in this example:
@@ -91,7 +104,76 @@ To skip or include multiple step names, separate them with space, like in this e
 dabs.sh -c examples/apps/hello-world-app --skip-steps test_unit test_performance
 ```
 
-## Detailed execution steps
+### A command wrapper on steroids
+
+`abs` is not much more than a wrapper around a set of well-known open source tools.
+It orchestrates these tools into an opinionated build process and adds some additional
+features in between them, like generating metadata for the Giant Swarm App Platform.
+
+To better explain it, see what really happens when you call
+
+```bash
+dabs.sh -c examples/apps/hello-world-app --destination build --skip-steps test_all
+```
+
+The list bellow
+is a set of commands executed for you by `abs`:
+
+```bash
+# app and chart versions are set using git changes (if configured)
+ct lint --validate-maintainers=false --charts=examples/apps/hello-world-app --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../../resources/ct_schemas/gs_metadata_chart_schema.yaml
+helm package examples/apps/hello-world-app --destination build
+# now metadata is generated from the data collected during the build (if configured)
+```
+
+If you include testing steps as well, on an external cluster, with the following command
+
+```bash
+dabs.sh -c examples/apps/hello-world-app \
+  --functional-tests-cluster-type external \
+  --smoke-tests-cluster-type external \
+  --external-cluster-kubeconfig-path kube.config \
+  --external-cluster-type kind \
+  --external-cluster-version "1.19.0" \
+  --destination build
+```
+
+, the list becomes:
+
+```bash
+# app and chart versions are set using git changes (if configured)
+ct lint --validate-maintainers=false --charts=examples/apps/hello-world-app --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../../resources/ct_schemas/gs_metadata_chart_schema.yaml
+helm package examples/apps/hello-world-app --destination build
+# now metadata is generated from the data collected during the build (if configured)
+# here start smoke tests
+apptestctl bootstrap --kubeconfig-path=kube.config --wait
+pipenv install --deploy
+pipenv run pytest -m smoke --cluster-type kind --kube-config /abs/workdir/kube.config --chart-path hello-world-app-0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db.tgz --chart-version 0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db --chart-extra-info external_cluster_version=1.19.0 --log-cli-level info --junitxml=test_results_smoke.xml
+apptestctl bootstrap --kubeconfig-path=kube.config --wait
+# and here start functional tests
+pipenv install --deploy
+pipenv run pytest -m functional --cluster-type kind --kube-config /abs/workdir/test1.kube.config --chart-path hello-world-app-0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db.tgz --chart-version 0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db --chart-extra-info external_cluster_version=1.19.0 --log-cli-level info --junitxml=test_results_functional.xml
+```
+
+### Configuring app-build-suite
+
+Every configuration option in `abs` can be configured in 3 ways. Starting from the highest to the lowest
+priority, these are:
+
+- command line arguments,
+- environment variables,
+- config file (`abs` tries first to load the config file from the chart's directory `.abs/main.yaml` file; if
+  it doesn't exist, then it tries to load the default config file from the current working directory's
+  `.abs.main.yaml`).
+
+When you run `./dabs.sh -h` it shows you command line options and the relevant environment variables names. Options
+for a config file are the same as for command line, just with truncated leading `--`. You can check
+[this example](examples/apps/hello-world-app/.abs/main.yaml).
+
+The configuration is made this way so you can put your defaults into the config file, yet override them with
+env variables or command line when needed. This way you can easily override configs for stuff like CI/CD builds.
+
+## Execution steps details and configuration
 
 `abs` is composed of two main pipelines: *build* and *test*. Each of them is composed of steps.
 When `abs` runs, it executes all the steps from the *build* pipeline and then from the *test* pipeline.
@@ -222,24 +304,6 @@ file and skip it from command line.
    smoke-tests-cluster-config-file: my-chart/kind_config.yaml
    functional-tests-cluster-config-file: my-chart/kind_config.yaml
    ```
-
-### Configuration
-
-Every configuration option in `abs` can be configured in 3 ways. Starting from the highest to the lowest
-priority, these are:
-
-- command line arguments,
-- environment variables,
-- config file (`abs` tries first to load the config file from the chart's directory `.abs/main.yaml` file; if
-  it doesn't exist, then it tries to load the default config file from the current working directory's
-  `.abs.main.yaml`).
-
-When you run `./dabs.sh -h` it shows you command line options and the relevant environment variables names. Options
-for a config file are the same as for command line, just with truncated leading `--`. You can check
-[this example](examples/apps/hello-world-app/.abs/main.yaml).
-
-The configuration is made this way so you can put your defaults into the config file, yet override them with
-env variables or command line when needed. This way you can easily override configs for stuff like CI/CD builds.
 
 ## How to contribute
 
