@@ -170,9 +170,6 @@ class HelmChartToolLinter(BuildStep):
     _max_ct_version = "4.0.0"
     _metadata_schema = "gs_metadata_chart_schema.yaml"
 
-    def __init__(self):
-        self._additional_helm_repos = ["stable=https://charts.helm.sh/stable"]
-
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
             "--ct-config",
@@ -183,15 +180,6 @@ class HelmChartToolLinter(BuildStep):
             "--ct-schema",
             required=False,
             help="Path to optional 'ct' schema file.",
-        )
-        config_parser.add_argument(
-            "--ct-chart-repos",
-            required=False,
-            help="Additional helm chart repositories for use with 'ct' validation."
-            " Additional chart repositories for dependency resolutions."
-            " Repositories should be formatted as 'name=url' (ex:"
-            " local=http://127.0.0.1:8879/charts). Multiple entries must"
-            " be separated with ','.",
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
@@ -238,22 +226,6 @@ class HelmChartToolLinter(BuildStep):
                 self.name,
                 f"Chart tool schema file {config.ct_schema} doesn't exist.",
             )
-        if config.ct_chart_repos is not None:
-            repos_entries = config.ct_chart_repos.split(",")
-            for entry in repos_entries:
-                entry = entry.strip("\"'")
-                name, url = entry.split("=")
-                if not validators.slug(name):
-                    raise ValidationError(
-                        self.name,
-                        f"{name} is not a correct helm repo name.",
-                    )
-                if not validators.url(url):
-                    raise ValidationError(
-                        self.name,
-                        f"{url} is not a correct helm repo url.",
-                    )
-                self._additional_helm_repos.append(entry)
 
     def run(self, config: argparse.Namespace, _: Context) -> None:
         args = [
@@ -261,7 +233,6 @@ class HelmChartToolLinter(BuildStep):
             "lint",
             "--validate-maintainers=false",
             f"--charts={config.chart_dir}",
-            f"--chart-repos={','.join(self._additional_helm_repos)}",
         ]
         if config.debug:
             args.append("--debug")

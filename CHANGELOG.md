@@ -10,7 +10,12 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ### Changed
 
-- in metadata files, `dateCreated` is now formated the same way as in `index.yaml` created by helm
+- **breaking change**: the option `--ct-chart-repos` is now removed, because in `ct` command line options are
+  overriding user supplied values in the `ct`'s config file. So far, `abs` was passing stable helm charts stable
+  repo by default using command line argument. To fix compatibility with user-supplied `ct` config, `abs`
+  stops passing `chart-repos` in command line, so if you need the stable helm charts repo to pass validation with
+  `ct`, you're now responsible for creating the correct config file.
+- in metadata files, `dateCreated` is now formatted the same way as in `index.yaml` created by helm
 - update binary dependencies:
   - helm: 3.5.2
   - chart-test: 3.3.1
