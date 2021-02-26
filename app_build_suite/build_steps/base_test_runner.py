@@ -150,19 +150,12 @@ class BaseTestRunner(BuildStep, ABC):
         raise NotImplementedError
 
     @property
-    def _config_enabled_attribute_name(self) -> str:
-        return f"--enable-{self._test_type_executed}-tests"
-
-    @property
     def _config_cluster_type_attribute_name(self) -> str:
         return config_option_cluster_type_for_test_type(self._test_type_executed)
 
     @property
     def _config_cluster_config_file_attribute_name(self) -> str:
         return f"--{self._test_type_executed}-tests-cluster-config-file"
-
-    def is_enabled(self, config: argparse.Namespace) -> bool:
-        return get_config_value_by_cmd_line_option(config, self._config_enabled_attribute_name)
 
     def _ensure_app_platform_ready(self, kube_config_path: str) -> None:
         """
@@ -189,13 +182,6 @@ class BaseTestRunner(BuildStep, ABC):
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
-            self._config_enabled_attribute_name,
-            required=False,
-            default=True,
-            action="store_true",
-            help=f"If 'True', then {self._test_type_executed} tests will be executed.",
-        )
-        config_parser.add_argument(
             self._config_cluster_type_attribute_name,
             required=False,
             help=f"Cluster type to use for {self._test_type_executed} tests.",
@@ -207,9 +193,6 @@ class BaseTestRunner(BuildStep, ABC):
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        if not self.is_enabled(config):
-            logger.info(f"Skipping tests of type {self._test_type_executed} as configured (pre-run step).")
-            return
         # verify if binary present
         self._assert_binary_present_in_path(self._apptestctl_bin)
         # verify version
@@ -244,9 +227,6 @@ class BaseTestRunner(BuildStep, ABC):
         self._configured_cluster_config_file = cluster_config_file if cluster_config_file is not None else ""
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
-        if not self.is_enabled(config):
-            logger.info(f"Skipping tests of type {self._test_type_executed} as configured (run step).")
-            return
         # this API might need a change if we need to pass some more information than just type and config file
         logger.info(
             f"Requesting new cluster of type '{self._configured_cluster_type}' using config file"
