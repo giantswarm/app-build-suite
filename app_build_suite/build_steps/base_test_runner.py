@@ -243,7 +243,7 @@ class BaseTestRunner(BuildStep, ABC):
                 f" '{self._test_type_executed}' doesn't exist.",
             )
         self._configured_cluster_type = cluster_type
-        self._configured_cluster_config_file = cluster_config_file
+        self._configured_cluster_config_file = cluster_config_file if cluster_config_file is not None else ""
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         if not self.is_enabled(config):
