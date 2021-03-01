@@ -37,7 +37,7 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
     """
 
     key_config_group_name = "App testing options"
-    key_config_option_deploy_app = "--app-tests-deploy"
+    key_config_option_skip_deploy_app = "--app-tests-skip-app-deploy"
     key_config_option_deploy_namespace = "--app-tests-deploy-namespace"
     key_config_option_deploy_config_file = "--app-tests-app-config-file"
 
@@ -50,12 +50,10 @@ class BaseTestRunnersFilteringPipeline(BuildStepsFilteringPipeline):
         if self._config_parser_group is None:
             raise ValueError("'_config_parser_group' can't be None")
         self._config_parser_group.add_argument(
-            self.key_config_option_deploy_app,
+            self.key_config_option_skip_deploy_app,
             required=False,
-            default=True,
             action="store_true",
-            help="If 'True', then the chart built in the build step will be deployed to the test target cluster"
-            " using an App CR before tests are started",
+            help="Skip automated app deployment for the test run to the test cluster (using an App CR).",
         )
         self._config_parser_group.add_argument(
             self.key_config_option_deploy_namespace,
@@ -152,19 +150,12 @@ class BaseTestRunner(BuildStep, ABC):
         raise NotImplementedError
 
     @property
-    def _config_enabled_attribute_name(self) -> str:
-        return f"--enable-{self._test_type_executed}-tests"
-
-    @property
     def _config_cluster_type_attribute_name(self) -> str:
         return config_option_cluster_type_for_test_type(self._test_type_executed)
 
     @property
     def _config_cluster_config_file_attribute_name(self) -> str:
         return f"--{self._test_type_executed}-tests-cluster-config-file"
-
-    def is_enabled(self, config: argparse.Namespace) -> bool:
-        return get_config_value_by_cmd_line_option(config, self._config_enabled_attribute_name)
 
     def _ensure_app_platform_ready(self, kube_config_path: str) -> None:
         """
@@ -191,13 +182,6 @@ class BaseTestRunner(BuildStep, ABC):
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
-            self._config_enabled_attribute_name,
-            required=False,
-            default=True,
-            action="store_true",
-            help=f"If 'True', then {self._test_type_executed} tests will be executed.",
-        )
-        config_parser.add_argument(
             self._config_cluster_type_attribute_name,
             required=False,
             help=f"Cluster type to use for {self._test_type_executed} tests.",
@@ -209,9 +193,6 @@ class BaseTestRunner(BuildStep, ABC):
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        if not self.is_enabled(config):
-            logger.info(f"Skipping tests of type {self._test_type_executed} as configured (pre-run step).")
-            return
         # verify if binary present
         self._assert_binary_present_in_path(self._apptestctl_bin)
         # verify version
@@ -243,12 +224,9 @@ class BaseTestRunner(BuildStep, ABC):
                 f" '{self._test_type_executed}' doesn't exist.",
             )
         self._configured_cluster_type = cluster_type
-        self._configured_cluster_config_file = cluster_config_file
+        self._configured_cluster_config_file = cluster_config_file if cluster_config_file is not None else ""
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
-        if not self.is_enabled(config):
-            logger.info(f"Skipping tests of type {self._test_type_executed} as configured (run step).")
-            return
         # this API might need a change if we need to pass some more information than just type and config file
         logger.info(
             f"Requesting new cluster of type '{self._configured_cluster_type}' using config file"
@@ -270,8 +248,8 @@ class BaseTestRunner(BuildStep, ABC):
         self._upload_chart_to_app_catalog(context)
 
         try:
-            if get_config_value_by_cmd_line_option(
-                config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app
+            if not get_config_value_by_cmd_line_option(
+                config, BaseTestRunnersFilteringPipeline.key_config_option_skip_deploy_app
             ):
                 self._deploy_chart_as_app(config, context)
             self.run_tests(config, context)
@@ -401,8 +379,8 @@ class BaseTestRunner(BuildStep, ABC):
 
     # noinspection PyMethodMayBeStatic
     def _delete_app(self, config: argparse.Namespace, context: Context):
-        if not get_config_value_by_cmd_line_option(
-            config, BaseTestRunnersFilteringPipeline.key_config_option_deploy_app
+        if get_config_value_by_cmd_line_option(
+            config, BaseTestRunnersFilteringPipeline.key_config_option_skip_deploy_app
         ):
             return
         app_obj = cast(AppCR, context[context_key_app_cr])

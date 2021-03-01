@@ -17,7 +17,7 @@ from app_build_suite.build_steps.pytest import PytestTestFilteringPipeline
 from app_build_suite.errors import ConfigError
 from .components import Runner
 
-ver = "0.0.1-dev"
+ver = "v0.0.0-dev"
 app_name = "app_build_suite"
 logger = logging.getLogger(__name__)
 
@@ -52,7 +52,7 @@ def configure_global_options(config_parser: configargparse.ArgParser):
         action="store_true",
         help="Enable debug messages.",
     )
-    config_parser.add_argument("--version", action="version", version=f"{app_name} v{get_version()}")
+    config_parser.add_argument("--version", action="version", version=f"{app_name} {get_version()}")
     config_parser.add_argument(
         "-b",
         "--build-engine",
