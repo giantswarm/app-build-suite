@@ -25,6 +25,15 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 ### Fixed
 
 - `compatibleProviders` is now added to `ct`'s schema file and is correctly validated
+- remove not-yet-used test types from STEPS_ALL, which resulted in printing pointless steps as available
+- change the simple HelmBuilderValidator build step to STEP_BUILD, so it's executed even when some steps other than
+  STEP_BUILD are excluded from run
+- remove redundant test-enabling options (`--enable-XYZ-tests`); use `--skip-steps` to exclude them
+- change validation step name from 'test_validate' to 'validate' (it is not part of a test scenario)
+- **breaking change** '--app-tests-deploy' was a flag, not a value option, but was described as a value option;
+  changed to '--app-tests-skip-deploy'
+- cluster reuse when no cluster config file is used was failing and requesting a new cluster anyway
+- printing version - had "vvXYZ" double "v" prefix
 
 ## [0.1.7] - 2021-02-03
 

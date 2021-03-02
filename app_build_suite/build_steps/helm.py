@@ -16,7 +16,6 @@ from app_build_suite.build_steps import BuildStep
 from app_build_suite.build_steps.build_step import (
     StepType,
     STEP_BUILD,
-    ALL_STEPS,
     STEP_VALIDATE,
     BuildStepsFilteringPipeline,
     STEP_METADATA,
@@ -50,7 +49,7 @@ class HelmBuilderValidator(BuildStep):
 
     @property
     def steps_provided(self) -> Set[StepType]:
-        return ALL_STEPS
+        return {STEP_BUILD}
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
