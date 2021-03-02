@@ -24,6 +24,23 @@ This tool is a development and CI/CD tool that allows you to:
 
 ---
 
+## Index
+
+- [How to use app-build-suite](#how-to-use-app-build-suite)
+  - [Installation](#installation)
+  - [Quick start](#quick-start)
+  - [A command wrapper on steroids](#a-command-wrapper-on-steroids)
+  - [Full usage help](#full-usage-help)
+- [Tuning app-build-suite execution and running parts of the build process](#tuning-app-build-suite-execution-and-running-parts-of-the-build-process)
+  - [Configuring app-build-suite](#configuring-app-build-suite)
+- [Execution steps details and configuration](#execution-steps-details-and-configuration)
+  - [Build pipelines](#build-pipelines)
+  - [Test pipelines](#test-pipelines)
+    - [Pytest test pipeline](#pytest-test-pipeline)
+    - [Configuring test scenarios](#configuring-test-scenarios)
+      - [Test scenario example](#test-scenario-example)
+- [How to contribute](#how-to-contribute)
+
 ## How to use app-build-suite
 
 ### Installation
@@ -44,7 +61,7 @@ make docker-build
 Executing `dabs.sh` is the most straight forward way to run `app-build-suite`.
 As an example, we have included a chart in this repository in
 [`examples/apps/hello-world-app`](examples/apps/hello-world-app/). It's configuration file for
-`abs` is in the [`.abs/main.yaml`](examples/apps/hello-world-app/.abs/main.yaml) file. To build the chart
+`abs` is in the [.abs/main.yaml](examples/apps/hello-world-app/.abs/main.yaml) file. To build the chart
 using `dabs.sh` and the provided config file, run:
 
 ```bash
@@ -61,7 +78,7 @@ kind create cluster
 kind get kubeconfig > ./kube.config
 ```
 
-Then you can configure `abs` to run `functional` tests on top of that kind cluster:
+Then you can run `abs` to execute tests on top of that `kind` cluster:
 
 ```bash
 dabs.sh -c examples/apps/hello-world-app \
@@ -71,37 +88,6 @@ dabs.sh -c examples/apps/hello-world-app \
   --external-cluster-type kind \
   --external-cluster-version "1.19.0" \
   --destination build
-```
-
-### Full usage help
-
-To get an overview of available options, please run:
-
-```bash
-dabs.sh -h
-```
-
-To learn what they mean and how to use them, please follow to
-[execution steps and their config options](#execution-steps-details-and-configuration).
-
-## Tuning app-build-suite execution and running parts of the build process
-
-This tool works by executing a series of so called `Build Steps`. In general, one `BuildSteps` is about
-a single step in the build, like running a single external tool. Most of the build steps are configurable
-(run `./dabs.sh -h` to check available options and go to
-[steps details and configuration](#execution-steps-details-and-configuration) for detailed description).
-
-The important property in `app-build-suite` is that you can only execute a subset of all the build steps.
-This idea should be useful for integrating `abs` with other workflows, like CI/CD systems or for
-running parts of the build process on your local machine during development. You can either run only a
-selected set of steps using `--steps` option or you can run all if them excluding some
-using `--skip-steps`. Check `dabs.sh -h` output for step names available to `--steps` and `--skip-steps`
-flags.
-
-To skip or include multiple step names, separate them with space, like in this example:
-
-```bash
-dabs.sh -c examples/apps/hello-world-app --skip-steps test_unit test_performance
 ```
 
 ### A command wrapper on steroids
@@ -155,6 +141,37 @@ pipenv install --deploy
 pipenv run pytest -m functional --cluster-type kind --kube-config /abs/workdir/test1.kube.config --chart-path hello-world-app-0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db.tgz --chart-version 0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db --chart-extra-info external_cluster_version=1.19.0 --log-cli-level info --junitxml=test_results_functional.xml
 ```
 
+### Full usage help
+
+To get an overview of available options, please run:
+
+```bash
+dabs.sh -h
+```
+
+To learn what they mean and how to use them, please follow to
+[execution steps and their config options](#execution-steps-details-and-configuration).
+
+## Tuning app-build-suite execution and running parts of the build process
+
+This tool works by executing a series of so called `Build Steps`. In general, one `BuildSteps` is about
+a single step in the build, like running a single external tool. Most of the build steps are configurable
+(run `./dabs.sh -h` to check available options and go to
+[steps details and configuration](#execution-steps-details-and-configuration) for detailed description).
+
+The important property in `app-build-suite` is that you can only execute a subset of all the build steps.
+This idea should be useful for integrating `abs` with other workflows, like CI/CD systems or for
+running parts of the build process on your local machine during development. You can either run only a
+selected set of steps using `--steps` option or you can run all if them excluding some
+using `--skip-steps`. Check `dabs.sh -h` output for step names available to `--steps` and `--skip-steps`
+flags.
+
+To skip or include multiple step names, separate them with space, like in this example:
+
+```bash
+dabs.sh -c examples/apps/hello-world-app --skip-steps test_unit test_performance
+```
+
 ### Configuring app-build-suite
 
 Every configuration option in `abs` can be configured in 3 ways. Starting from the highest to the lowest
@@ -166,7 +183,7 @@ priority, these are:
   it doesn't exist, then it tries to load the default config file from the current working directory's
   `.abs.main.yaml`).
 
-When you run `./dabs.sh -h` it shows you command line options and the relevant environment variables names. Options
+When you run `dabs.sh -h` it shows you command line options and the relevant environment variables names. Options
 for a config file are the same as for command line, just with truncated leading `--`. You can check
 [this example](examples/apps/hello-world-app/.abs/main.yaml).
 
@@ -179,29 +196,13 @@ env variables or command line when needed. This way you can easily override conf
 When `abs` runs, it executes all the steps from the *build* pipeline and then from the *test* pipeline.
 Config options can be used to disable/enable any specific build steps.
 
-Please check below for available build pipelines and steps. Each step offers some config options,
-you can check them by running `dabs.sh -h`.
+Please check below for available build pipelines and steps and their config options.
 
 ### Build pipelines
 
-Currently, only one build pipeline is supported. It is based on `helm 3`.
-
-#### Helm 3 build engine steps
-
-Helm 3 build pipeline executes in sequence the following set of steps:
-
-1. HelmBuilderValidator: a simple step that checks if the build folder contains a Helm chart
-1. HelmGitVersionSetter: when enabled, this step will set `version` and/or `appVersion` in the `Chart.yaml`
-   of your helm chart to a version value based of your last commit hash and tag in a git repo. For this
-   step to work, the chart or chart's parent directory must contain valid git repo (`.git/`).
-1. HelmChartToolLinter: this step runs the [`ct`](https://github.com/helm/chart-testing) (aka. `chart-testing`)
-   This tool runs validation and linting of YAML files included in your chart.
-1. HelmChartMetadataPreparer: this step is required to gather some data required for chart metadata
-   generation.
-1. HelmChartBuilder: this step does the actual chart build using Helm.
-1. HelmChartMetadataFinalizer: completes and writes the data gather partially by HelmChartMetadataPreparer.
-1. HelmChartYAMLRestorer: restores chart files, which were changed as part of the build process (ie. by
-   HelmGitVersionSetter).
+Currently, only one build pipeline is supported. It is based on `helm 3`. Please check
+[this doc](../app-build-suite/docs/helm3-build-pipeline.md) for
+detailed description of steps and available config options.
 
 ### Test pipelines
 
