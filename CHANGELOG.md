@@ -7,6 +7,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 ### Added
 
 - `icon` and `home` attributes are now copied over from `Chart.yaml` to metadata's `main.yaml`
+- support for the [kube-linter](https://docs.kubelinter.io/) static chart verification tool
 
 ### Changed
 

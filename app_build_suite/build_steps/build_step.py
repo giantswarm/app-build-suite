@@ -18,6 +18,7 @@ STEP_BUILD = StepType("build")
 STEP_METADATA = StepType("metadata")
 STEP_TEST_ALL = StepType("test_all")
 STEP_VALIDATE = StepType("validate")
+STEP_STATIC_CHECK = StepType("static_check")
 STEP_TEST_SMOKE = StepType("test_smoke")
 STEP_TEST_FUNCTIONAL = StepType("test_functional")
 STEP_TEST_PERFORMANCE = StepType("test_performance")
@@ -28,6 +29,7 @@ ALL_STEPS = {
     STEP_METADATA,
     STEP_TEST_ALL,
     STEP_VALIDATE,
+    STEP_STATIC_CHECK,
     STEP_TEST_SMOKE,
     STEP_TEST_FUNCTIONAL,
 }

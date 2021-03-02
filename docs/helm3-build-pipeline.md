@@ -19,18 +19,28 @@ Helm 3 build pipeline executes in sequence the following set of steps:
                         path to optional `ct`'s tool config file.
      - `--ct-schema`:
                         path to optional `ct` schema file.
-4. HelmChartMetadataPreparer: this step is required to gather some data required for chart metadata
+4. KubeLinter: this step runs [kube-linter](https://docs.kubelinter.io/) static chart verification tool.
+   Make sure to check [kube-linter configuration docs](https://docs.kubelinter.io/#/configuring-kubelinter)
+   to learn how to tune the verification to your taste or even
+   [disable it completely](https://docs.kubelinter.io/#/configuring-kubelinter?id=disable-all-default-checks).
+   If you don't pass an explicit path to `kube-linter`'s config file with option `--kubelinter-config`,
+   `abs` will check if the file `.kube-linter.yaml` file exists in the
+   chart's main directory. If it does, it will be passed as a command line option to `kube-linter`. If it doesn't,
+   `kube-linter` will run with default configuration.
+   - config options:
+     - `--kubelinter-config`: path to optional 'kube-linter' config file.
+5. HelmChartMetadataPreparer: this step is required to gather some data required for chart metadata
    generation.
    - config options:
      - `--generate-metadata`: enable generation of the metadata file for Giant Swarm App Platform.
      - `--catalog-base-url`: Base URL of the catalog in which the app package will be stored in. Should end with a /.
 
-5. HelmChartBuilder: this step does the actual chart build using Helm.
+6. HelmChartBuilder: this step does the actual chart build using Helm.
    - config options:
      - `--destination`: path of a directory to store the packaged Helm chart tgz.
-6. HelmChartMetadataFinalizer: completes and writes the data gather partially by HelmChartMetadataPreparer.
+7. HelmChartMetadataFinalizer: completes and writes the data gather partially by HelmChartMetadataPreparer.
    - config options: none
-7. HelmChartYAMLRestorer: restores chart files, which were changed as part of the build process (ie. by
+8. HelmChartYAMLRestorer: restores chart files, which were changed as part of the build process (ie. by
    HelmGitVersionSetter).
    - config options:
      - `--keep-chart-changes` should the changes made in Chart.yaml be kept
