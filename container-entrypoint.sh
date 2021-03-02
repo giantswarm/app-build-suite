@@ -15,6 +15,9 @@ if [ $# -eq 1 ] && [ "$1" == "versions" ]; then
   echo "-> ct:"
   ct version
   echo
+  echo "-> kube-linter:"
+  kube-linter version
+  echo
   echo "-> apptestctl:"
   apptestctl version
   echo "-> kind:"
