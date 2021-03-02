@@ -4,6 +4,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [0.2.1] - 2021-03-02
+
 ### Added
 
 - `icon` and `home` attributes are now copied over from `Chart.yaml` to metadata's `main.yaml`
@@ -87,7 +89,8 @@ Initial release
   - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.1.7...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/giantswarm/app-build-suite/compare/v0.1.7...v0.2.1
 [0.1.7]: https://github.com/giantswarm/app-build-suite/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/giantswarm/app-build-suite/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/giantswarm/app-build-suite/compare/v0.1.4...v0.1.5
