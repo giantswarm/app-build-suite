@@ -267,7 +267,7 @@ class KubeLinter(BuildStep):
         config_parser.add_argument(
             "--kubelinter-config",
             required=False,
-            help=f"Path to optional 'kube-linter' config file. By default tries to load "
+            help=f"Path to optional 'kube-linter' config file. If empty, tries to load "
             f"'{self._default_kubelinter_cfg_file}'.",
         )
 
