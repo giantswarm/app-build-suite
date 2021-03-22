@@ -4,6 +4,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+### Added
+
+- Support for `requirements.lock` file updating
+
 ## [0.2.1] - 2021-03-02
 
 ### Added
