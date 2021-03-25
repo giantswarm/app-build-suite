@@ -24,6 +24,11 @@ RUN apk add --no-cache ca-certificates curl \
        tar -C /binaries --strip-components 1 -xvzf - docker/docker \
     && curl -SL https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VER}/kind-linux-amd64 -o /binaries/kind
 
+# patch the ct chart_schema.yaml file ahead of next release to fix
+# issue https://github.com/helm/chart-testing/issues/324
+# upstream PR https://github.com/helm/chart-testing/pull/300
+RUN sed -i 's|  repository: str()|  repository: str(required=False)|' /etc/ct/chart_schema.yaml
+
 COPY container-entrypoint.sh /binaries
 
 RUN chmod +x /binaries/*
