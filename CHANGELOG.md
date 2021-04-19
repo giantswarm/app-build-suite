@@ -4,6 +4,13 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+### Changed
+
+- Update our derived chart schema for chart-testing ahead of a chart-testing release to fix issues
+  with local subcharts requiring a `repository` field.
+
+## [0.2.1] - 2021-03-23
+
 ### Added
 
 - Support for `requirements.lock` file updating
