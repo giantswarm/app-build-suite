@@ -1,0 +1,21 @@
+annotations:
+  application.giantswarm.io/metadata: http://localhost/hello-world-app-0.1.5-c45ccba9157fac3744932d036a4e9a073cd6a56e.tgz-meta/main.yaml
+  application.giantswarm.io/readme: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/README.md
+  application.giantswarm.io/values-schema: http://localhost/hello-world-app-0.1.5-c45ccba9157fac3744932d036a4e9a073cd6a56e.tgz-meta/values.schema.json
+apiVersion: v1
+appVersion: v0.0.1
+description: A chart that deploys a basic hello world site and lets you test values
+  merging of user values configmap and secrets.
+home: https://github.com/giantswarm/hello-world-app
+icon: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/app-icon.png
+name: hello-world-app
+restrictions:
+  clusterSingleton: false
+  fixedNamespace: helloworld
+  gpuInstances: false
+  namespaceSingleton: true
+  compatibleProviders: [aws, azure]
+sources:
+- https://github.com/giantswarm/hello-world-app
+upstreamChartURL: https://github.com/giantswarm/hello-world-app
+version: 0.1.8-fea7dd1eb2ee4a63cb42ef265119f1d81a5edf57

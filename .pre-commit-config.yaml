@@ -7,7 +7,7 @@ repos:
 
 # format Python code with black
 - repo: https://github.com/psf/black
-  rev: 20.8b1
+  rev: 21.4b1
   hooks:
     - id: black
       language_version: python3
@@ -22,33 +22,36 @@ repos:
 
 # bandit
 -   repo: https://github.com/PyCQA/bandit
-    rev: '1.6.2'
+    rev: '1.7.0'
     hooks:
     - id: bandit
       args: ["-c", ".bandit"]
 
 # static type checking with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.782
+  rev: v0.812
   hooks:
   - id: mypy
 
+- repo: https://github.com/pycqa/flake8
+  rev: '3.9.1'  # pick a git hash / tag to point to
+  hooks:
+  -   id: flake8
+
 # shell scripts
 -   repo: git://github.com/detailyang/pre-commit-shell
-    rev: v1.0.6
+    rev: 1.0.5
     hooks:
     - id: shell-lint
       args: [--format=json]
 
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v2.4.0
+  rev: v3.4.0
   hooks:
   - id: check-added-large-files
   - id: check-docstring-first
   - id: debug-statements
   - id: end-of-file-fixer
-  - id: flake8
-    additional_dependencies: ["flake8-bugbear"]
   - id: trailing-whitespace
   - id: check-ast
   - id: check-builtin-literals

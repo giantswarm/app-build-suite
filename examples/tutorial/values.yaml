@@ -1,0 +1,11 @@
+color: red
+oldColor: green
+
+image:
+  registry: 'quay.io'
+  name: 'giantswarm/hello-world-app'
+  tag: '0.0.1'
+
+resource:
+  default:
+    name: '{{ .Release.Name  }}'

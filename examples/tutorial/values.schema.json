@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2019-09/schema",
+  "type": "object",
+
+  "required": [
+    "color"
+  ],
+
+  "properties": {
+    "color": {
+      "type": "string",
+      "enum": ["red", "blue", "green"]
+    },
+    "oldColor": {
+      "type": "string",
+      "deprecated": true
+    }
+  }
+}
