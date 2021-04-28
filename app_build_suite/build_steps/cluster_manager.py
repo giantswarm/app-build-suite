@@ -60,7 +60,7 @@ class ClusterManager:
     def get_cluster_for_test_type(
         self, cluster_type: ClusterType, cluster_config_file: str, config: argparse.Namespace
     ) -> ClusterInfo:
-        """ clusters can be requested in parallel - creation mus be non-blocking!"""
+        """clusters can be requested in parallel - creation mus be non-blocking!"""
         if cluster_type not in self._cluster_providers.keys():
             raise ValueError(f"Unknown cluster type '{cluster_type}'.")
         logger.debug(f"Checking if we already have a ready cluster of {cluster_type} type.")

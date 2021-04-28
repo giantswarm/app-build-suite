@@ -21,7 +21,7 @@ repository. It's content is a ready helm chart that we want to build with `abs`.
 To get started, let's switch to that directory and create a `.abs` subdirectory:
 
 ```bash
-cd examples/tutorial 
+cd examples/tutorial
 mkdir .abs
 
 ```
