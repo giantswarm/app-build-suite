@@ -28,6 +28,7 @@ This tool is a development and CI/CD tool that allows you to:
 
 - [How to use app-build-suite](#how-to-use-app-build-suite)
   - [Installation](#installation)
+  - [Tutorial](#tutorial)
   - [Quick start](#quick-start)
   - [A command wrapper on steroids](#a-command-wrapper-on-steroids)
   - [Full usage help](#full-usage-help)
@@ -52,6 +53,11 @@ Alternatively, you can just checkout this repository and build the docker image 
 ```bash
 make docker-build
 ```
+
+### Tutorial
+
+If you prefer to learn by example, building a simple project step-by-step,
+please start with [tutorial](docs/tutorial.md).
 
 ### Quick start
 
