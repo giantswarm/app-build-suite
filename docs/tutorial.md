@@ -181,7 +181,7 @@ available [here](pytest-test-pipeline.md). Still the recommended way to implemen
 tests for running with `abs` is using `pytest` and our plugin called
 [`pytest-helm-charts`](https://github.com/giantswarm/pytest-helm-charts).
 
-### Why I need specific python version?
+### Why do I need a specific python version?
 
 In general, you can use any python version you want, unless you're using the
 dockerized `dabs.sh` wrapper, which is also our recommended way of running `abs`.
