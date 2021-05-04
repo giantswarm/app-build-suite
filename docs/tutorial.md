@@ -211,7 +211,7 @@ We'll now write some basic tests for the HelloWorld app we've built above in
 #### Preparing environment
 
 Let's create a directory for storing tests. `abs` looks for them in the `tests/abs`
-directory, so let's start a fresh python virtual env there:
+subdirectory of the helm chart, so let's start a fresh python virtual env there:
 
 ```bash
 $ mkdir -p examples/tutorial/tests/abs
@@ -250,6 +250,23 @@ Installing dependencies from Pipfile.lock (a62443)...
   🐍   ▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉▉ 0/0 — 00:00:00
 ```
 
+As a result, our `Pipfile` should look like this basic version:
+
+```toml
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+pytest-helm-charts = ">=0.3.1"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
+```
+
 #### Implementing tests
 
 Now we can start implementing actual tests. To get a full sample source code,
@@ -284,7 +301,8 @@ for `abs` itself: we want to include opinionated test scenarios in `abs` and tha
 way `abs` knows if it should run your test for specific scenario or not.
 
 You can read more about [how `abs` executes tests](./pytest-test-pipeline.md) and
-how to implement them with [pytest-helm-charts](https://pytest-helm-charts.readthedocs.io/en/latest/) and [pytest](https://docs.pytest.org/en/stable/index.html).
+how to implement them with [pytest-helm-charts](https://pytest-helm-charts.readthedocs.io/en/latest/) and [pytest](https://docs.pytest.org/en/stable/index.html), including information about
+[available fixtures](https://pytest-helm-charts.readthedocs.io/en/latest/api/pytest_helm_charts.fixtures/).
 
 #### Running tests
 
