@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ tpl .Values.resource.default.name . }}
+  labels:
+    app: {{ tpl .Values.resource.default.name . }}
+    color: {{ .Values.color }}
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: {{ tpl .Values.resource.default.name . }}
+      color: {{ .Values.color }}
+  template:
+    metadata:
+      labels:
+        app: {{ tpl .Values.resource.default.name . }}
+        color: {{ .Values.color }}
+    spec:
+      serviceAccountName: {{ tpl .Values.resource.default.name . }}-service-account
+      securityContext:
+        runAsUser: 101
+        runAsGroup: 101
+      containers:
+      - name: nginx
+        image: '{{ .Values.image.registry }}/{{ .Values.image.name }}:{{ .Values.image.tag }}'
+        ports:
+        - containerPort: 8000
