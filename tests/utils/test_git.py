@@ -1,7 +1,8 @@
 from typing import Dict, List
 
 import git
-from pytest_mock import MockFixture, pytest
+from pytest_mock import MockFixture
+import pytest
 
 from app_build_suite.utils.git import GitRepoVersionInfo
 
