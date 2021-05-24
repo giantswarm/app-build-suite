@@ -4,6 +4,12 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [0.2.3] - 2021-05-24
+
+### Changed
+
+- Update our derived chart schema for chart-testing ahead of a chart-testing release to fix issues
+  with local subcharts requiring a `repository` field.
 - All dependencies updated, including:
   - python dependencies
   - pre-commit dependencies
@@ -14,12 +20,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
     - `apptestctl` 0.8.0
     - `kube-linter` 0.2.2
 
-### Changed
-
-- Update our derived chart schema for chart-testing ahead of a chart-testing release to fix issues
-  with local subcharts requiring a `repository` field.
-
-## [0.2.1] - 2021-03-23
+## [0.2.2] - 2021-03-23
 
 ### Added
 
@@ -110,7 +111,9 @@ Initial release
   - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/giantswarm/app-build-suite/compare/v0.2.2...v0.2.3
+[0.2.2]: https://github.com/giantswarm/app-build-suite/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/giantswarm/app-build-suite/compare/v0.1.7...v0.2.1
 [0.1.7]: https://github.com/giantswarm/app-build-suite/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/giantswarm/app-build-suite/compare/v0.1.5...v0.1.6
