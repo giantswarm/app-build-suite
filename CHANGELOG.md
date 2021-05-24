@@ -4,6 +4,16 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- All dependencies updated, including:
+  - python dependencies
+  - pre-commit dependencies
+  - binaries in docker image:
+    - `helm` 3.5.4
+    - `kubectl` 1.20.7
+    - `ct` 3.4.0
+    - `apptestctl` 0.8.0
+    - `kube-linter` 0.2.2
+
 ### Changed
 
 - Update our derived chart schema for chart-testing ahead of a chart-testing release to fix issues

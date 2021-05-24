@@ -5,6 +5,9 @@ metadata:
   labels:
     app: {{ tpl .Values.resource.default.name . }}
     color: {{ .Values.color }}
+    owner: Lukasz
+  annotations:
+    email: lukasz@giantswarm.io
 spec:
   replicas: 5
   selector:

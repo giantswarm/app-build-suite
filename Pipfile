@@ -10,7 +10,7 @@ pytest-cov = "*"
 pytest-mock = "*"
 
 [packages]
-pyyaml = "*"
+pyyaml = ">=5.4"
 configargparse = "*"
 gitpython = "*"
 semver = "*"

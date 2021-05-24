@@ -1,13 +1,13 @@
 FROM alpine:3.13.5 AS binaries
 
-ARG HELM_VER="3.5.2"
-ARG KUBECTL_VER="1.20.4"
-ARG CT_VER="3.3.1"
-ARG APPTESTCTL_VER="0.7.0"
+ARG HELM_VER="3.5.4"
+ARG KUBECTL_VER="1.20.7"
+ARG CT_VER="3.4.0"
+ARG APPTESTCTL_VER="0.8.0"
 ARG DOCKER_VER="20.10.3"
-# upgrade to kind 0.10.0 held, as it defaults to kubernetes 1.20
+# upgrade to kind 0.10.0 held, as it defaults to kubernetes 1.20; we're still targeting primarly 1.19
 ARG KIND_VER="0.9.0"
-ARG KUBELINTER_VER="0.1.6"
+ARG KUBELINTER_VER="0.2.2"
 
 RUN apk add --no-cache ca-certificates curl \
     && mkdir -p /binaries \
