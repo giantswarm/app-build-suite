@@ -13,7 +13,7 @@ import validators
 import yaml
 
 from app_build_suite.build_steps import BuildStep
-from app_build_suite.build_steps.build_step import (
+from step_exec_lib.build_step import (
     StepType,
     STEP_BUILD,
     STEP_VALIDATE,
@@ -21,11 +21,11 @@ from app_build_suite.build_steps.build_step import (
     STEP_METADATA,
     STEP_STATIC_CHECK,
 )
-from app_build_suite.errors import ValidationError, BuildError
-from app_build_suite.types import Context
-from app_build_suite.utils.files import get_file_sha256
-from app_build_suite.utils.git import GitRepoVersionInfo
-from app_build_suite.utils.processes import run_and_log
+from step_exec_lib.errors import ValidationError, BuildError
+from step_exec_lib.types import Context
+from step_exec_lib.utils.files import get_file_sha256
+from step_exec_lib.utils import GitRepoVersionInfo
+from step_exec_lib.utils.processes import run_and_log
 
 logger = logging.getLogger(__name__)
 

@@ -4,14 +4,14 @@ import pytest
 
 from app_build_suite.__main__ import get_global_config_parser
 from app_build_suite.build_steps import BuildStep
-from app_build_suite.build_steps.build_step import (
+from step_exec_lib.build_step import (
     STEP_BUILD,
     STEP_METADATA,
     STEP_TEST_ALL,
     StepType,
     STEP_ALL,
 )
-from app_build_suite.errors import ValidationError, Error
+from step_exec_lib.errors import ValidationError, Error
 from tests.build_steps.dummy_build_step import (
     DummyBuildStep,
     DummyTwoStepBuildFilteringPipeline,

@@ -1,5 +1,5 @@
 import os.path
-from app_build_suite.utils.files import get_file_sha256
+from step_exec_lib.utils.files import get_file_sha256
 
 
 def test_get_sha256() -> None:

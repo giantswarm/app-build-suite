@@ -4,10 +4,10 @@ from typing import Optional, List, Dict, Set
 
 import configargparse
 
-from app_build_suite.build_steps import test_stage_helpers
-from app_build_suite.build_steps.test_stage_helpers import TEST_TYPE_ALL
-from app_build_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterType, ClusterProvider
-from app_build_suite.utils.config import get_config_value_by_cmd_line_option
+from app_test_suite.steps import test_stage_helpers
+from app_test_suite.steps.test_stage_helpers import TEST_TYPE_ALL
+from app_test_suite.cluster_providers.cluster_provider import ClusterInfo, ClusterType, ClusterProvider
+from step_exec_lib.utils import get_config_value_by_cmd_line_option
 
 logger = logging.getLogger(__name__)
 

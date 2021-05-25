@@ -3,7 +3,7 @@ from typing import cast
 import configargparse
 import pytest
 
-from app_build_suite.components import Runner
+from step_exec_lib.components import Runner
 from tests.build_steps.dummy_build_step import DummyBuildStep
 
 

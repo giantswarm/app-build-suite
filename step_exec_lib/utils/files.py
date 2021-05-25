@@ -2,7 +2,7 @@
 import hashlib
 import shutil
 
-from app_build_suite.errors import ValidationError
+from step_exec_lib.errors import ValidationError
 
 
 def get_file_sha256(filename: str) -> str:

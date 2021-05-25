@@ -4,9 +4,9 @@ import os
 
 import configargparse
 
-from app_build_suite.cluster_providers import cluster_provider
-from app_build_suite.errors import ConfigError
-from app_build_suite.utils.config import get_config_value_by_cmd_line_option
+from app_test_suite.cluster_providers import cluster_provider
+from step_exec_lib.errors import ConfigError
+from step_exec_lib.utils import get_config_value_by_cmd_line_option
 
 logger = logging.getLogger(__name__)
 

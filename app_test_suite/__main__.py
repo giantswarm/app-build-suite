@@ -15,7 +15,7 @@ from step_exec_lib.build_step import STEP_ALL
 from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
 from app_test_suite.steps.pytest.pytest import PytestTestFilteringPipeline
 from step_exec_lib.errors import ConfigError
-from step_exec_lib.components import Runner
+from .components import Runner
 
 ver = "v0.0.0-dev"
 app_name = "app_build_suite"

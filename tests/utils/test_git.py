@@ -4,7 +4,7 @@ import git
 from pytest_mock import MockFixture
 import pytest
 
-from app_build_suite.utils.git import GitRepoVersionInfo
+from step_exec_lib.utils import GitRepoVersionInfo
 
 
 @pytest.mark.parametrize(

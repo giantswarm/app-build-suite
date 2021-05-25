@@ -3,7 +3,7 @@ from typing import Any
 
 import semver
 
-from app_build_suite.errors import ValidationError
+from step_exec_lib.errors import ValidationError
 
 
 def get_config_attribute_from_cmd_line_option(cmd_line_opt: str) -> str:

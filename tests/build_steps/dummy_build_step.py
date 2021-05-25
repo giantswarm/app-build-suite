@@ -6,14 +6,14 @@ import pytest
 
 from app_build_suite.__main__ import get_global_config_parser
 from app_build_suite.build_steps import BuildStep, BuildStepsFilteringPipeline
-from app_build_suite.build_steps.build_step import (
+from step_exec_lib.build_step import (
     StepType,
     STEP_ALL,
     STEP_BUILD,
     STEP_TEST_ALL,
     STEP_METADATA,
 )
-from app_build_suite.errors import Error, ValidationError
+from step_exec_lib.errors import Error, ValidationError
 
 
 def init_config_for_step(step: BuildStep) -> configargparse.Namespace:

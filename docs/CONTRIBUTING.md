@@ -52,7 +52,7 @@ Once inside the container, just execute `python -m app_build_suite`.
 
 #### BuildStep
 
-The most important basic class is [BuildStep](../app_build_suite/build_steps/build_step.py). The class is abstract
+The most important basic class is [BuildStep](../step_exec_lib/build_step.py). The class is abstract
 and you have to inherit it to provide any actual functionality.  The most important methods and properties of
 this class are:
 
@@ -81,13 +81,13 @@ which is used to execute tests using `pytest` once the build pipeline is done.
 
 `abs` allows you to run different types of tests on clusters you have configured for them. To allow the user
 to choose on which type of cluster the specific test type will run, there has to be a
-[`ClusterProvider`](../app_build_suite/cluster_providers/cluster_provider.py) for that specific cluster.
+[`ClusterProvider`](../app_test_suite/cluster_providers/cluster_provider.py) for that specific cluster.
 Please make sure you register any new `ClusterProviders` in the package's
-[`__init__.py`](../app_build_suite/cluster_providers/__init__.py), as they are auto-discovered from there.
+[`__init__.py`](../app_test_suite/cluster_providers/__init__.py), as they are auto-discovered from there.
 When you're done with it, you don't have to write any additional code to make the new cluster type available.
 
 As an example, please have a look at
-[`ExternalClusterProvider`](../app_build_suite/cluster_providers/external_cluster_provider.py).
+[`ExternalClusterProvider`](../app_test_suite/cluster_providers/external_cluster_provider.py).
 
 ## Tests
 
