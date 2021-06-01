@@ -11,21 +11,15 @@ from urllib.parse import urlsplit
 import configargparse
 import validators
 import yaml
-
-from app_build_suite.build_steps import BuildStep
-from step_exec_lib.build_step import (
-    StepType,
-    STEP_BUILD,
-    STEP_VALIDATE,
-    BuildStepsFilteringPipeline,
-    STEP_METADATA,
-    STEP_STATIC_CHECK,
-)
-from step_exec_lib.errors import ValidationError, BuildError
-from step_exec_lib.types import Context
+from step_exec_lib.errors import ValidationError
+from step_exec_lib.steps import BuildStep, BuildStepsFilteringPipeline
+from step_exec_lib.types import Context, StepType
 from step_exec_lib.utils.files import get_file_sha256
-from step_exec_lib.utils import GitRepoVersionInfo
+from step_exec_lib.utils.git import GitRepoVersionInfo
 from step_exec_lib.utils.processes import run_and_log
+
+from app_build_suite.build_steps.steps import STEP_BUILD, STEP_VALIDATE, STEP_STATIC_CHECK, STEP_METADATA
+from app_build_suite.errors import BuildError
 
 logger = logging.getLogger(__name__)
 
@@ -269,7 +263,7 @@ class KubeLinter(BuildStep):
             "--kubelinter-config",
             required=False,
             help=f"Path to optional 'kube-linter' config file. If empty, tries to load "
-            f"'{self._default_kubelinter_cfg_file}'.",
+                 f"'{self._default_kubelinter_cfg_file}'.",
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
@@ -362,7 +356,7 @@ class HelmRequirementsUpdater(BuildStep):
         version_line = run_res.stdout.splitlines()[0]
         prefix = "version.BuildInfo"
         if version_line.startswith(prefix):
-            version_line = version_line[len(prefix) :].strip("{}")
+            version_line = version_line[len(prefix):].strip("{}")
         else:
             raise ValidationError(self.name, f"Can't parse '{self._helm_bin}' version number.")
         version_entries = version_line.split(",")[0]
@@ -434,7 +428,7 @@ class HelmChartBuilder(BuildStep):
         version_line = run_res.stdout.splitlines()[0]
         prefix = "version.BuildInfo"
         if version_line.startswith(prefix):
-            version_line = version_line[len(prefix) :].strip("{}")
+            version_line = version_line[len(prefix):].strip("{}")
         else:
             raise ValidationError(self.name, f"Can't parse '{self._helm_bin}' version number.")
         version_entries = version_line.split(",")[0]

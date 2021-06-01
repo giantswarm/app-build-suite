@@ -4,6 +4,7 @@ from typing import Dict, Any
 from unittest.mock import mock_open, patch
 
 import yaml
+from tests.dummy_build_step import init_config_for_step
 
 import app_build_suite
 from app_build_suite.build_steps.helm import (
@@ -15,7 +16,6 @@ from app_build_suite.build_steps.helm import (
     context_key_git_version,
     context_key_changes_made,
 )
-from tests.build_steps.dummy_build_step import init_config_for_step
 
 
 def test_prepare_metadata(monkeypatch):
