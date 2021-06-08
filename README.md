@@ -37,8 +37,6 @@ for running dynamic (run-time) tests on charts built.
 - [Tuning app-build-suite execution and running parts of the build process](#tuning-app-build-suite-execution-and-running-parts-of-the-build-process)
   - [Configuring app-build-suite](#configuring-app-build-suite)
 - [Execution steps details and configuration](#execution-steps-details-and-configuration)
-  - [Build pipelines](#build-pipelines)
-  - [Test pipelines](#test-pipelines)
 - [How to contribute](#how-to-contribute)
 
 ## How to use app-build-suite
@@ -110,21 +108,22 @@ To learn what the configuration options mean and how to use them, please follow 
 ## Tuning app-build-suite execution and running parts of the build process
 
 This tool works by executing a series of so called `Build Steps`. In general, one `BuildSteps` is about
-a single step in the build, like running a single external tool. Most of the build steps are configurable
+a single step in the Chart build process, like running a single external tool. Most of the build steps
+are configurable
 (run `./dabs.sh -h` to check available options and go to
 [steps details and configuration](#execution-steps-details-and-configuration) for detailed description).
 
-The important property in `app-build-suite` is that you can only execute a subset of all the build steps.
+The important property in `app-build-suite` is that you can execute a subset of all the build steps.
 This idea should be useful for integrating `abs` with other workflows, like CI/CD systems or for
 running parts of the build process on your local machine during development. You can either run only a
-selected set of steps using `--steps` option or you can run all if them excluding some
+selected set of steps using `--steps` option or you can run all of them excluding some steps
 using `--skip-steps`. Check `dabs.sh -h` output for step names available to `--steps` and `--skip-steps`
 flags.
 
 To skip or include multiple step names, separate them with space, like in this example:
 
 ```bash
-dabs.sh -c examples/apps/hello-world-app --skip-steps test_unit test_performance
+dabs.sh -c examples/apps/hello-world-app --skip-steps validate static_check
 ```
 
 ### Configuring app-build-suite
@@ -147,49 +146,13 @@ env variables or command line when needed. This way you can easily override conf
 
 ## Execution steps details and configuration
 
-`abs` is composed of two main pipelines: *build* and *test*. Each of them is composed of steps.
-When `abs` runs, it executes all the steps from the *build* pipeline and then from the *test* pipeline.
-Config options can be used to disable/enable any specific build steps.
-
-Please check below for available build pipelines and steps and their config options.
-
-### Build pipelines
+When `abs` runs, it executes all the steps from the *build* pipeline. Config options can be used to
+disable/enable any specific build steps.
+Please check below for available steps and their config options.
 
 Currently, only one build pipeline is supported. It is based on `helm 3`. Please check
 [this doc](../app-build-suite/docs/helm3-build-pipeline.md) for
 detailed description of steps and available config options.
-
-### Test pipelines
-
-After your app artifact is built (your chart when using Helm build engine pipeline), `abs` can run
-tests for it for you. There are a few assumptions related to how testing invoked by `abs` works.
-
-First, we assume that each test framework that you can use for developing tests for your app can
-label the tests and run only the set of tests labelled. `abs` expects all tests to have at least one
-of the following labels: `smoke`, `functional`. It uses the labels to run only certain tests, so `abs`
-runs all `smoke` tests first, then all `functional` tests. As concrete example, this mechanism is implemented
-as [marks in pytest](https://docs.pytest.org/en/stable/mark.html) or
-[tags in go test](https://golang.org/pkg/go/build/#hdr-Build_Constraints).
-
-The idea is that `abs` invokes first the testing framework with `smoke` filter, so that only smoke tests
-are invoked. Smoke tests are expected to be very basic and short-lived, so they provide an immediate
-feedback if something is wrong and there's no point in running more advanced (and time and resource
-consuming tests). Only if `smoke` tests are OK, `functional` tests are invoked to check if the application
-works as expected. In the future, we want to introduce `performance` tests for checking for expected
-performance results in a well-defined environment and `compatibility` tests for checking strict
-compatibility of your app with a specific platform release.
-
-Another important concept is that each type of tests can be run on a different type of Kubernetes cluster.
-That way, we want to make a test flow that uses "fail fast" principle: if your tests are going to fail,
-make them fail as soon as possible, without creating "heavy" clusters or running "heavy" tests. As an example,
-our default config should be something like this:
-
-1. Run `smoke` tests on `kind` cluster. Fail if any test fails.
-2. Run `functional` tests on `kind` cluster. We might reuse the `kind` cluster from the step above. But
-   we might also need a more powerful setup to be able to test all the `functional` scenarios, so we might
-   request a real AWS cluster for that kind of tests. It's for the test developer to choose.
-
-Currently, we only support [`pytest` test pipeline](docs/pytest-test-pipeline.md).
 
 ## How to contribute
 
