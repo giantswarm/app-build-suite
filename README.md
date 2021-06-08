@@ -4,20 +4,22 @@
 [![codecov](https://codecov.io/gh/giantswarm/app-build-suite/branch/master/graph/badge.svg)](https://codecov.io/gh/giantswarm/app-build-suite)
 [![Apache License](https://img.shields.io/badge/license-apache-blue.svg)](https://pypi.org/project/pytest-helm-charts/)
 
-A tool to build and test apps (Helm Charts) for
+A tool to build apps (Helm Charts) for
 [Giant Swarm App Platform](https://docs.giantswarm.io/app-platform/).
 
-This tool is a development and CI/CD tool that allows you to:
+This tool is a Helm charts development and CI/CD tool that allows you to:
 
-- build your helm chart
-  - do some simple variable replacements before building the chart
-  - linting chart's source code
-  - generating actual chart archive
-  - generating App Platform specific metadata
-- test your chart after building
-  - run your tests of different kind using [`pytest`](https://docs.pytest.org/en/stable/) and
-    [`pytest-helm-charts`](https://github.com/giantswarm/pytest-helm-charts)
-  - define different test scenarios for your release
+- do some simple variable replacements before building the chart
+- lint chart's source code
+- run Helm chart code analysis tools
+- generate actual chart archive
+- generate App Platform specific metadata
+
+In short, it runs an opinionated Helm chart build process as a single configurable build step (one step
+build`).
+
+It has a companion tool called [app-test-suite](https://github.com/giantswarm/app-build-suite)
+for running dynamic (run-time) tests on charts built.
 
 ---
 *Big fat warning* This tool is available as a development version!
@@ -46,7 +48,7 @@ This tool is a development and CI/CD tool that allows you to:
 `abs` is distributed as a docker image, so the easiest way to install and use it is to get our `dabs.sh`
 script from [releases](https://github.com/giantswarm/app-build-suite/releases). `dabs.sh` is a wrapper script
 that launches for you `abs` inside a docker container and provides all the necessary docker options required
-to make it work.
+to make it work (check te script for details, it's short).
 
 Alternatively, you can just checkout this repository and build the docker image yourself by running:
 
@@ -68,82 +70,30 @@ As an example, we have included a chart in this repository in
 using `dabs.sh` and the provided config file, run:
 
 ```bash
-dabs.sh -c examples/apps/hello-world-app --skip-steps test_all
-```
-
-Please note that this command skips all the test steps and runs only the actual chart build steps. If you want
-to run tests as well, you need to provide a cluster to run them on. For example, you can use a cluster
-of type `external`, which is a cluster you provide externally to the `abs` tool. If you have `kind`, you can do it
-like this:
-
-```bash
-kind create cluster
-kind get kubeconfig > ./kube.config
-```
-
-Then you can run `abs` to execute tests on top of that `kind` cluster:
-
-```bash
-dabs.sh -c examples/apps/hello-world-app \
-  --smoke-tests-cluster-type external \
-  --functional-tests-cluster-type external \
-  --external-cluster-kubeconfig-path kube.config \
-  --external-cluster-type kind \
-  --external-cluster-version "1.19.0" \
-  --destination build
+dabs.sh -c examples/apps/hello-world-app
 ```
 
 ### A command wrapper on steroids
 
 `abs` is not much more than a wrapper around a set of well-known open source tools.
 It orchestrates these tools into an opinionated build process and adds some additional
-features in between them, like generating metadata for the Giant Swarm App Platform.
+features, like generating metadata for the Giant Swarm App Platform.
 
 To better explain it, see what really happens when you call
 
 ```bash
-dabs.sh -c examples/apps/hello-world-app --destination build --skip-steps test_all
+dabs.sh -c examples/apps/hello-world-app --destination build
 ```
 
 The list bellow
 is a set of commands executed for you by `abs`:
 
 ```bash
-# app and chart versions are set using git changes (if configured)
+# app and chart versions in the Chart.yaml file are set using git changes (if configured)
 ct lint --validate-maintainers=false --charts=examples/apps/hello-world-app --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../../resources/ct_schemas/gs_metadata_chart_schema.yaml
 kube-linter lint . --config .kube-linter.yaml
 helm package examples/apps/hello-world-app --destination build
 # now metadata is generated from the data collected during the build (if configured)
-```
-
-If you include testing steps as well, on an external cluster, with the following command
-
-```bash
-dabs.sh -c examples/apps/hello-world-app \
-  --functional-tests-cluster-type external \
-  --smoke-tests-cluster-type external \
-  --external-cluster-kubeconfig-path kube.config \
-  --external-cluster-type kind \
-  --external-cluster-version "1.19.0" \
-  --destination build
-```
-
-, the list becomes:
-
-```bash
-# app and chart versions are set using git changes (if configured)
-ct lint --validate-maintainers=false --charts=examples/apps/hello-world-app --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../../resources/ct_schemas/gs_metadata_chart_schema.yaml
-kube-linter lint . --config .kube-linter.yaml
-helm package examples/apps/hello-world-app --destination build
-# now metadata is generated from the data collected during the build (if configured)
-# here start smoke tests
-apptestctl bootstrap --kubeconfig-path=kube.config --wait
-pipenv install --deploy
-pipenv run pytest -m smoke --cluster-type kind --kube-config /abs/workdir/kube.config --chart-path hello-world-app-0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db.tgz --chart-version 0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db --chart-extra-info external_cluster_version=1.19.0 --log-cli-level info --junitxml=test_results_smoke.xml
-apptestctl bootstrap --kubeconfig-path=kube.config --wait
-# and here start functional tests
-pipenv install --deploy
-pipenv run pytest -m functional --cluster-type kind --kube-config /abs/workdir/test1.kube.config --chart-path hello-world-app-0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db.tgz --chart-version 0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db --chart-extra-info external_cluster_version=1.19.0 --log-cli-level info --junitxml=test_results_functional.xml
 ```
 
 ### Full usage help
@@ -154,7 +104,7 @@ To get an overview of available options, please run:
 dabs.sh -h
 ```
 
-To learn what they mean and how to use them, please follow to
+To learn what the configuration options mean and how to use them, please follow to
 [execution steps and their config options](#execution-steps-details-and-configuration).
 
 ## Tuning app-build-suite execution and running parts of the build process
