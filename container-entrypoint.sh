@@ -18,17 +18,12 @@ if [ $# -eq 1 ] && [ "$1" == "versions" ]; then
   echo "-> kube-linter:"
   kube-linter version
   echo
-  echo "-> apptestctl:"
-  apptestctl version
-  echo "-> kind:"
-  kind version
   exit 0
 fi
 
 if [ "${USE_UID:-0}" -ne 0 ] && [ "${USE_GID:-0}" -ne 0 ]; then
   groupadd -f -g "$USE_GID" abs
-  groupadd -f -g "$DOCKER_GID" docker
-  useradd -g "$USE_GID" -G docker -M -l -u "$USE_UID" abs -d "$ABS_DIR" -s /bin/bash || true
+  useradd -g "$USE_GID" -M -l -u "$USE_UID" abs -d "$ABS_DIR" -s /bin/bash || true
 fi
 
 if [ "${USE_UID:-0}" -ne 1000 ] || [ "${USE_GID:-0}" -ne 1000 ]; then
