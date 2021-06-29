@@ -11,21 +11,15 @@ from urllib.parse import urlsplit
 import configargparse
 import validators
 import yaml
+from step_exec_lib.errors import ValidationError
+from step_exec_lib.steps import BuildStep, BuildStepsFilteringPipeline
+from step_exec_lib.types import Context, StepType
+from step_exec_lib.utils.files import get_file_sha256
+from step_exec_lib.utils.git import GitRepoVersionInfo
+from step_exec_lib.utils.processes import run_and_log
 
-from app_build_suite.build_steps import BuildStep
-from app_build_suite.build_steps.build_step import (
-    StepType,
-    STEP_BUILD,
-    STEP_VALIDATE,
-    BuildStepsFilteringPipeline,
-    STEP_METADATA,
-    STEP_STATIC_CHECK,
-)
-from app_build_suite.errors import ValidationError, BuildError
-from app_build_suite.types import Context
-from app_build_suite.utils.files import get_file_sha256
-from app_build_suite.utils.git import GitRepoVersionInfo
-from app_build_suite.utils.processes import run_and_log
+from app_build_suite.build_steps.steps import STEP_BUILD, STEP_VALIDATE, STEP_STATIC_CHECK, STEP_METADATA
+from app_build_suite.errors import BuildError
 
 logger = logging.getLogger(__name__)
 

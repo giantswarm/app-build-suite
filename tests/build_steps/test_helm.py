@@ -15,7 +15,7 @@ from app_build_suite.build_steps.helm import (
     context_key_git_version,
     context_key_changes_made,
 )
-from tests.build_steps.dummy_build_step import init_config_for_step
+from tests.build_steps.helpers import init_config_for_step
 
 
 def test_prepare_metadata(monkeypatch):

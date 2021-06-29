@@ -12,10 +12,11 @@ pytest-mock = "*"
 [packages]
 pyyaml = ">=5.4"
 configargparse = "*"
-gitpython = "*"
-semver = "*"
 validators = "*"
 pytest-helm-charts = ">=0.3.1"
+step-exec-lib = ">=0.1.0"
+semver = "*"
+gitpython = "*"
 
 [requires]
 python_version = "3.8"

@@ -4,6 +4,14 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [1.0.1] - 2021-06-29
+
+### Changed
+
+- Breaking change: the build and test functionality is now split into 2 projects. The build part is
+  left here in this project, the test part is now a separate project called
+    [`app-test-suite`](https://github.com/giantswarm/app-test-suite).
+
 ## [0.2.3] - 2021-05-24
 
 ### Changed
