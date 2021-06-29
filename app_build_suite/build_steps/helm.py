@@ -263,7 +263,7 @@ class KubeLinter(BuildStep):
             "--kubelinter-config",
             required=False,
             help=f"Path to optional 'kube-linter' config file. If empty, tries to load "
-                 f"'{self._default_kubelinter_cfg_file}'.",
+            f"'{self._default_kubelinter_cfg_file}'.",
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
@@ -356,7 +356,7 @@ class HelmRequirementsUpdater(BuildStep):
         version_line = run_res.stdout.splitlines()[0]
         prefix = "version.BuildInfo"
         if version_line.startswith(prefix):
-            version_line = version_line[len(prefix):].strip("{}")
+            version_line = version_line[len(prefix) :].strip("{}")
         else:
             raise ValidationError(self.name, f"Can't parse '{self._helm_bin}' version number.")
         version_entries = version_line.split(",")[0]
@@ -428,7 +428,7 @@ class HelmChartBuilder(BuildStep):
         version_line = run_res.stdout.splitlines()[0]
         prefix = "version.BuildInfo"
         if version_line.startswith(prefix):
-            version_line = version_line[len(prefix):].strip("{}")
+            version_line = version_line[len(prefix) :].strip("{}")
         else:
             raise ValidationError(self.name, f"Can't parse '{self._helm_bin}' version number.")
         version_entries = version_line.split(",")[0]
