@@ -490,6 +490,7 @@ class HelmChartMetadataPreparer(BuildStep):
     """
 
     _key_upstream_chart_url = "upstreamChartURL"
+    _key_upstream_chart_version = "upstreamChartVersion"
     _key_restrictions = "restrictions"
     _key_cluster_singleton = "clusterSingleton"
     _key_namespace_singleton = "namespaceSingleton"
@@ -623,6 +624,7 @@ class HelmChartMetadataFinalizer(BuildStep):
     """
 
     _key_upstream_chart_url = "upstreamChartURL"
+    _key_upstream_chart_version = "upstreamChartVersion"
     _key_restrictions = "restrictions"
     _key_cluster_singleton = "clusterSingleton"
     _key_namespace_singleton = "namespaceSingleton"
@@ -666,6 +668,7 @@ class HelmChartMetadataFinalizer(BuildStep):
         # optional metadata
         for key in [
             self._key_upstream_chart_url,
+            self._key_upstream_chart_version,
             self._key_restrictions,
             self._key_annotations,
             self._key_icon,
