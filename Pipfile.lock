@@ -33,11 +33,11 @@
         },
         "charset-normalizer": {
             "hashes": [
-                "sha256:88fce3fa5b1a84fdcb3f603d889f723d1dd89b26059d0123ca435570e848d5e1",
-                "sha256:c46c3ace2d744cfbdebceaa3c19ae691f53ae621b39fd7570f59d14fb7f2fd12"
+                "sha256:0c8911edd15d19223366a194a513099a302055a962bca2cec0f54b8b63175d8b",
+                "sha256:f23667ebe1084be45f6ae0538e4a5a865206544097e4e8bbcacf42cd02a348f3"
             ],
             "markers": "python_version >= '3'",
-            "version": "==2.0.3"
+            "version": "==2.0.4"
         },
         "configargparse": {
             "hashes": [
@@ -136,11 +136,11 @@
         },
         "pytest-helm-charts": {
             "hashes": [
-                "sha256:0d48f3fbc4f6ab3d00fb1c20ea33280c6d0f3cbf658d997f4af8ae8b50bad7f9",
-                "sha256:4bb712c466a3fe24fc9c95eb9be48f75948a16ef25afa1661ea64b78f045eb9e"
+                "sha256:6242dfcb4c4e0c9b8d39cb3b4d239abed142d65950f054ce9a0a25e7b1081816",
+                "sha256:c9eca4897093c8444748374c8466e734694f3870c1c8b1ee8dfecb6260e275a4"
             ],
             "index": "pypi",
-            "version": "==0.4.1"
+            "version": "==0.5.0"
         },
         "pyyaml": {
             "hashes": [
@@ -486,11 +486,11 @@
         },
         "virtualenv": {
             "hashes": [
-                "sha256:51df5d8a2fad5d1b13e088ff38a433475768ff61f202356bb9812c454c20ae45",
-                "sha256:e4fc84337dce37ba34ef520bf2d4392b392999dbe47df992870dc23230f6b758"
+                "sha256:97066a978431ec096d163e72771df5357c5c898ffdd587048f45e0aecc228094",
+                "sha256:fdfdaaf0979ac03ae7f76d5224a05b58165f3c804f8aa633f3dd6f22fbd435d5"
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4'",
-            "version": "==20.6.0"
+            "version": "==20.7.0"
         }
     }
 }
