@@ -636,6 +636,15 @@ class HelmChartMetadataFinalizer(BuildStep):
     @property
     def steps_provided(self) -> Set[StepType]:
         return {STEP_METADATA}
+    
+    def pre_run(self, config: argparse.Namespace) -> None:
+        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        with open(chart_yaml_path, "r") as file:
+            chart_yaml = yaml.safe_load(file)
+        if self._key_upstream_chart_url in chart_yaml and self._key_upstream_chart_version not in chart_yaml:
+            raise ValidationError(f"'{self._key_upstream_chart_url}' is found in Chart.yaml, but"
+                                  f" '{self._key_upstream_chart_version}' is not. When you provide upstream"
+                                  f" chart URL, please also include the version.")
 
     @staticmethod
     def get_build_timestamp() -> str:
