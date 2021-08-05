@@ -1,28 +1,17 @@
-FROM alpine:3.13.5 AS binaries
+FROM alpine:3.14.0 AS binaries
 
 ARG HELM_VER="3.5.4"
-ARG KUBECTL_VER="1.20.7"
 ARG CT_VER="3.4.0"
-ARG APPTESTCTL_VER="0.8.0"
-ARG DOCKER_VER="20.10.3"
-# upgrade to kind 0.10.0 held, as it defaults to kubernetes 1.20; we're still targeting primarly 1.19
-ARG KIND_VER="0.9.0"
 ARG KUBELINTER_VER="0.2.2"
 
 RUN apk add --no-cache ca-certificates curl \
     && mkdir -p /binaries \
-    && curl -SL https://storage.googleapis.com/kubernetes-release/release/v${KUBECTL_VER}/bin/linux/amd64/kubectl -o /binaries/kubectl \
     && curl -SL https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz | \
        tar -C /binaries --strip-components 1 -xvzf - linux-amd64/helm \
-    && curl -SL https://github.com/giantswarm/apptestctl/releases/download/v${APPTESTCTL_VER}/apptestctl-v${APPTESTCTL_VER}-linux-amd64.tar.gz | \
-       tar -C /binaries --strip-components 1 -xvzf - apptestctl-v${APPTESTCTL_VER}-linux-amd64/apptestctl \
     && curl -SL https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER}_linux_amd64.tar.gz | \
        tar -C /binaries -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml && mv /binaries/etc /etc/ct \
     && curl -SL https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER}/kube-linter-linux.tar.gz | \
-       tar -C /binaries -xvzf - \
-    && curl -SL https://download.docker.com/linux/static/stable/x86_64/docker-${DOCKER_VER}.tgz | \
-       tar -C /binaries --strip-components 1 -xvzf - docker/docker \
-    && curl -SL https://github.com/kubernetes-sigs/kind/releases/download/v${KIND_VER}/kind-linux-amd64 -o /binaries/kind
+       tar -C /binaries -xvzf -
 
 # patch the ct chart_schema.yaml file ahead of next release to fix
 # issue https://github.com/helm/chart-testing/issues/324

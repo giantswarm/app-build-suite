@@ -6,16 +6,17 @@ from typing import List, NewType
 
 import configargparse
 
-from app_build_suite.build_steps import (
+from step_exec_lib.steps import (
     BuildStep,
     BuildStepsFilteringPipeline,
-    ALL_STEPS,
 )
-from app_build_suite.build_steps.build_step import STEP_ALL
+from step_exec_lib.types import STEP_ALL
+
 from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
-from app_build_suite.build_steps.pytest import PytestTestFilteringPipeline
-from app_build_suite.errors import ConfigError
-from .components import Runner
+from step_exec_lib.errors import ConfigError
+from step_exec_lib.steps import Runner
+
+from app_build_suite.build_steps.steps import ALL_STEPS
 
 ver = "v0.0.0-dev"
 app_name = "app_build_suite"
@@ -39,7 +40,6 @@ def get_pipeline() -> List[BuildStepsFilteringPipeline]:
     return [
         # FIXME: once we have more than 1 build or test engine, this has to be configurable
         HelmBuildFilteringPipeline(),
-        PytestTestFilteringPipeline(),
     ]
 
 

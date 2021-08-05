@@ -2,22 +2,24 @@
 
 [![build](https://circleci.com/gh/giantswarm/app-build-suite.svg?style=svg)](https://circleci.com/gh/giantswarm/app-build-suite)
 [![codecov](https://codecov.io/gh/giantswarm/app-build-suite/branch/master/graph/badge.svg)](https://codecov.io/gh/giantswarm/app-build-suite)
-[![Apache License](https://img.shields.io/badge/license-apache-blue.svg)](https://pypi.org/project/pytest-helm-charts/)
+[![Apache License](https://img.shields.io/badge/license-apache-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
-A tool to build and test apps (Helm Charts) for
+A tool to build apps (Helm Charts) for
 [Giant Swarm App Platform](https://docs.giantswarm.io/app-platform/).
 
-This tool is a development and CI/CD tool that allows you to:
+This tool is a Helm charts development and CI/CD tool that allows you to:
 
-- build your helm chart
-  - do some simple variable replacements before building the chart
-  - linting chart's source code
-  - generating actual chart archive
-  - generating App Platform specific metadata
-- test your chart after building
-  - run your tests of different kind using [`pytest`](https://docs.pytest.org/en/stable/) and
-    [`pytest-helm-charts`](https://github.com/giantswarm/pytest-helm-charts)
-  - define different test scenarios for your release
+- do some simple variable replacements before building the chart
+- lint chart's source code
+- run Helm chart code analysis tools
+- generate actual chart archive
+- generate App Platform specific metadata
+
+In short, it runs an opinionated Helm chart build process as a single configurable build step (one step
+build`).
+
+It has a companion tool called [app-test-suite](https://github.com/giantswarm/app-build-suite)
+for running dynamic (run-time) tests on charts built.
 
 ---
 *Big fat warning* This tool is available as a development version!
@@ -35,8 +37,6 @@ This tool is a development and CI/CD tool that allows you to:
 - [Tuning app-build-suite execution and running parts of the build process](#tuning-app-build-suite-execution-and-running-parts-of-the-build-process)
   - [Configuring app-build-suite](#configuring-app-build-suite)
 - [Execution steps details and configuration](#execution-steps-details-and-configuration)
-  - [Build pipelines](#build-pipelines)
-  - [Test pipelines](#test-pipelines)
 - [How to contribute](#how-to-contribute)
 
 ## How to use app-build-suite
@@ -46,7 +46,7 @@ This tool is a development and CI/CD tool that allows you to:
 `abs` is distributed as a docker image, so the easiest way to install and use it is to get our `dabs.sh`
 script from [releases](https://github.com/giantswarm/app-build-suite/releases). `dabs.sh` is a wrapper script
 that launches for you `abs` inside a docker container and provides all the necessary docker options required
-to make it work.
+to make it work (check te script for details, it's short).
 
 Alternatively, you can just checkout this repository and build the docker image yourself by running:
 
@@ -68,82 +68,30 @@ As an example, we have included a chart in this repository in
 using `dabs.sh` and the provided config file, run:
 
 ```bash
-dabs.sh -c examples/apps/hello-world-app --skip-steps test_all
-```
-
-Please note that this command skips all the test steps and runs only the actual chart build steps. If you want
-to run tests as well, you need to provide a cluster to run them on. For example, you can use a cluster
-of type `external`, which is a cluster you provide externally to the `abs` tool. If you have `kind`, you can do it
-like this:
-
-```bash
-kind create cluster
-kind get kubeconfig > ./kube.config
-```
-
-Then you can run `abs` to execute tests on top of that `kind` cluster:
-
-```bash
-dabs.sh -c examples/apps/hello-world-app \
-  --smoke-tests-cluster-type external \
-  --functional-tests-cluster-type external \
-  --external-cluster-kubeconfig-path kube.config \
-  --external-cluster-type kind \
-  --external-cluster-version "1.19.0" \
-  --destination build
+dabs.sh -c examples/apps/hello-world-app
 ```
 
 ### A command wrapper on steroids
 
 `abs` is not much more than a wrapper around a set of well-known open source tools.
 It orchestrates these tools into an opinionated build process and adds some additional
-features in between them, like generating metadata for the Giant Swarm App Platform.
+features, like generating metadata for the Giant Swarm App Platform.
 
 To better explain it, see what really happens when you call
 
 ```bash
-dabs.sh -c examples/apps/hello-world-app --destination build --skip-steps test_all
+dabs.sh -c examples/apps/hello-world-app --destination build
 ```
 
 The list bellow
 is a set of commands executed for you by `abs`:
 
 ```bash
-# app and chart versions are set using git changes (if configured)
+# app and chart versions in the Chart.yaml file are set using git changes (if configured)
 ct lint --validate-maintainers=false --charts=examples/apps/hello-world-app --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../../resources/ct_schemas/gs_metadata_chart_schema.yaml
 kube-linter lint . --config .kube-linter.yaml
 helm package examples/apps/hello-world-app --destination build
 # now metadata is generated from the data collected during the build (if configured)
-```
-
-If you include testing steps as well, on an external cluster, with the following command
-
-```bash
-dabs.sh -c examples/apps/hello-world-app \
-  --functional-tests-cluster-type external \
-  --smoke-tests-cluster-type external \
-  --external-cluster-kubeconfig-path kube.config \
-  --external-cluster-type kind \
-  --external-cluster-version "1.19.0" \
-  --destination build
-```
-
-, the list becomes:
-
-```bash
-# app and chart versions are set using git changes (if configured)
-ct lint --validate-maintainers=false --charts=examples/apps/hello-world-app --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../../resources/ct_schemas/gs_metadata_chart_schema.yaml
-kube-linter lint . --config .kube-linter.yaml
-helm package examples/apps/hello-world-app --destination build
-# now metadata is generated from the data collected during the build (if configured)
-# here start smoke tests
-apptestctl bootstrap --kubeconfig-path=kube.config --wait
-pipenv install --deploy
-pipenv run pytest -m smoke --cluster-type kind --kube-config /abs/workdir/kube.config --chart-path hello-world-app-0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db.tgz --chart-version 0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db --chart-extra-info external_cluster_version=1.19.0 --log-cli-level info --junitxml=test_results_smoke.xml
-apptestctl bootstrap --kubeconfig-path=kube.config --wait
-# and here start functional tests
-pipenv install --deploy
-pipenv run pytest -m functional --cluster-type kind --kube-config /abs/workdir/test1.kube.config --chart-path hello-world-app-0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db.tgz --chart-version 0.1.8-1112d08fc7d610a61ace4233a4e8aecda54118db --chart-extra-info external_cluster_version=1.19.0 --log-cli-level info --junitxml=test_results_functional.xml
 ```
 
 ### Full usage help
@@ -154,27 +102,28 @@ To get an overview of available options, please run:
 dabs.sh -h
 ```
 
-To learn what they mean and how to use them, please follow to
+To learn what the configuration options mean and how to use them, please follow to
 [execution steps and their config options](#execution-steps-details-and-configuration).
 
 ## Tuning app-build-suite execution and running parts of the build process
 
 This tool works by executing a series of so called `Build Steps`. In general, one `BuildSteps` is about
-a single step in the build, like running a single external tool. Most of the build steps are configurable
+a single step in the Chart build process, like running a single external tool. Most of the build steps
+are configurable
 (run `./dabs.sh -h` to check available options and go to
 [steps details and configuration](#execution-steps-details-and-configuration) for detailed description).
 
-The important property in `app-build-suite` is that you can only execute a subset of all the build steps.
+The important property in `app-build-suite` is that you can execute a subset of all the build steps.
 This idea should be useful for integrating `abs` with other workflows, like CI/CD systems or for
 running parts of the build process on your local machine during development. You can either run only a
-selected set of steps using `--steps` option or you can run all if them excluding some
+selected set of steps using `--steps` option or you can run all of them excluding some steps
 using `--skip-steps`. Check `dabs.sh -h` output for step names available to `--steps` and `--skip-steps`
 flags.
 
 To skip or include multiple step names, separate them with space, like in this example:
 
 ```bash
-dabs.sh -c examples/apps/hello-world-app --skip-steps test_unit test_performance
+dabs.sh -c examples/apps/hello-world-app --skip-steps validate static_check
 ```
 
 ### Configuring app-build-suite
@@ -197,49 +146,13 @@ env variables or command line when needed. This way you can easily override conf
 
 ## Execution steps details and configuration
 
-`abs` is composed of two main pipelines: *build* and *test*. Each of them is composed of steps.
-When `abs` runs, it executes all the steps from the *build* pipeline and then from the *test* pipeline.
-Config options can be used to disable/enable any specific build steps.
-
-Please check below for available build pipelines and steps and their config options.
-
-### Build pipelines
+When `abs` runs, it executes all the steps from the *build* pipeline. Config options can be used to
+disable/enable any specific build steps.
+Please check below for available steps and their config options.
 
 Currently, only one build pipeline is supported. It is based on `helm 3`. Please check
 [this doc](../app-build-suite/docs/helm3-build-pipeline.md) for
 detailed description of steps and available config options.
-
-### Test pipelines
-
-After your app artifact is built (your chart when using Helm build engine pipeline), `abs` can run
-tests for it for you. There are a few assumptions related to how testing invoked by `abs` works.
-
-First, we assume that each test framework that you can use for developing tests for your app can
-label the tests and run only the set of tests labelled. `abs` expects all tests to have at least one
-of the following labels: `smoke`, `functional`. It uses the labels to run only certain tests, so `abs`
-runs all `smoke` tests first, then all `functional` tests. As concrete example, this mechanism is implemented
-as [marks in pytest](https://docs.pytest.org/en/stable/mark.html) or
-[tags in go test](https://golang.org/pkg/go/build/#hdr-Build_Constraints).
-
-The idea is that `abs` invokes first the testing framework with `smoke` filter, so that only smoke tests
-are invoked. Smoke tests are expected to be very basic and short-lived, so they provide an immediate
-feedback if something is wrong and there's no point in running more advanced (and time and resource
-consuming tests). Only if `smoke` tests are OK, `functional` tests are invoked to check if the application
-works as expected. In the future, we want to introduce `performance` tests for checking for expected
-performance results in a well-defined environment and `compatibility` tests for checking strict
-compatibility of your app with a specific platform release.
-
-Another important concept is that each type of tests can be run on a different type of Kubernetes cluster.
-That way, we want to make a test flow that uses "fail fast" principle: if your tests are going to fail,
-make them fail as soon as possible, without creating "heavy" clusters or running "heavy" tests. As an example,
-our default config should be something like this:
-
-1. Run `smoke` tests on `kind` cluster. Fail if any test fails.
-2. Run `functional` tests on `kind` cluster. We might reuse the `kind` cluster from the step above. But
-   we might also need a more powerful setup to be able to test all the `functional` scenarios, so we might
-   request a real AWS cluster for that kind of tests. It's for the test developer to choose.
-
-Currently, we only support [`pytest` test pipeline](docs/pytest-test-pipeline.md).
 
 ## How to contribute
 
