@@ -11,6 +11,7 @@ annotations:
   application.giantswarm.io/values-schema: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/helm/hello-world-app/values.schema.json
   application.giantswarm.io/readme: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/README.md
 upstreamChartURL: https://github.com/giantswarm/hello-world-app
+upstreamChartVersion: v1.12.13
 restrictions:
   clusterSingleton: false
   namespaceSingleton: true
