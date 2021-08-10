@@ -4,6 +4,12 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [1.0.2] - 2021-08-10
+
+### Changed
+
+- Giant Swarm metadata generator supports now the `upstreamChartVersion` field in `Chart.yaml`. This field has to be specified if `upstreamChartUrl` is present.
+
 ## [1.0.1] - 2021-06-29
 
 ### Changed
