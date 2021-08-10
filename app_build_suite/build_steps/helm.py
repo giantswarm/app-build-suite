@@ -11,15 +11,15 @@ from urllib.parse import urlsplit
 import configargparse
 import validators
 import yaml
+
+from app_build_suite.build_steps.steps import STEP_BUILD, STEP_VALIDATE, STEP_STATIC_CHECK, STEP_METADATA
+from app_build_suite.errors import BuildError
 from step_exec_lib.errors import ValidationError
 from step_exec_lib.steps import BuildStep, BuildStepsFilteringPipeline
 from step_exec_lib.types import Context, StepType
 from step_exec_lib.utils.files import get_file_sha256
 from step_exec_lib.utils.git import GitRepoVersionInfo
 from step_exec_lib.utils.processes import run_and_log
-
-from app_build_suite.build_steps.steps import STEP_BUILD, STEP_VALIDATE, STEP_STATIC_CHECK, STEP_METADATA
-from app_build_suite.errors import BuildError
 
 logger = logging.getLogger(__name__)
 
@@ -378,6 +378,7 @@ class HelmRequirementsUpdater(BuildStep):
         if len(present_lock_files) == 0:
             logger.debug(f"No {_chart_lock} or {_requirements_lock} file exists, skipping dependency update.")
             return
+        args = []
         for lock_file in present_lock_files:
             logger.debug(f"Saving backup of {lock_file} in {lock_file}.back")
             lock_path = os.path.join(config.chart_dir, lock_file)
@@ -484,6 +485,7 @@ class HelmChartMetadataPreparer(BuildStep):
     """
 
     _key_upstream_chart_url = "upstreamChartURL"
+    _key_upstream_chart_version = "upstreamChartVersion"
     _key_restrictions = "restrictions"
     _key_cluster_singleton = "clusterSingleton"
     _key_namespace_singleton = "namespaceSingleton"
@@ -617,6 +619,7 @@ class HelmChartMetadataFinalizer(BuildStep):
     """
 
     _key_upstream_chart_url = "upstreamChartURL"
+    _key_upstream_chart_version = "upstreamChartVersion"
     _key_restrictions = "restrictions"
     _key_cluster_singleton = "clusterSingleton"
     _key_namespace_singleton = "namespaceSingleton"
@@ -634,6 +637,18 @@ class HelmChartMetadataFinalizer(BuildStep):
     @property
     def steps_provided(self) -> Set[StepType]:
         return {STEP_METADATA}
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        with open(chart_yaml_path, "r") as file:
+            chart_yaml = yaml.safe_load(file)
+        if self._key_upstream_chart_url in chart_yaml and self._key_upstream_chart_version not in chart_yaml:
+            raise ValidationError(
+                self.name,
+                f"'{self._key_upstream_chart_url}' is found in Chart.yaml, but"
+                f" '{self._key_upstream_chart_version}' is not. When you provide upstream"
+                f" chart URL, please also include the version.",
+            )
 
     @staticmethod
     def get_build_timestamp() -> str:
@@ -660,6 +675,7 @@ class HelmChartMetadataFinalizer(BuildStep):
         # optional metadata
         for key in [
             self._key_upstream_chart_url,
+            self._key_upstream_chart_version,
             self._key_restrictions,
             self._key_annotations,
             self._key_icon,

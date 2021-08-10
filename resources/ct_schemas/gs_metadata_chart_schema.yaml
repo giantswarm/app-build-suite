@@ -17,6 +17,7 @@ kubeVersion: str(required=False)
 annotations: map(str(), str(), required=False)
 type: str(required=False)
 upstreamChartURL: str(required=False)
+upstreamChartVersion: str(required=False)
 restrictions: include('gs-restrictions', required=False)
 ---
 gs-restrictions:

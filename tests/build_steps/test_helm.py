@@ -108,6 +108,7 @@ def test_generate_metadata(monkeypatch):
             "get_build_timestamp",
             lambda _: "1020-10-20T10:20:10.000000",
         )
+        step.pre_run(config)
         step.run(config, context)
         m.assert_called_with(input_chart_path, "r")
 
