@@ -23,7 +23,7 @@ COPY container-entrypoint.sh /binaries
 RUN chmod +x /binaries/*
 
 
-FROM quay.io/giantswarm/python:3.8.6-slim AS base
+FROM quay.io/giantswarm/python:3.8.12-slim AS base
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
