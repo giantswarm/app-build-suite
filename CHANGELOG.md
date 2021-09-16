@@ -4,6 +4,13 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [1.0.3] - 2021-09-16
+
+### Changed
+
+- Upgrade python version in container image to 3.8.12
+- Upgrade conftest version in container to 0.27.0
+
 ## [1.0.2] - 2021-08-10
 
 ### Changed
@@ -125,7 +132,10 @@ Initial release
   - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/giantswarm/app-build-suite/compare/v1.0.2...v1.0.3
+[1.0.2]: https://github.com/giantswarm/app-build-suite/compare/v1.0.1...v1.0.2
+[1.0.1]: https://github.com/giantswarm/app-build-suite/compare/v0.2.3...v1.0.1
 [0.2.3]: https://github.com/giantswarm/app-build-suite/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/giantswarm/app-build-suite/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/giantswarm/app-build-suite/compare/v0.1.7...v0.2.1
