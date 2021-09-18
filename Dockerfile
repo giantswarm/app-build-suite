@@ -1,6 +1,6 @@
 FROM alpine:3.14.0 AS binaries
 
-ARG HELM_VER="3.5.4"
+ARG HELM_VER="3.7.0"
 ARG CT_VER="3.4.0"
 ARG KUBELINTER_VER="0.2.2"
 
