@@ -1,4 +1,4 @@
-FROM alpine:3.14.0 AS binaries
+FROM alpine:3.14.2 AS binaries
 
 ARG HELM_VER="3.7.0"
 ARG CT_VER="3.4.0"
