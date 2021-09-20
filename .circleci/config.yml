@@ -90,7 +90,10 @@ jobs:
       - run:
           name: Execute tests
           command: |
-            wget -qO- "https://github.com/koalaman/shellcheck/releases/download/latest/shellcheck-latest.linux.x86_64.tar.xz" | tar -xJv && cp "shellcheck-latest/shellcheck" ~/bin/
+            wget -qO- "https://github.com/koalaman/shellcheck/releases/download/latest/shellcheck-latest.linux.x86_64.tar.xz" | tar -xJv
+            mkdir ~/bin
+            mv "shellcheck-latest/shellcheck" ~/bin/
+
             pipenv install --deploy --clear --dev
             pipenv run pre-commit run --all-files
             make test
