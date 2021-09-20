@@ -82,15 +82,17 @@ jobs:
             - "circleci.Dockerfile"
 
   run-tests:
-    machine:
-      image: ubuntu-2004:202010-01
+    docker:
+      - image: cimg/python:3.8.12
     steps:
       - checkout
 
       - run:
           name: Execute tests
           command: |
-            make docker-test-ci
+            pipenv install --deploy --clear --dev
+            pipenv run pre-commit run --all-files
+            make test
 
       - codecov/upload:
           file: .coverage/coverage.xml
