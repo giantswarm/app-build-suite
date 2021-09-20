@@ -88,14 +88,38 @@ jobs:
       - checkout
 
       - run:
-          name: Execute tests
+          name: Install test dependencies
           command: |
-            wget -qO- "https://github.com/koalaman/shellcheck/releases/download/latest/shellcheck-latest.linux.x86_64.tar.xz" | tar -xJv
+            export HELM_VER="3.7.0"
+            export CT_VER="3.4.0"
+            export KUBELINTER_VER="0.2.2"
+
             mkdir ~/bin
+
+            wget -qO - https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz | \
+              tar -C ~/bin --strip-components 1 -xvzf - linux-amd64/helm
+
+            wget -qO- "https://github.com/koalaman/shellcheck/releases/download/latest/shellcheck-latest.linux.x86_64.tar.xz" | \
+              tar -xJv
             mv "shellcheck-latest/shellcheck" ~/bin/
 
+            wget -qO - https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER}_linux_amd64.tar.gz | \
+              tar -C ~/bin -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml
+            mv ~/bin/etc /etc/ct
+
+            wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER}/kube-linter-linux.tar.gz | \
+              tar -C ~/bin -xvzf -
+
             pipenv install --deploy --clear --dev
+
+      - run:
+          name: Lint code
+          command: |
             pipenv run pre-commit run --all-files
+
+      - run:
+          name: Execute tests
+          command: |
             make test
 
       - codecov/upload:
