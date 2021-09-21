@@ -93,6 +93,8 @@ jobs:
             export HELM_VER="3.7.0"
             export CT_VER="3.4.0"
             export KUBELINTER_VER="0.2.2"
+            export CT_YAMALE_VER="3.0.4"
+            export CT_YAMLLINT_VER="1.25.0"
 
             mkdir ~/bin
 
@@ -111,6 +113,7 @@ jobs:
               tar -C ~/bin -xvzf -
 
             pipenv install --deploy --clear --dev
+            pip install yamllint==${CT_YAMLLINT_VER} yamale==${CT_YAMALE_VER}
 
       - run:
           name: Lint code
