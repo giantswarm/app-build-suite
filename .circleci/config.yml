@@ -119,7 +119,7 @@ jobs:
       - run:
           name: Execute tests
           command: |
-            make test
+            make test-ci
 
       - codecov/upload:
           file: .coverage/coverage.xml
