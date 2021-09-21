@@ -1,22 +1,17 @@
-FROM alpine:3.14.0 AS binaries
+FROM quay.io/giantswarm/python:3.8.12-slim AS binaries
 
 ARG HELM_VER="3.7.0"
 ARG CT_VER="3.4.0"
 ARG KUBELINTER_VER="0.2.2"
 
-RUN apk add --no-cache ca-certificates curl \
+RUN apt-get update && apt-get install --no-install-recommends -y wget \
     && mkdir -p /binaries \
-    && curl -SL https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz | \
+    && wget -qO - https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz | \
        tar -C /binaries --strip-components 1 -xvzf - linux-amd64/helm \
-    && curl -SL https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER}_linux_amd64.tar.gz | \
+    && wget -qO - https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER}_linux_amd64.tar.gz | \
        tar -C /binaries -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml && mv /binaries/etc /etc/ct \
-    && curl -SL https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER}/kube-linter-linux.tar.gz | \
+    && wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER}/kube-linter-linux.tar.gz | \
        tar -C /binaries -xvzf -
-
-# patch the ct chart_schema.yaml file ahead of next release to fix
-# issue https://github.com/helm/chart-testing/issues/324
-# upstream PR https://github.com/helm/chart-testing/pull/300
-RUN sed -i 's|  repository: str()|  repository: str(required=False)|' /etc/ct/chart_schema.yaml
 
 COPY container-entrypoint.sh /binaries
 

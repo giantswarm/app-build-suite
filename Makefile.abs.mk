@@ -57,6 +57,9 @@ test-docker-run = docker $(test-docker-args) ${IMG}-test:latest
 test:
 	pipenv run python -m pytest $(test-command)
 
+test-ci:
+	pipenv run python -m pytest $(test-command-ci)
+
 docker-test: docker-build-test
 	$(test-docker-run) $(test-command)
 
