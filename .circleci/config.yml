@@ -88,14 +88,10 @@ jobs:
       - checkout
 
       - run:
-          name: Extract versions from Dockerfile
-          command: |
-            eval $(sed -n 's|ARG|export|p' Dockerfile)
-            sed -n 's|ARG|export|p' Dockerfile
-
-      - run:
           name: Install test dependencies
           command: |
+            eval $(sed -n 's|ARG|export|p' Dockerfile)
+
             mkdir ~/bin
 
             wget -qO - https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz | \
