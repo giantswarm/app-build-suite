@@ -4,10 +4,10 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
-pre-commit = ">=2.13"
-pytest = ">=6.2.4"
-pytest-cov = ">=2.12"
-pytest-mock = ">=3.6"
+pre-commit = "==2.11.1"
+pytest = "==6.2.2"
+pytest-cov = "==2.12.1"
+pytest-mock = "==3.6.0"
 
 [packages]
 pyyaml = ">=5.4"
