@@ -19,5 +19,6 @@
     "architect",
     "zricethezav/gitleaks-action"
   ],
-  "schedule": [ "after 9am on thursday" ]
+  "schedule": [ "after 9am on thursday" ],
+  "baseBranches": ["master", "test/renovate"]
 }
