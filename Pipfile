@@ -11,11 +11,11 @@ pytest-mock = ">=3.6"
 
 [packages]
 pyyaml = ">=5.4"
-configargparse = ">=1.5"
-validators = ">=0.18"
-pytest-helm-charts = ">=0.5"
-step-exec-lib = ">=0.1"
-semver = ">=2.13"
+configargparse = "==1.5"
+validators = "==0.18.0"
+pytest-helm-charts = "==0.5.0"
+step-exec-lib = "==0.1.1"
+semver = "==2.13.0"
 gitpython = ">=3"
 
 [requires]
