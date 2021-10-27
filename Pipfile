@@ -14,7 +14,7 @@ pyyaml = ">=5.4"
 configargparse = "==1.5"
 validators = "==0.18.0"
 pytest-helm-charts = "==0.5.2"
-step-exec-lib = "==0.1.1"
+step-exec-lib = "==0.1.4"
 semver = "==2.13.0"
 gitpython = ">=3"
 
