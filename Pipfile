@@ -12,7 +12,7 @@ pytest-mock = "==3.6.0"
 [packages]
 pyyaml = ">=5.4"
 configargparse = "==1.5"
-validators = "==0.18.0"
+validators = "==0.18.2"
 pytest-helm-charts = "==0.5.2"
 step-exec-lib = "==0.1.1"
 semver = "==2.13.0"
