@@ -732,7 +732,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     Pipeline that combines all the steps required to use helm3 as a chart builder.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             [
                 HelmBuilderValidator(),

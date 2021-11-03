@@ -64,13 +64,15 @@ We encourage adding tests. Execute them with `make docker-test`
 
 At this point, this repository does not make use of the release automation implemented in GitHub actions.
 
-To create a release, switch to the `master` branch, make sure everything you want to have in your release is committed and documented in the CHANGELOG.md file and your git stage is clean. Now execute:
+To create a release, switch to the `master` branch, make sure everything you want to have in your release is committed
+and documented in the CHANGELOG.md file and your git stage is clean. Now execute:
 
 ```bash
     make release TAG=vX.Y.Z
 ```
 
-This will prepare the files in the repository, commit them and create a new git tag. Review the created commits. When satisfied, publish the new release with:
+This will prepare the files in the repository, commit them and create a new git tag. Review the created commits. When
+satisfied, publish the new release with:
 
 ```bash
     git push origin vX.Y.Z
