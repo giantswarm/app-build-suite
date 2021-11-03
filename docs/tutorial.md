@@ -4,7 +4,8 @@
 
 To be able to complete this tutorial, you need a few tools:
 
-- `app-build-suite` itself; if you haven't done so already, we recommend getting the latest version of the `dabs.sh` helper from [releases](https://github.com/giantswarm/app-build-suite/releases)
+- `app-build-suite` itself; if you haven't done so already, we recommend getting the latest version of the `dabs.sh`
+  helper from [releases](https://github.com/giantswarm/app-build-suite/releases)
 - for the building part
   - [docker](https://docs.docker.com/get-docker/)
 - for the testing part
@@ -12,7 +13,8 @@ To be able to complete this tutorial, you need a few tools:
     - if you already have python, it should be enough to run `pip install -U pipenv`
   - to be able to use the shortest path, you also need a working python 3.8 environment
     - to avoid problems like missing the specific python version, we highly recommend
-      [`pyenv`](https://github.com/pyenv/pyenv#installation) for managing python environments; once `pyenv` is installed, it's enough to run `pyenv install 3.8.6` to get the python environment you need
+      [`pyenv`](https://github.com/pyenv/pyenv#installation) for managing python environments; once `pyenv` is
+      installed, it's enough to run `pyenv install 3.8.6` to get the python environment you need
 
 ## Building your app
 

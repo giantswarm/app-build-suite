@@ -43,7 +43,7 @@ def get_pipeline() -> List[BuildStepsFilteringPipeline]:
     ]
 
 
-def configure_global_options(config_parser: configargparse.ArgParser):
+def configure_global_options(config_parser: configargparse.ArgParser) -> None:
     config_parser.add_argument(
         "-d",
         "--debug",
@@ -115,7 +115,7 @@ def get_global_config_parser(add_help: bool = True) -> configargparse.ArgParser:
     return config_parser
 
 
-def validate_global_config(config: configargparse.Namespace):
+def validate_global_config(config: configargparse.Namespace) -> None:
     # validate build engine
     if config.build_engine not in ALL_BUILD_ENGINES:
         raise ConfigError(
@@ -148,7 +148,7 @@ def get_config(steps: List[BuildStep]) -> configargparse.Namespace:
     return config
 
 
-def main():
+def main() -> None:
     log_format = "%(asctime)s %(name)s %(levelname)s: %(message)s"
     logging.basicConfig(format=log_format)
     logging.getLogger().setLevel(logging.INFO)

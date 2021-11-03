@@ -4,6 +4,7 @@ from typing import Dict, Any
 from unittest.mock import mock_open, patch
 
 import yaml
+import pytest
 
 import app_build_suite
 from app_build_suite.build_steps.helm import (
@@ -18,7 +19,7 @@ from app_build_suite.build_steps.helm import (
 from tests.build_steps.helpers import init_config_for_step
 
 
-def test_prepare_metadata(monkeypatch):
+def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     input_chart_path = os.path.join(os.path.dirname(__file__), "res_test_helm/Chart.yaml")
     step = HelmChartMetadataPreparer()
     config = init_config_for_step(step)
@@ -49,7 +50,7 @@ def test_prepare_metadata(monkeypatch):
             context_key_changes_made: True,
         }
 
-        def monkey_write_chart_yaml(_, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+        def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
             annotation_base_url = f"{config.catalog_base_url}hello-world-app-{git_version}.tgz-meta/"
             assert data["annotations"]["application.giantswarm.io/metadata"] == f"{annotation_base_url}main.yaml"
             assert (
@@ -67,7 +68,7 @@ def test_prepare_metadata(monkeypatch):
         m.assert_called_once_with(input_chart_path, "r")
 
 
-def test_generate_metadata(monkeypatch):
+def test_generate_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     input_chart_path = os.path.join(os.path.dirname(__file__), "res_test_helm/Chart.yaml")
     step = HelmChartMetadataFinalizer()
     config = init_config_for_step(step)
@@ -92,7 +93,7 @@ def test_generate_metadata(monkeypatch):
             assert path == chart_full_path
             return "123"
 
-        def monkey_meta_write(_, meta_file_name: str, meta: Dict[str, Any]):
+        def monkey_meta_write(_: str, meta_file_name: str, meta: Dict[str, Any]) -> None:
             assert meta_file_name == os.path.join(f"{chart_full_path}-meta", "main.yaml")
             input_meta_path = os.path.join(os.path.dirname(__file__), "res_test_helm/main.yaml")
             with open(input_meta_path) as t:
@@ -113,7 +114,7 @@ def test_generate_metadata(monkeypatch):
         m.assert_called_with(input_chart_path, "r")
 
 
-def test_format_timestamp_to_match_helms():
+def test_format_timestamp_to_match_helms() -> None:
     ts_str = HelmChartMetadataFinalizer.get_build_timestamp()
     ts_regex = re.compile("^[0-9]{4}-(1[0-2]|0[1-9])-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9](.[0-9]+)?Z?$")
     assert ts_regex.fullmatch(ts_str)
