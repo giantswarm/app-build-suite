@@ -2,7 +2,6 @@ minimum_pre_commit_version: 1.21.0
 repos:
     -   repo: meta
         hooks:
-            -   id: check-hooks-apply
             -   id: check-useless-excludes
 
     # format Python code with black
@@ -50,12 +49,6 @@ repos:
         hooks:
             -   id: shell-lint
                 args: [ --format=json ]
-
-    # python project description files
-    -   repo: https://github.com/regebro/pyroma
-        rev: "3.2"
-        hooks:
-            -   id: pyroma
 
     - repo: https://github.com/igorshubovych/markdownlint-cli
       rev: v0.29.0
