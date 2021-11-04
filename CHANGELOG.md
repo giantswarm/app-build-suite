@@ -4,6 +4,9 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- Changed
+  - Enabling `kube-linter` verbose output by default
+
 ## [1.0.4] - 2021-09-21
 
 - Changed
