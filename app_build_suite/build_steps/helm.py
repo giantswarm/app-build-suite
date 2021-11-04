@@ -298,8 +298,8 @@ class KubeLinter(BuildStep):
             "lint",
             config.chart_dir,
         ]
-        if config.debug:
-            args.append("--verbose")
+    
+        args.append("--verbose")
         if config.kubelinter_config is not None:
             args.append(f"--config={config.kubelinter_config}")
         logger.info("Running kube-linter tool")
