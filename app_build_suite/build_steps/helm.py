@@ -300,9 +300,8 @@ class KubeLinter(BuildStep):
             "--verbose",
         ]
 
-        # adding `--verbose` to the args by default due to the kube-linter hidding
-        # some problems and thus skipping lintering some of the resources without informing
-        # the user.
+        # adding `--verbose` to the default args due to the kube-linter hiding
+        # some problems and thus skipping linting some of the resources.
 
         if config.kubelinter_config is not None:
             args.append(f"--config={config.kubelinter_config}")
