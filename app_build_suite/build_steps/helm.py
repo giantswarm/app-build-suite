@@ -297,9 +297,12 @@ class KubeLinter(BuildStep):
             self._kubelinter_bin,
             "lint",
             config.chart_dir,
+            "--verbose",
         ]
-        if config.debug:
-            args.append("--verbose")
+
+        # adding `--verbose` to the default args due to the kube-linter hiding
+        # some problems and thus skipping linting some of the resources.
+
         if config.kubelinter_config is not None:
             args.append(f"--config={config.kubelinter_config}")
         logger.info("Running kube-linter tool")
