@@ -4,16 +4,20 @@ on:
   workflow_call:
     inputs:
       app_catalog:
+        description: 'Name of the app catalog GitHub repository. E.g. example-catalog'
         required: true
         type: string
       chart:
+        description: 'Name of the chart in the helm directory. E.g. hello-world-app'
         required: true
         type: string
       organization:
+        description: 'Name of the GitHub organization. E.g. example-org'
         required: true
         type: string
     secrets:
       envPAT:
+        description: GitHub Personal Access Token that must be added as secret in the repo.
         required: true
 
 jobs:
