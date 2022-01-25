@@ -34,7 +34,7 @@ jobs:
       - name: Execute app-build-suite
         uses: docker://quay.io/giantswarm/app-build-suite:1.0.4
         with:
-          args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/{{ inputs.app_catalog }}/" --destination app_catalog
+          args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/{{ inputs.app_catalog }}/" --destination app_catalog --keep-chart-changes
 
       - name: Setup Helm
         uses: azure/setup-helm@v1
