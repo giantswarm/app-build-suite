@@ -52,6 +52,7 @@ jobs:
           binary: "yq"
           download_url: "https://github.com/mikefarah/yq/releases/download/${version}/${binary}_linux_amd64.tar.gz"
           smoke_test: "${binary} --version"
+          tarball_binary_path: "yq_linux_amd64"
           version: "v4.17.2"
 
       - name: Get chart version
