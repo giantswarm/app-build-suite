@@ -1,0 +1,55 @@
+name: 'Push to App Catalog'
+
+on:
+  workflow_call:
+    inputs:
+      app_catalog:
+        required: true
+        type: string
+      chart:
+        required: true
+        type: string
+      organization:
+        required: true
+        type: string
+    secrets:
+      envPAT:
+        required: true
+
+jobs:
+  push_to_app_catalog:
+    name: Push to app catalog
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout app repository
+        uses: actions/checkout@v2
+
+      - name: Checkout app catalog repository
+        uses: actions/checkout@v2
+        with:
+          repository: ${{ inputs.organization }}/${{ inputs.app_catalog }}
+          path: app_catalog
+          token: ${{ secrets.PAT }}
+
+      - name: Execute app-build-suite
+        uses: docker://quay.io/giantswarm/app-build-suite:1.0.4
+        with:
+          args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/{{ inputs.app_catalog }}/" --destination app_catalog
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.7.2
+
+      - name: Update Helm index.yaml
+        run:  |
+          cd app_catalog
+          helm repo index --url https://${{ inputs.organization }}.github.io/${{ inputs.app_catalog }}/ .
+
+      - name: Commit changes to app catalog repository
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: main
+          commit_message: add ${{ inputs.chart }}
+          commit_user_name: app-build-suite
+          repository: app_catalog
