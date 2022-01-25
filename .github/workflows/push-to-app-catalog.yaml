@@ -27,8 +27,9 @@ jobs:
       - name: Checkout app catalog repository
         uses: actions/checkout@v2
         with:
-          repository: ${{ inputs.organization }}/${{ inputs.app_catalog }}
           path: app_catalog
+          ref: main
+          repository: ${{ inputs.organization }}/${{ inputs.app_catalog }}
           token: ${{ secrets.envPAT }}
 
       - name: Execute app-build-suite
