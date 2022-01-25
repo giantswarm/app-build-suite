@@ -50,9 +50,10 @@ jobs:
         uses: giantswarm/install-binary-action@v1.0.0
         with:
           binary: "yq"
-          version: "4.17.2"
-          download_url: "https://github.com/mikefarah/yq/releases/download/${version}/${binary}.tar.gz"
+          download_url: "https://github.com/mikefarah/yq/releases/download/${version}/${binary}_linux_amd64.tar.gz"
           smoke_test: "${binary} --version"
+          tarball_binary_path: "${binary}_linux_amd64"
+          version: "v4.17.2"
 
       - name: Get chart version
         run:  |
