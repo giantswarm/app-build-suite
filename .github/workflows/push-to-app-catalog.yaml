@@ -34,7 +34,7 @@ jobs:
       - name: Execute app-build-suite
         uses: docker://quay.io/giantswarm/app-build-suite:1.0.4
         with:
-          args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/{{ inputs.app_catalog }}/" --destination app_catalog
+          args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/{{ inputs.app_catalog }}/" --destination app_catalog --keep-chart-changes=True
 
       - name: Setup Helm
         uses: azure/setup-helm@v1
@@ -46,10 +46,17 @@ jobs:
           cd app_catalog
           helm repo index --url https://${{ inputs.organization }}.github.io/${{ inputs.app_catalog }}/ .
 
+      - name: Install yq
+        uses: giantswarm/install-binary-action@v1.0.0
+        with:
+          binary: "yq"
+          version: "4.17.2"
+          download_url: "https://github.com/mikefarah/yq/releases/download/${version}/${binary}.tar.gz"
+          smoke_test: "${binary} --version"
+
       - name: Get chart version
         run:  |
-          ls -l
-          cat helm/${{ inputs.chart }}/Chart.yaml
+          yq e '.version' helm/${{ inputs.chart }}/Chart.yaml
 
       - name: Commit changes to app catalog repository
         uses: stefanzweifel/git-auto-commit-action@v4
