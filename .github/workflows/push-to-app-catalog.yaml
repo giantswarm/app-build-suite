@@ -29,7 +29,7 @@ jobs:
         with:
           repository: ${{ inputs.organization }}/${{ inputs.app_catalog }}
           path: app_catalog
-          token: ${{ secrets.PAT }}
+          token: ${{ secrets.envPAT }}
 
       - name: Execute app-build-suite
         uses: docker://quay.io/giantswarm/app-build-suite:1.0.4
