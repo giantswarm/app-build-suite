@@ -55,14 +55,13 @@ jobs:
           tarball_binary_path: "*/${binary}_linux_amd64"
           version: "v4.17.2"
 
-      - name: Get chart version
-        run:  |
-          yq e '.version' helm/${{ inputs.chart }}/Chart.yaml
+      - name: Set version from Chart.yaml
+        run:  echo ::set-output name=version::$(yq e '.version' helm/${{ inputs.chart }}/Chart.yaml)
 
       - name: Commit changes to app catalog repository
         uses: stefanzweifel/git-auto-commit-action@v4
         with:
           branch: main
-          commit_message: add ${{ inputs.chart }}
+          commit_message: add ${{ inputs.chart }}-${{ steps.vars.outputs.version }}
           commit_user_name: app-build-suite
           repository: app_catalog
