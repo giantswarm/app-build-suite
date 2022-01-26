@@ -1,0 +1,72 @@
+name: 'Push to App Catalog'
+
+on:
+  workflow_call:
+    inputs:
+      app_catalog:
+        description: 'Name of the app catalog GitHub repository. E.g. example-catalog'
+        required: true
+        type: string
+      chart:
+        description: 'Name of the chart in the helm directory. E.g. hello-world-app'
+        required: true
+        type: string
+      organization:
+        description: 'Name of the GitHub organization. E.g. example-org'
+        required: true
+        type: string
+    secrets:
+      envPAT:
+        description: GitHub Personal Access Token that must be added as secret in the repo.
+        required: true
+
+jobs:
+  push_to_app_catalog:
+    name: Push to app catalog
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout app repository
+        uses: actions/checkout@v2
+
+      - name: Checkout app catalog repository
+        uses: actions/checkout@v2
+        with:
+          path: app_catalog
+          repository: ${{ inputs.organization }}/${{ inputs.app_catalog }}
+          token: ${{ secrets.envPAT }}
+
+      - name: Execute app-build-suite
+        uses: docker://quay.io/giantswarm/app-build-suite:1.0.4
+        with:
+          args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/${{ inputs.app_catalog }}/" --destination app_catalog --keep-chart-changes --replace-chart-version-with-git
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v1
+        with:
+          version: v3.7.2
+
+      - name: Update Helm index.yaml
+        run:  |
+          cd app_catalog
+          helm repo index --url https://${{ inputs.organization }}.github.io/${{ inputs.app_catalog }}/ .
+
+      - name: Install yq
+        uses: giantswarm/install-binary-action@v1.0.0
+        with:
+          binary: "yq"
+          download_url: "https://github.com/mikefarah/yq/releases/download/${version}/${binary}_linux_amd64.tar.gz"
+          smoke_test: "${binary} --version"
+          tarball_binary_path: "*/${binary}_linux_amd64"
+          version: "v4.17.2"
+
+      - name: Set version from Chart.yaml
+        id: chart-version
+        run:  echo "::set-output name=version::$(yq e '.version' helm/${{ inputs.chart }}/Chart.yaml)"
+
+      - name: Commit changes to app catalog repository
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          branch: main
+          commit_message: add ${{ inputs.chart }}-${{ steps.chart-version.outputs.version }}
+          commit_user_name: app-build-suite
+          repository: app_catalog

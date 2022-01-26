@@ -4,6 +4,9 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- Added
+  - Add `push-to-app-catalog` GitHub Action
+
 - Changed
   - Enabling `kube-linter` verbose output by default
 
