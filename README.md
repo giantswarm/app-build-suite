@@ -71,6 +71,13 @@ using `dabs.sh` and the provided config file, run:
 dabs.sh -c examples/apps/hello-world-app
 ```
 
+### GitHub Action
+
+We have created a GitHub Action called [push-to-app-catalog](.github/workflows/push-to-app-catalog.yaml)
+for publishing apps to an app catalog served with GitHub Pages.
+See its [docs](https://docs.giantswarm.io/app-platform/create-catalog/#publish-an-app-to-the-app-catalog)
+for how to configure it.
+
 ### A command wrapper on steroids
 
 `abs` is not much more than a wrapper around a set of well-known open source tools.
