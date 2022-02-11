@@ -6,7 +6,7 @@ repos:
 
     # format Python code with black
     -   repo: https://github.com/psf/black
-        rev: 21.12b0
+        rev: 22.1.0
         hooks:
             -   id: black
                 language_version: python3
@@ -51,7 +51,7 @@ repos:
                 args: [ --format=json ]
 
     - repo: https://github.com/igorshubovych/markdownlint-cli
-      rev: v0.30.0
+      rev: v0.31.1
       hooks:
           -     id: markdownlint
 
