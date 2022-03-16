@@ -1,30 +1,27 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
-  name: {{ tpl .Values.resource.default.name . }}-cluster-role
+  name: {{ tpl .Values.resource.default.name . }}-role
   labels:
-    app: {{ tpl .Values.resource.default.name . }}
+    {{- include "hello-world-app.labels" . | nindent 4 }}
 rules:
-  - apiGroups:
-      - extensions
-    resources:
-      - podsecuritypolicies
-    verbs:
-      - use
-    resourceNames:
-      - {{ tpl .Values.resource.default.name . }}-psp
+- apiGroups: ['extensions', 'policy']
+  resources: ['podsecuritypolicies']
+  resourceNames:
+  - {{ tpl .Values.resource.default.name . }}-psp
+  verbs: ['use']
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
+kind: RoleBinding
 metadata:
-  name: {{ tpl .Values.resource.default.name . }}-cluster-role-binding
+  name: {{ tpl .Values.resource.default.name . }}-role-binding
   labels:
-    app: {{ tpl .Values.resource.default.name . }}
+    {{- include "hello-world-app.labels" . | nindent 4 }}
 subjects:
   - kind: ServiceAccount
     name: {{ tpl .Values.resource.default.name . }}-service-account
     namespace: {{ tpl .Values.resource.default.name . }}
 roleRef:
-  kind: ClusterRole
-  name: {{ tpl .Values.resource.default.name . }}-cluster-role
+  kind: Role
+  name: {{ tpl .Values.resource.default.name . }}-role
   apiGroup: rbac.authorization.k8s.io
