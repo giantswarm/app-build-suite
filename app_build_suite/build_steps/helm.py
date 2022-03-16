@@ -1,11 +1,14 @@
 """Build steps implementing helm3 based builds."""
 import argparse
+import inspect
 import logging
 import os
 import pathlib
 import shutil
 from datetime import datetime
-from typing import List, Optional, Set
+from os import listdir
+from sys import path
+from typing import List, Optional, Set, Protocol, runtime_checkable
 from urllib.parse import urlsplit
 
 import configargparse
@@ -730,6 +733,91 @@ class HelmChartYAMLRestorer(BuildStep):
                 shutil.move(lock_file_path + ".back", lock_file_path)
 
 
+@runtime_checkable
+class GiantSwarmValidator(Protocol):
+    """This class is only used for type hinting of simple giant_swarm_validators below"""
+
+    def validate(self, config: argparse.Namespace) -> bool:
+        ...
+
+
+class GiantSwarmHelmValidator(BuildStep):
+    """
+    Validator that checks Helm Chart compliance according to Giant Swarm internal rules.
+    """
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_VALIDATE}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "-g",
+            "--enable-giantswarm-helm-validator",
+            required=False,
+            default=True,
+            action="store_true",
+            help="Should Giant Swarm specific validation be enabled",
+        )
+        config_parser.add_argument(
+            "-s",
+            "--enable-strict-giantswarm-validator",
+            required=False,
+            default=True,
+            action="store_true",
+            help="If strict mode is enabled, the build fails when any validation rule fails; otherwise, a WARN is "
+            "given",
+        )
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """Runs a set of Giant Swarm specific validations."""
+        if not config.enable_giantswarm_helm_validator:
+            logger.debug("Not running Giant Swarm specific chart validation.")
+            return
+
+        gs_validators = self._load_giant_swarm_validators()
+
+        for validator in gs_validators:
+            validator_name = type(validator).__name__
+            logger.info(f"Running Giant Swarm validator '{validator_name}'.")
+            if validator.validate(config):
+                logger.debug(f"Giant Swarm validator '{validator_name}' is OK.")
+            else:
+                msg = f"Giant Swarm validator '{validator_name}' failed its checks."
+                if config.enable_strict_giantswarm_validator:
+                    raise ValidationError(self.name, msg)
+                else:
+                    logger.warning(msg)
+
+    def _load_giant_swarm_validators(self) -> List[GiantSwarmValidator]:
+        gs_validators: List[GiantSwarmValidator] = []
+        current_frame = inspect.currentframe()
+        if current_frame is None:
+            raise ValidationError(self.name, "Can't check current frame and detect current module's path.")
+
+        cur_mod_path = os.path.dirname(os.path.abspath(inspect.getfile(current_frame)))
+        validators_mod_path = os.path.join(cur_mod_path, "giant_swarm_validators")
+        for modname in listdir(validators_mod_path):
+            if modname.endswith(".py"):
+                old_path, path[:] = path[:], [validators_mod_path]
+                try:
+                    module = __import__(modname[:-3])
+                except ImportError:
+                    logger.warning(f"Couldn't import Giant Swarm validation module '{modname}'.")
+                    continue
+                finally:  # always restore the real path
+                    path[:] = old_path
+
+                for attr in dir(module):
+                    cls = getattr(module, attr)
+                    if isinstance(cls, type) and issubclass(cls, GiantSwarmValidator):
+                        gs_validators.append(cls())
+        return gs_validators
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        pass
+
+
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     """
     Pipeline that combines all the steps required to use helm3 as a chart builder.
@@ -739,6 +827,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
         super().__init__(
             [
                 HelmBuilderValidator(),
+                GiantSwarmHelmValidator(),
                 HelmGitVersionSetter(),
                 HelmRequirementsUpdater(),
                 HelmChartToolLinter(),

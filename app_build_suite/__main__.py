@@ -38,7 +38,7 @@ def get_version() -> str:
 
 def get_pipeline() -> List[BuildStepsFilteringPipeline]:
     return [
-        # FIXME: once we have more than 1 build or test engine, this has to be configurable
+        # Todo: once we have more than 1 build or test engine, this has to be configurable
         HelmBuildFilteringPipeline(),
     ]
 
