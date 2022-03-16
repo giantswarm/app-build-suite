@@ -15,6 +15,14 @@ import configargparse
 import validators
 import yaml
 
+from app_build_suite.build_steps.helm_consts import (
+    CHART_YAML_APP_VERSION_KEY,
+    CHART_YAML_CHART_VERSION_KEY,
+    CHART_YAML,
+    VALUES_YAML,
+    CHART_LOCK,
+    REQUIREMENTS_LOCK,
+)
 from app_build_suite.build_steps.steps import STEP_BUILD, STEP_VALIDATE, STEP_STATIC_CHECK, STEP_METADATA
 from app_build_suite.errors import BuildError
 from step_exec_lib.errors import ValidationError
@@ -32,13 +40,6 @@ context_key_git_version: str = "git_version"
 context_key_changes_made: str = "changes_made"
 context_key_meta_dir_path: str = "meta_dir_path"
 context_key_chart_lock_files_to_restore: str = "chart_lock_files_to_restore"
-
-_chart_yaml_app_version_key = "appVersion"
-_chart_yaml_chart_version_key = "version"
-_chart_yaml = "Chart.yaml"
-_values_yaml = "values.yaml"
-_chart_lock = "Chart.lock"
-_requirements_lock = "requirements.lock"
 
 
 class HelmBuilderValidator(BuildStep):
@@ -61,11 +62,11 @@ class HelmBuilderValidator(BuildStep):
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """Validates if basic chart files are present in the configured directory."""
-        if os.path.exists(os.path.join(config.chart_dir, _chart_yaml)) and os.path.exists(
-            os.path.join(config.chart_dir, _values_yaml)
+        if os.path.exists(os.path.join(config.chart_dir, CHART_YAML)) and os.path.exists(
+            os.path.join(config.chart_dir, VALUES_YAML)
         ):
             return
-        raise ValidationError(self.name, f"Can't find '{_chart_yaml}' or '{_values_yaml}' files.")
+        raise ValidationError(self.name, f"Can't find '{CHART_YAML}' or '{VALUES_YAML}' files.")
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         pass
@@ -87,13 +88,13 @@ class HelmGitVersionSetter(BuildStep):
             "--replace-app-version-with-git",
             required=False,
             action="store_true",
-            help=f"Should the {_chart_yaml_app_version_key} in {_chart_yaml} be replaced by a tag and hash from git",
+            help=f"Should the {CHART_YAML_APP_VERSION_KEY} in {CHART_YAML} be replaced by a tag and hash from git",
         )
         config_parser.add_argument(
             "--replace-chart-version-with-git",
             required=False,
             action="store_true",
-            help=f"Should the {_chart_yaml_chart_version_key} in {_chart_yaml} be replaced by a tag and hash from git",
+            help=f"Should the {CHART_YAML_CHART_VERSION_KEY} in {CHART_YAML} be replaced by a tag and hash from git",
         )
 
     # noinspection PyMethodMayBeStatic
@@ -133,24 +134,24 @@ class HelmGitVersionSetter(BuildStep):
         context[context_key_git_version] = git_version
 
         new_lines: List[str] = []
-        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
         with open(chart_yaml_path, "r") as file:
             lines = file.readlines()
             for line in lines:
                 fields = line.split(":")
-                if (config.replace_chart_version_with_git and fields[0] == _chart_yaml_chart_version_key) or (
-                    config.replace_app_version_with_git and fields[0] == _chart_yaml_app_version_key
+                if (config.replace_chart_version_with_git and fields[0] == CHART_YAML_CHART_VERSION_KEY) or (
+                    config.replace_app_version_with_git and fields[0] == CHART_YAML_APP_VERSION_KEY
                 ):
-                    logger.info(f"Replacing '{fields[0]}' with git version '{git_version}' in {_chart_yaml}.")
+                    logger.info(f"Replacing '{fields[0]}' with git version '{git_version}' in {CHART_YAML}.")
                     context[context_key_changes_made] = True
                     new_lines.append(f"{fields[0]}: {git_version}\n")
                 else:
                     new_lines.append(line)
         if context[context_key_changes_made]:
-            logger.debug(f"Saving backup of {_chart_yaml} in {_chart_yaml}.back")
+            logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
             shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
             with open(chart_yaml_path, "w") as file:
-                logger.info(f"Saving {_chart_yaml} with version set from git.")
+                logger.info(f"Saving {CHART_YAML} with version set from git.")
                 file.writelines(new_lines)
 
 
@@ -339,10 +340,10 @@ class HelmRequirementsUpdater(BuildStep):
     # noinspection PyMethodMayBeStatic
     def _detect_chart_lock_files(self, config: argparse.Namespace) -> List[str]:
         lock_files = []
-        if os.path.isfile(os.path.join(config.chart_dir, _chart_lock)):
-            lock_files.append(_chart_lock)
-        if os.path.isfile(os.path.join(config.chart_dir, _requirements_lock)):
-            lock_files.append(_requirements_lock)
+        if os.path.isfile(os.path.join(config.chart_dir, CHART_LOCK)):
+            lock_files.append(CHART_LOCK)
+        if os.path.isfile(os.path.join(config.chart_dir, REQUIREMENTS_LOCK)):
+            lock_files.append(REQUIREMENTS_LOCK)
         return lock_files
 
     def pre_run(self, config: argparse.Namespace) -> None:
@@ -355,7 +356,7 @@ class HelmRequirementsUpdater(BuildStep):
             logger.debug("No chart version override requested, skipping dependency update.")
             return
         if len(self._detect_chart_lock_files(config)) == 0:
-            logger.debug(f"No {_chart_lock} or {_requirements_lock} file exists, skipping dependency update.")
+            logger.debug(f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update.")
             return
         self._assert_binary_present_in_path(self._helm_bin)
         run_res = run_and_log([self._helm_bin, "version"], capture_output=True)  # nosec
@@ -382,7 +383,7 @@ class HelmRequirementsUpdater(BuildStep):
             logger.debug("No chart version override requested. Dependency update not required, ending step.")
             return
         if len(present_lock_files) == 0:
-            logger.debug(f"No {_chart_lock} or {_requirements_lock} file exists, skipping dependency update.")
+            logger.debug(f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update.")
             return
         args = []
         for lock_file in present_lock_files:
@@ -533,7 +534,7 @@ class HelmChartMetadataPreparer(BuildStep):
         if not config.catalog_base_url.endswith("/"):
             raise ValidationError(self.name, "config option --catalog-base-url value should end with a /")
         # first step of validation should be done already by 'ct' with correct schema (unless explicitly disabled)
-        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
         if self._key_upstream_chart_url in chart_yaml and not validators.url(chart_yaml[self._key_upstream_chart_url]):
@@ -583,7 +584,7 @@ class HelmChartMetadataPreparer(BuildStep):
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
         # read current Chart.yaml
-        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
         original_annotations = chart_yaml.get(self._key_annotations, None)
@@ -612,7 +613,7 @@ class HelmChartMetadataPreparer(BuildStep):
             not context.get(context_key_changes_made, False)
             and original_annotations != chart_yaml[self._key_annotations]
         ):
-            logger.debug(f"Saving backup of {_chart_yaml} in {_chart_yaml}.back")
+            logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
             shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
             context[context_key_changes_made] = True
         self.write_chart_yaml(chart_yaml_path, chart_yaml)
@@ -645,7 +646,7 @@ class HelmChartMetadataFinalizer(BuildStep):
         return {STEP_METADATA}
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
         if self._key_upstream_chart_url in chart_yaml and self._key_upstream_chart_version not in chart_yaml:
@@ -670,7 +671,7 @@ class HelmChartMetadataFinalizer(BuildStep):
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
         meta = {}
-        chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
         # mandatory metadata
@@ -706,7 +707,7 @@ class HelmChartYAMLRestorer(BuildStep):
             "--keep-chart-changes",
             required=False,
             action="store_true",
-            help=f"Should the changes made in {_chart_yaml} be kept",
+            help=f"Should the changes made in {CHART_YAML} be kept",
         )
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
@@ -720,11 +721,11 @@ class HelmChartYAMLRestorer(BuildStep):
         has_build_failed: bool,
     ) -> None:
         if config.keep_chart_changes:
-            logger.info(f"Skipping restore of {_chart_yaml}.")
+            logger.info(f"Skipping restore of {CHART_YAML}.")
             return
         if context_key_changes_made in context and context[context_key_changes_made]:
-            logger.info(f"Restoring backup {_chart_yaml}.back to {_chart_yaml}")
-            chart_yaml_path = os.path.join(config.chart_dir, _chart_yaml)
+            logger.info(f"Restoring backup {CHART_YAML}.back to {CHART_YAML}")
+            chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
             shutil.move(chart_yaml_path + ".back", chart_yaml_path)
         if context_key_chart_lock_files_to_restore in context and context[context_key_chart_lock_files_to_restore]:
             for file_name in context[context_key_chart_lock_files_to_restore]:

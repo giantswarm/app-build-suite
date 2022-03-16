@@ -1,10 +1,9 @@
 import argparse
 import os
 
+from app_build_suite.build_steps.helm_consts import VALUES_SCHEMA_JSON
+
 
 class HasValuesSchema:
-
-    _VALUES_SCHEMA_JSON = "values.schema.json"
-
     def validate(self, config: argparse.Namespace) -> bool:
-        return os.path.exists(os.path.join(config.chart_dir, self._VALUES_SCHEMA_JSON))
+        return os.path.exists(os.path.join(config.chart_dir, VALUES_SCHEMA_JSON))
