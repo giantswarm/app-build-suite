@@ -26,9 +26,12 @@ class HasValuesSchema:
 
 class HasTeamLabel:
 
+    escaped_label = re.escape(GS_TEAM_LABEL_KEY)
     _label_regexp = (
-        f'{GS_TEAM_LABEL_KEY}:[ \t]+{{[ \t]*index[ \t]+.Chart.Annotations[ \t]+"{GS_TEAM_LABEL_KEY}"[ '
-        f"\t]*|[ \t]*quote }} "
+        escaped_label
+        + r':[ \t]+{{[ \t]*index[ \t]+\.Chart\.Annotations[ \t]+"'
+        + escaped_label
+        + r'"[ \t]*\|[ \t]*quote[ \t]*}}[ \t]*'
     )
 
     def validate(self, config: argparse.Namespace) -> bool:
@@ -46,7 +49,7 @@ class HasTeamLabel:
             logger.info(f"'{GS_TEAM_LABEL_KEY}' annotation not found in '{CHART_YAML}'.")
             return False
 
-        # check if team label is non empty
+        # check if team label is not empty
         if chart_yaml[ANNOTATIONS_KEY][GS_TEAM_LABEL_KEY] is None:
             logger.info(f"'{GS_TEAM_LABEL_KEY}' is present in '{CHART_YAML}', but it's empty.")
             return False
@@ -59,7 +62,8 @@ class HasTeamLabel:
             try:
                 helpers_yaml_lines = stream.readlines()
             except OSError as exc:
-                raise GiantSwarmValidatorError(f"Error reading file '{helpers_file_path}'. Error: {exc}.")
+                logger.warning(f"Error reading file '{helpers_file_path}'. Error: {exc}.")
+                return False
         label_regexp = re.compile(self._label_regexp)
         if any(label_regexp.match(line) for line in helpers_yaml_lines):
             return True
