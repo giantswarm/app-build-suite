@@ -1,4 +1,4 @@
-FROM quay.io/giantswarm/python:3.8.12-slim AS binaries
+FROM quay.io/giantswarm/python:3.10.3-slim AS binaries
 
 ARG HELM_VER="3.7.0"
 ARG CT_VER="3.4.0"
@@ -18,7 +18,7 @@ COPY container-entrypoint.sh /binaries
 RUN chmod +x /binaries/*
 
 
-FROM quay.io/giantswarm/python:3.8.12-slim AS base
+FROM quay.io/giantswarm/python:3.10.3-slim AS base
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
