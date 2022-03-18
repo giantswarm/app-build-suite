@@ -772,6 +772,12 @@ class GiantSwarmHelmValidator(BuildStep):
             help="If strict mode is enabled, the build fails when any validation rule fails; otherwise, a WARN is "
             "given",
         )
+        config_parser.add_argument(
+            "--giantswarm-validator-ignored-checks",
+            required=False,
+            default="",
+            help="Comma-separated list of Giant Swarm validation checks to ignore even if they fail",
+        )
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """Runs a set of Giant Swarm specific validations."""
@@ -781,14 +787,20 @@ class GiantSwarmHelmValidator(BuildStep):
 
         gs_validators = self._load_giant_swarm_validators()
 
+        ignore_list: List[str] = []
+        ignore_str_list: List[str] = config.giantswarm_validator_ignored_checks.split(",")
+        for name in ignore_str_list:
+            n = name.strip()
+            ignore_list.append(n)
+
         for validator in gs_validators:
             validator_name = type(validator).__name__
-            logger.info(f"Running Giant Swarm validator '{validator_name}'.")
+            logger.info(f"Running Giant Swarm validator '{validator.get_check_code()}: {validator_name}'.")
             if validator.validate(config):
-                logger.debug(f"Giant Swarm validator '{validator_name}' is OK.")
+                logger.debug(f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' is OK.")
             else:
-                msg = f"Giant Swarm validator '{validator_name}' failed its checks."
-                if config.enable_strict_giantswarm_validator:
+                msg = f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' failed its checks."
+                if config.enable_strict_giantswarm_validator and validator.get_check_code() not in ignore_list:
                     raise ValidationError(self.name, msg)
                 else:
                     logger.warning(msg)
