@@ -14,6 +14,12 @@ from urllib.parse import urlsplit
 import configargparse
 import validators
 import yaml
+from step_exec_lib.errors import ValidationError
+from step_exec_lib.steps import BuildStep, BuildStepsFilteringPipeline
+from step_exec_lib.types import Context, StepType
+from step_exec_lib.utils.files import get_file_sha256
+from step_exec_lib.utils.git import GitRepoVersionInfo
+from step_exec_lib.utils.processes import run_and_log
 
 from app_build_suite.build_steps.helm_consts import (
     CHART_YAML_APP_VERSION_KEY,
@@ -25,12 +31,6 @@ from app_build_suite.build_steps.helm_consts import (
 )
 from app_build_suite.build_steps.steps import STEP_BUILD, STEP_VALIDATE, STEP_STATIC_CHECK, STEP_METADATA
 from app_build_suite.errors import BuildError
-from step_exec_lib.errors import ValidationError
-from step_exec_lib.steps import BuildStep, BuildStepsFilteringPipeline
-from step_exec_lib.types import Context, StepType
-from step_exec_lib.utils.files import get_file_sha256
-from step_exec_lib.utils.git import GitRepoVersionInfo
-from step_exec_lib.utils.processes import run_and_log
 
 logger = logging.getLogger(__name__)
 
@@ -741,6 +741,9 @@ class GiantSwarmValidator(Protocol):
     def validate(self, config: argparse.Namespace) -> bool:
         ...
 
+    def get_check_code(self) -> str:
+        ...
+
 
 class GiantSwarmHelmValidator(BuildStep):
     """
@@ -812,7 +815,14 @@ class GiantSwarmHelmValidator(BuildStep):
                 for attr in dir(module):
                     cls = getattr(module, attr)
                     if isinstance(cls, type) and issubclass(cls, GiantSwarmValidator):
-                        gs_validators.append(cls())
+                        new_validator = cls()
+                        if new_validator.get_check_code() in (c.get_check_code() for c in gs_validators):
+                            raise ValidationError(
+                                self.name,
+                                f"Found more than 1 Giant Swarm validator with check code "
+                                f"'{new_validator.get_check_code()}'. Check codes have to be unique.",
+                            )
+                        gs_validators.append(new_validator)
         return gs_validators
 
     def run(self, config: argparse.Namespace, context: Context) -> None:

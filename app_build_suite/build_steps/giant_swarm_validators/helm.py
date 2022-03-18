@@ -1,3 +1,10 @@
+"""
+General idea for naming validation checks:
+- comply to 1 letter + 4 digits pattern
+- check types and first letters:
+  - file system layout and structure: "F"
+  - Chart.yaml related problems "C"
+"""
 import argparse
 import logging
 import os
@@ -20,6 +27,9 @@ class GiantSwarmValidatorError(Error):
 
 
 class HasValuesSchema:
+    def get_check_code(self) -> str:
+        return "F0001"
+
     def validate(self, config: argparse.Namespace) -> bool:
         return os.path.exists(os.path.join(config.chart_dir, VALUES_SCHEMA_JSON))
 
@@ -33,6 +43,9 @@ class HasTeamLabel:
         + escaped_label
         + r'"[ \t]*\|[ \t]*quote[ \t]*}}[ \t]*'
     )
+
+    def get_check_code(self) -> str:
+        return "C0001"
 
     def validate(self, config: argparse.Namespace) -> bool:
         chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
