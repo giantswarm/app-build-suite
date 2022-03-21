@@ -38,7 +38,8 @@ class HasTeamLabel:
 
     escaped_label = re.escape(GS_TEAM_LABEL_KEY)
     _label_regexp = (
-        escaped_label
+        r"[ \t]*"
+        + escaped_label
         + r':[ \t]+{{[ \t]*index[ \t]+\.Chart\.Annotations[ \t]+"'
         + escaped_label
         + r'"[ \t]*\|[ \t]*quote[ \t]*}}[ \t]*'
