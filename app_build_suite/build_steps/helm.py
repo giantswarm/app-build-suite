@@ -791,7 +791,8 @@ class GiantSwarmHelmValidator(BuildStep):
         ignore_str_list: List[str] = config.giantswarm_validator_ignored_checks.split(",")
         for name in ignore_str_list:
             n = name.strip()
-            ignore_list.append(n)
+            if n:
+                ignore_list.append(n)
 
         for validator in gs_validators:
             validator_name = type(validator).__name__
