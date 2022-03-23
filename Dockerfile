@@ -1,7 +1,7 @@
-FROM quay.io/giantswarm/python:3.8.12-slim AS binaries
+FROM quay.io/giantswarm/python:3.10.3-slim AS binaries
 
-ARG HELM_VER="3.7.0"
-ARG CT_VER="3.4.0"
+ARG HELM_VER="3.8.1"
+ARG CT_VER="3.5.1"
 ARG KUBELINTER_VER="0.2.2"
 
 RUN apt-get update && apt-get install --no-install-recommends -y wget \
@@ -18,14 +18,14 @@ COPY container-entrypoint.sh /binaries
 RUN chmod +x /binaries/*
 
 
-FROM quay.io/giantswarm/python:3.8.12-slim AS base
+FROM quay.io/giantswarm/python:3.10.3-slim AS base
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONFAULTHANDLER=1 \
     ABS_DIR="/abs" \
-    PIPENV_VER="2020.11.15"
+    PIPENV_VER="2022.1.8"
 
 RUN pip install --no-cache-dir pipenv==${PIPENV_VER}
 
@@ -46,8 +46,8 @@ RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --clear
 
 FROM base
 
-ARG CT_YAMALE_VER="3.0.4"
-ARG CT_YAMLLINT_VER="1.25.0"
+ARG CT_YAMALE_VER="4.0.2"
+ARG CT_YAMLLINT_VER="1.26.3"
 
 ENV USE_UID=0 \
     USE_GID=0 \

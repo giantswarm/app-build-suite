@@ -161,7 +161,7 @@ class HelmChartToolLinter(BuildStep):
         return {STEP_VALIDATE}
 
     _ct_bin = "ct"
-    _min_ct_version = "3.3.1"
+    _min_ct_version = "3.5.1"
     _max_ct_version = "4.0.0"
     _metadata_schema = "gs_metadata_chart_schema.yaml"
 
@@ -254,7 +254,7 @@ class KubeLinter(BuildStep):
         return {STEP_STATIC_CHECK}
 
     _kubelinter_bin = "kube-linter"
-    _min_kubelinter_version = "0.1.6"
+    _min_kubelinter_version = "0.2.2"
     _max_kubelinter_version = "0.3.0"
     _default_kubelinter_cfg_file = ".kube-linter.yaml"
 
@@ -322,7 +322,7 @@ class HelmRequirementsUpdater(BuildStep):
     """
 
     _helm_bin = "helm"
-    _min_helm_version = "3.5.2"
+    _min_helm_version = "3.8.1"
     _max_helm_version = "4.0.0"
 
     @property

@@ -9,6 +9,9 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 - Changed
   - Enabling `kube-linter` verbose output by default
+  - Upgrade Helm to 3.8.1
+  - Upgrade python to 3.10.3
+  - Upgrade chart-testing to 3.5.1
 
 ## [1.0.4] - 2021-09-21
 
