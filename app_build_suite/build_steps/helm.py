@@ -258,7 +258,7 @@ class KubeLinter(BuildStep):
         return {STEP_STATIC_CHECK}
 
     _kubelinter_bin = "kube-linter"
-    _min_kubelinter_version = "0.2.2"
+    _min_kubelinter_version = "0.2.5"
     _max_kubelinter_version = "0.3.0"
     _default_kubelinter_cfg_file = ".kube-linter.yaml"
 
