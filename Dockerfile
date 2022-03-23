@@ -2,7 +2,7 @@ FROM quay.io/giantswarm/python:3.10.3-slim AS binaries
 
 ARG HELM_VER="3.8.1"
 ARG CT_VER="3.5.1"
-ARG KUBELINTER_VER="0.2.2"
+ARG KUBELINTER_VER="0.2.5"
 
 RUN apt-get update && apt-get install --no-install-recommends -y wget \
     && mkdir -p /binaries \
