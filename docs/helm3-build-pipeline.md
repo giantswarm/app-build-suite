@@ -13,7 +13,8 @@ Helm 3 build pipeline executes in sequence the following set of steps:
      - `--replace-chart-version-with-git`:
                         should the `version` in `Chart.yaml  be replaced by a tag and hash from git
 3. HelmChartToolLinter: this step runs the [`ct`](https://github.com/helm/chart-testing) (aka. `chart-testing`)
-   This tool runs validation and linting of YAML files included in your chart.
+   This tool runs validation and linting of YAML files included in your chart. The tool is configurable on its own:
+   [config reference](https://github.com/helm/chart-testing#configuration).
    - config options:
      - `--ct-config`:
                         path to optional `ct`'s tool config file.
@@ -44,3 +45,18 @@ Helm 3 build pipeline executes in sequence the following set of steps:
    HelmGitVersionSetter).
    - config options:
      - `--keep-chart-changes` should the changes made in Chart.yaml be kept
+9. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we want
+   to enforce as company policy.
+   Currently, supports the following checks
+   ([have a look at the code for details](../app_build_suite/build_steps/giant_swarm_validators/helm.py):
+   - `HasValuesSchema` - checks if the `values.schema.json` file is present,
+   - `HasTeamLabel` - a bit naive check if the team label is present (it only checks for the correct definition
+     in `Chart.yaml` and then if the `_templates.yaml` is present and the recommended line is there). Check
+     [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
+
+   Available config options:
+     - `--enable-giantswarm-helm-validator` - enabled by default, can disable the whole module,
+     - `--enable-strict-giantswarm-validator` - true by default, it means the build will fail if any validation
+     rule fails,
+     - `--giantswarm-validator-ignored-checks` - each check has its own ID which is printed during build; if you
+     want to ignore a subset of checks, put a comma separated list here.

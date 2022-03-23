@@ -148,8 +148,11 @@ When you run `dabs.sh -h` it shows you command line options and the relevant env
 for a config file are the same as for command line, just with truncated leading `--`. You can check
 [this example](examples/apps/hello-world-app/.abs/main.yaml).
 
-The configuration is made this way so you can put your defaults into the config file, yet override them with
+The configuration is made this way, so you can put your defaults into the config file, yet override them with
 env variables or command line when needed. This way you can easily override configs for stuff like CI/CD builds.
+
+Tools included in `app-build-suite` can have their own, tool-specific config files. Refer to
+[build pipeline steps](docs/helm3-build-pipeline.md) to learn more.
 
 ## Execution steps details and configuration
 
