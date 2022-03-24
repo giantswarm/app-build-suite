@@ -1,6 +1,6 @@
-# Helm 3 build engine steps
+# Helm build engine steps
 
-Helm 3 build pipeline executes in sequence the following set of steps:
+Helm build pipeline executes in sequence the following set of steps:
 
 1. HelmBuilderValidator: a simple step that checks if the build folder contains a Helm chart.
    - config options: none
