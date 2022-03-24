@@ -3,13 +3,11 @@ kind: Service
 metadata:
   name: {{ tpl .Values.resource.default.name . }}-service
   labels:
-    app: {{ tpl .Values.resource.default.name . }}
+    {{- include "hello-world-app.labels" . | nindent 4 }}
 spec:
-  selector:
-    app: {{ tpl .Values.resource.default.name . }}
-    color: {{ .Values.color }}
-
+  type: ClusterIP
   ports:
-    - protocol: TCP
-      port: 80
-      targetPort: 8000
+  - port: 8080
+    protocol: TCP
+  selector:
+    {{- include "hello-world-app.selectorLabels" . | nindent 4 }}

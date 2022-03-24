@@ -1,19 +1,50 @@
 {
-  "$schema": "https://json-schema.org/draft/2019-09/schema",
-  "type": "object",
-
-  "required": [
-    "color"
-  ],
-
-  "properties": {
-    "color": {
-      "type": "string",
-      "enum": ["red", "blue", "green"]
-    },
-    "oldColor": {
-      "type": "string",
-      "deprecated": true
+    "$schema": "http://json-schema.org/schema#",
+    "type": "object",
+    "properties": {
+        "deployment": {
+            "type": "object",
+            "properties": {
+                "replicas": {
+                    "type": "integer"
+                }
+            }
+        },
+        "hostname": {
+            "type": "string"
+        },
+        "image": {
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string"
+                },
+                "registry": {
+                    "type": "string"
+                },
+                "tag": {
+                    "type": "string"
+                }
+            }
+        },
+        "ingressClassName": {
+            "type": "string"
+        },
+        "obtainTLSCertificate": {
+            "type": "boolean"
+        },
+        "resource": {
+            "type": "object",
+            "properties": {
+                "default": {
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
     }
-  }
 }

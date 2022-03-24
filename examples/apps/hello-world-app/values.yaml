@@ -1,11 +1,17 @@
-color: red
-oldColor: green
-
 image:
   registry: 'quay.io'
-  name: 'giantswarm/hello-world-app'
-  tag: '0.0.1'
+  name: 'giantswarm/helloworld'
+  tag: '0.2.0'
 
 resource:
   default:
-    name: '{{ .Release.Name  }}'
+    name: '{{ .Release.Name }}'
+
+deployment:
+  replicas: 1
+
+hostname: helloworld.clusterid.k8s.installation.region.provider.gigantic.io
+
+obtainTLSCertificate: false
+
+ingressClassName: nginx

@@ -1,10 +1,13 @@
+import argparse
 import os.path
 import re
-from typing import Dict, Any
+from typing import Dict, Any, List
 from unittest.mock import mock_open, patch
 
 import yaml
 import pytest
+from pytest_mock import MockerFixture
+from step_exec_lib.errors import ValidationError
 
 import app_build_suite
 from app_build_suite.build_steps.helm import (
@@ -15,6 +18,7 @@ from app_build_suite.build_steps.helm import (
     context_key_meta_dir_path,
     context_key_git_version,
     context_key_changes_made,
+    GiantSwarmHelmValidator,
 )
 from tests.build_steps.helpers import init_config_for_step
 
@@ -118,3 +122,73 @@ def test_format_timestamp_to_match_helms() -> None:
     ts_str = HelmChartMetadataFinalizer.get_build_timestamp()
     ts_regex = re.compile("^[0-9]{4}-(1[0-2]|0[1-9])-[0-3][0-9]T[0-2][0-9]:[0-5][0-9]:[0-5][0-9](.[0-9]+)?Z?$")
     assert ts_regex.fullmatch(ts_str)
+
+
+class GiantSwarmTestValidator:
+    def __init__(self, valid: bool, check_code: str) -> None:
+        self.check_code = check_code
+        self.valid = valid
+        self.validate_called = False
+
+    def validate(self, config: argparse.Namespace) -> bool:
+        self.validate_called = True
+        return self.valid
+
+    def get_check_code(self) -> str:
+        return self.check_code
+
+
+@pytest.mark.parametrize(
+    "validators,expected_exception,strict_mode,ignore_list",
+    [
+        ([GiantSwarmTestValidator(True, "W1")], False, True, ""),
+        ([GiantSwarmTestValidator(False, "W1")], True, True, ""),
+        ([GiantSwarmTestValidator(False, "W1")], False, True, "W1"),
+        ([GiantSwarmTestValidator(False, "W1")], False, False, ""),
+        (
+            [
+                GiantSwarmTestValidator(True, "W1"),
+                GiantSwarmTestValidator(True, "W2"),
+                GiantSwarmTestValidator(False, "W3"),
+            ],
+            True,
+            True,
+            "",
+        ),
+    ],
+    ids=[
+        "single valid",
+        "single invalid",
+        "failed in ignored",
+        "failed in non-strict mode",
+        "multiple with one invalid",
+    ],
+)
+def test_giant_swarm_validator(
+    validators: List[GiantSwarmTestValidator],
+    expected_exception: bool,
+    strict_mode: bool,
+    ignore_list: str,
+    mocker: MockerFixture,
+) -> None:
+    step = GiantSwarmHelmValidator()
+    config = init_config_for_step(step)
+    config.enable_strict_giantswarm_validator = strict_mode
+    config.giantswarm_validator_ignored_checks = ignore_list
+
+    loader_mock = mocker.Mock(name="loader", return_value=validators)
+    mocker.patch.object(step, "_load_giant_swarm_validators", loader_mock)
+
+    try:
+        step.pre_run(config)
+    except ValidationError as ve:
+        if not expected_exception:
+            raise
+        assert ve.source == "GiantSwarmHelmValidator"
+        failed_regex = re.match(r"Giant Swarm validator '(\w+): GiantSwarmTestValidator' failed its checks\.", ve.msg)
+        if not failed_regex:
+            raise ValueError("Failed to find expected text in the raised exception")
+        expected_to_fail = set(v.check_code for v in validators if not v.valid)
+        assert failed_regex.group(1) in expected_to_fail
+
+    assert all(v.validate_called for v in validators)

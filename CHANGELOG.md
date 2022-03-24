@@ -6,6 +6,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 - Added
   - Add `push-to-app-catalog` GitHub Action
+  - `GiantSwarmHelmValidator` - executes Giant Swarm specific validation rules
 
 - Changed
   - Enabling `kube-linter` verbose output by default

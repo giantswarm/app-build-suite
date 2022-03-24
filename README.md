@@ -32,6 +32,7 @@ for running dynamic (run-time) tests on charts built.
   - [Installation](#installation)
   - [Tutorial](#tutorial)
   - [Quick start](#quick-start)
+  - [GitHub Action](#github-action)
   - [A command wrapper on steroids](#a-command-wrapper-on-steroids)
   - [Full usage help](#full-usage-help)
 - [Tuning app-build-suite execution and running parts of the build process](#tuning-app-build-suite-execution-and-running-parts-of-the-build-process)
@@ -148,8 +149,11 @@ When you run `dabs.sh -h` it shows you command line options and the relevant env
 for a config file are the same as for command line, just with truncated leading `--`. You can check
 [this example](examples/apps/hello-world-app/.abs/main.yaml).
 
-The configuration is made this way so you can put your defaults into the config file, yet override them with
+The configuration is made this way, so you can put your defaults into the config file, yet override them with
 env variables or command line when needed. This way you can easily override configs for stuff like CI/CD builds.
+
+Tools included in `app-build-suite` can have their own, tool-specific config files. Refer to
+[build pipeline steps](docs/helm3-build-pipeline.md) to learn more.
 
 ## Execution steps details and configuration
 
@@ -157,8 +161,8 @@ When `abs` runs, it executes all the steps from the *build* pipeline. Config opt
 disable/enable any specific build steps.
 Please check below for available steps and their config options.
 
-Currently, only one build pipeline is supported. It is based on `helm 3`. Please check
-[this doc](../app-build-suite/docs/helm3-build-pipeline.md) for
+Currently, only one build pipeline is supported. It is based on `helm`. Please check
+[this doc](../app-build-suite/docs/helm-build-pipeline.md) for
 detailed description of steps and available config options.
 
 ## How to contribute
