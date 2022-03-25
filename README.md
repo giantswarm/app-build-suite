@@ -64,7 +64,7 @@ please start with [tutorial](docs/tutorial.md).
 
 Executing `dabs.sh` is the most straight forward way to run `app-build-suite`.
 As an example, we have included a chart in this repository in
-[`examples/apps/hello-world-app`](examples/apps/hello-world-app/). It's configuration file for
+[`examples/apps/hello-world-app`](examples/apps/hello-world-app). It's configuration file for
 `abs` is in the [.abs/main.yaml](examples/apps/hello-world-app/.abs/main.yaml) file. To build the chart
 using `dabs.sh` and the provided config file, run:
 
@@ -153,7 +153,7 @@ The configuration is made this way, so you can put your defaults into the config
 env variables or command line when needed. This way you can easily override configs for stuff like CI/CD builds.
 
 Tools included in `app-build-suite` can have their own, tool-specific config files. Refer to
-[build pipeline steps](docs/helm3-build-pipeline.md) to learn more.
+[build pipeline steps](docs/helm-build-pipeline.md) to learn more.
 
 ## Execution steps details and configuration
 
