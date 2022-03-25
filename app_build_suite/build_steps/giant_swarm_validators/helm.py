@@ -13,7 +13,13 @@ import re
 import yaml
 from step_exec_lib.errors import Error
 
-from app_build_suite.build_steps.helm_consts import VALUES_SCHEMA_JSON, CHART_YAML, TEMPLATES_DIR, HELPERS_YAML
+from app_build_suite.build_steps.helm_consts import (
+    VALUES_SCHEMA_JSON,
+    CHART_YAML,
+    TEMPLATES_DIR,
+    HELPERS_YAML,
+    HELPERS_TPL,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -68,10 +74,8 @@ class HasTeamLabel:
             logger.info(f"'{GS_TEAM_LABEL_KEY}' is present in '{CHART_YAML}', but it's empty.")
             return False
 
-        # Check if _helpers.yaml exists and uses team label
-        helpers_file_path = os.path.join(config.chart_dir, TEMPLATES_DIR, HELPERS_YAML)
-        if not os.path.exists(helpers_file_path):
-            raise GiantSwarmValidatorError(f"Can't find file '{helpers_file_path}'.")
+        # Check if _helpers.yaml or _helpers.tpl exists and uses team label
+        helpers_file_path = self.get_helpers_file_path(config)
         with open(helpers_file_path, "r") as stream:
             try:
                 helpers_yaml_lines = stream.readlines()
@@ -84,3 +88,13 @@ class HasTeamLabel:
         logger.info(f"The expected team label not found in '{helpers_file_path}'.")
         logger.info(f"'{helpers_file_path}' must contain a line that matches the regexp '{label_regexp}'.")
         return False
+
+    def get_helpers_file_path(self, config: argparse.Namespace) -> str:
+        helpers_file_path = os.path.join(config.chart_dir, TEMPLATES_DIR, HELPERS_YAML)
+        if not os.path.exists(helpers_file_path):
+            helpers_file_path = os.path.join(config.chart_dir, TEMPLATES_DIR, HELPERS_TPL)
+            if not os.path.exists(helpers_file_path):
+                raise GiantSwarmValidatorError(
+                    f"Template file '{HELPERS_YAML}' or '{HELPERS_TPL}' not found in " f"'{TEMPLATES_DIR}' directory."
+                )
+        return helpers_file_path
