@@ -4,6 +4,9 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- Fixed
+  - Giant Swarm validator config options were not really working
+
 ## [1.1.1] - 2022-03-24
 
 - Added

@@ -55,8 +55,8 @@ Helm build pipeline executes in sequence the following set of steps:
      [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
 
    Available config options:
-     - `--enable-giantswarm-helm-validator` - enabled by default, can disable the whole module,
-     - `--enable-strict-giantswarm-validator` - true by default, it means the build will fail if any validation
-     rule fails,
+     - `--disable-giantswarm-helm-validator` - enabled by default, can disable the whole module,
+     - `--disable-strict-giantswarm-validator` - enabled by default, it means the build will fail if any validation
+     rule fails; if disabled, build won't fail even if rules will,
      - `--giantswarm-validator-ignored-checks` - each check has its own ID which is printed during build; if you
      want to ignore a subset of checks, put a comma separated list here.

@@ -757,19 +757,19 @@ class GiantSwarmHelmValidator(BuildStep):
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
             "-g",
-            "--enable-giantswarm-helm-validator",
+            "--disable-giantswarm-helm-validator",
             required=False,
-            default=True,
+            default=False,
             action="store_true",
             help="Should Giant Swarm specific validation be enabled",
         )
         config_parser.add_argument(
             "-s",
-            "--enable-strict-giantswarm-validator",
+            "--disable-strict-giantswarm-validator",
             required=False,
-            default=True,
+            default=False,
             action="store_true",
-            help="If strict mode is enabled, the build fails when any validation rule fails; otherwise, a WARN is "
+            help="If strict mode is disabled, the build won't fail when a validation rule fails; otherwise, a WARN is "
             "given",
         )
         config_parser.add_argument(
@@ -781,7 +781,7 @@ class GiantSwarmHelmValidator(BuildStep):
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """Runs a set of Giant Swarm specific validations."""
-        if not config.enable_giantswarm_helm_validator:
+        if config.disable_giantswarm_helm_validator:
             logger.debug("Not running Giant Swarm specific chart validation.")
             return
 
@@ -801,7 +801,7 @@ class GiantSwarmHelmValidator(BuildStep):
                 logger.debug(f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' is OK.")
             else:
                 msg = f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' failed its checks."
-                if config.enable_strict_giantswarm_validator and validator.get_check_code() not in ignore_list:
+                if not config.disable_strict_giantswarm_validator and validator.get_check_code() not in ignore_list:
                     raise ValidationError(self.name, msg)
                 else:
                     logger.warning(msg)
