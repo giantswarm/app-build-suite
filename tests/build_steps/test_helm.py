@@ -173,7 +173,7 @@ def test_giant_swarm_validator(
 ) -> None:
     step = GiantSwarmHelmValidator()
     config = init_config_for_step(step)
-    config.enable_strict_giantswarm_validator = strict_mode
+    config.disable_strict_giantswarm_validator = not strict_mode
     config.giantswarm_validator_ignored_checks = ignore_list
 
     loader_mock = mocker.Mock(name="loader", return_value=validators)
