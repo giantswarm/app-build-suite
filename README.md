@@ -18,7 +18,7 @@ This tool is a Helm charts development and CI/CD tool that allows you to:
 In short, it runs an opinionated Helm chart build process as a single configurable build step (one step
 build`).
 
-It has a companion tool called [app-test-suite](https://github.com/giantswarm/app-build-suite)
+It has a companion tool called [app-test-suite](https://github.com/giantswarm/app-test-suite)
 for running dynamic (run-time) tests on charts built.
 
 ---
