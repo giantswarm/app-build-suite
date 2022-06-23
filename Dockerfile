@@ -3,7 +3,7 @@ FROM quay.io/giantswarm/python:3.10.3-slim AS binaries
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VER=v3.8.1
 # renovate: datasource=github-releases depName=helm/chart-testing
-ARG CT_VER=v3.5.1
+ARG CT_VER=v3.6.0
 # renovate: datasource=github-releases depName=stackrox/kube-linter
 ARG KUBELINTER_VER=v0.2.5
 
