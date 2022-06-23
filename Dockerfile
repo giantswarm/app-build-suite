@@ -1,5 +1,6 @@
 FROM quay.io/giantswarm/python:3.10.3-slim AS binaries
 
+# renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VER="3.8.1"
 ARG CT_VER="3.5.1"
 ARG KUBELINTER_VER="0.2.5"
