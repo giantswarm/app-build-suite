@@ -94,7 +94,7 @@ jobs:
 
             mkdir ~/bin
 
-            wget -qO - https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz | \
+            wget -qO - https://get.helm.sh/helm-${HELM_VER}-linux-amd64.tar.gz | \
               tar -C ~/bin --strip-components 1 -xvzf - linux-amd64/helm
 
             wget -qO- "https://github.com/koalaman/shellcheck/releases/download/latest/shellcheck-latest.linux.x86_64.tar.xz" | \
