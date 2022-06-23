@@ -1,19 +1,19 @@
 FROM quay.io/giantswarm/python:3.10.3-slim AS binaries
 
 # renovate: datasource=github-releases depName=helm/helm
-ARG HELM_VER=3.8.1
+ARG HELM_VER=v3.8.1
 # renovate: datasource=github-releases depName=helm/chart-testing
-ARG CT_VER=3.5.1
+ARG CT_VER=v3.5.1
 # renovate: datasource=github-releases depName=stackrox/kube-linter
-ARG KUBELINTER_VER=0.2.5
+ARG KUBELINTER_VER=v0.2.5
 
 RUN apt-get update && apt-get install --no-install-recommends -y wget \
     && mkdir -p /binaries \
-    && wget -qO - https://get.helm.sh/helm-v${HELM_VER}-linux-amd64.tar.gz | \
+    && wget -qO - https://get.helm.sh/helm-${HELM_VER}-linux-amd64.tar.gz | \
        tar -C /binaries --strip-components 1 -xvzf - linux-amd64/helm \
-    && wget -qO - https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER}_linux_amd64.tar.gz | \
+    && wget -qO - https://github.com/helm/chart-testing/releases/download/${CT_VER}/chart-testing_${CT_VER##v}_linux_amd64.tar.gz | \
        tar -C /binaries -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml && mv /binaries/etc /etc/ct \
-    && wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER}/kube-linter-linux.tar.gz | \
+    && wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER##v}/kube-linter-linux.tar.gz | \
        tar -C /binaries -xvzf -
 
 COPY container-entrypoint.sh /binaries
