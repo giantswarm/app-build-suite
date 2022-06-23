@@ -101,11 +101,11 @@ jobs:
               tar -xJv
             mv "shellcheck-latest/shellcheck" ~/bin/
 
-            wget -qO - https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER}_linux_amd64.tar.gz | \
+            wget -qO - https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER##v}_linux_amd64.tar.gz | \
               tar -C ~/bin -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml
             sudo mv ~/bin/etc /etc/ct
 
-            wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER}/kube-linter-linux.tar.gz | \
+            wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER##v}/kube-linter-linux.tar.gz | \
               tar -C ~/bin -xvzf -
 
             pipenv install --deploy --clear --dev
