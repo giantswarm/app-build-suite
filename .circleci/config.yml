@@ -83,7 +83,7 @@ jobs:
 
   run-tests:
     docker:
-      - image: cimg/python:3.10.4
+      - image: ubuntu-2004:202010-01
     steps:
       - checkout
 
