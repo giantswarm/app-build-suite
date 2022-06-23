@@ -1,11 +1,11 @@
 FROM quay.io/giantswarm/python:3.10.3-slim AS binaries
 
 # renovate: datasource=github-releases depName=helm/helm
-ARG HELM_VER="3.8.1"
+ARG HELM_VER=3.8.1
 # renovate: datasource=github-releases depName=helm/chart-testing
-ARG CT_VER="3.5.1"
+ARG CT_VER=3.5.1
 # renovate: datasource=github-releases depName=stackrox/kube-linter
-ARG KUBELINTER_VER="0.2.5"
+ARG KUBELINTER_VER=0.2.5
 
 RUN apt-get update && apt-get install --no-install-recommends -y wget \
     && mkdir -p /binaries \
