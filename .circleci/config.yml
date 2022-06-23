@@ -88,38 +88,9 @@ jobs:
       - checkout
 
       - run:
-          name: Install test dependencies
-          command: |
-            eval $(sed -n 's|ARG|export|p' Dockerfile)
-
-            mkdir ~/bin
-
-            wget -qO - https://get.helm.sh/helm-${HELM_VER}-linux-amd64.tar.gz | \
-              tar -C ~/bin --strip-components 1 -xvzf - linux-amd64/helm
-
-            wget -qO- "https://github.com/koalaman/shellcheck/releases/download/latest/shellcheck-latest.linux.x86_64.tar.xz" | \
-              tar -xJv
-            mv "shellcheck-latest/shellcheck" ~/bin/
-
-            wget -qO - https://github.com/helm/chart-testing/releases/download/v${CT_VER}/chart-testing_${CT_VER##v}_linux_amd64.tar.gz | \
-              tar -C ~/bin -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml
-            sudo mv ~/bin/etc /etc/ct
-
-            wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER##v}/kube-linter-linux.tar.gz | \
-              tar -C ~/bin -xvzf -
-
-            pipenv install --deploy --clear --dev
-            pip install yamllint==${CT_YAMLLINT_VER} yamale==${CT_YAMALE_VER}
-
-      - run:
-          name: Lint code
-          command: |
-            pipenv run pre-commit run --all-files
-
-      - run:
           name: Execute tests
           command: |
-            make test-ci
+            make docker-test-ci
 
       - codecov/upload:
           file: .coverage/coverage.xml
