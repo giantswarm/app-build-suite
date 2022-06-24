@@ -259,7 +259,7 @@ class KubeLinter(BuildStep):
 
     _kubelinter_bin = "kube-linter"
     _min_kubelinter_version = "0.2.5"
-    _max_kubelinter_version = "0.3.0"
+    _max_kubelinter_version = "1.0.0"
     _default_kubelinter_cfg_file = ".kube-linter.yaml"
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
