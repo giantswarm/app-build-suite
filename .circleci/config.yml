@@ -82,7 +82,7 @@ jobs:
             - "circleci.Dockerfile"
 
   run-tests:
-    docker:
+    machine:
       - image: ubuntu-2004:202010-01
     steps:
       - checkout
