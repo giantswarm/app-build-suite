@@ -21,14 +21,5 @@
     "zricethezav/gitleaks-action",
     "actions/setup-go"
   ],
-  "schedule": [ "after 6am on thursday" ],
-  "regexManagers": [
-    {
-      "fileMatch": ["^Dockerfile$"],
-      "matchStrings": [
-        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\sARG .+_VER=(?<currentValue>.*)\\s"
-      ],
-      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
-    }
-  ]
+  "schedule": [ "after 6am on thursday" ]
 }
