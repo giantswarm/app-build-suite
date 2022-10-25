@@ -1,7 +1,9 @@
 """Main module. Loads configuration and executes main control loops."""
+import argparse
 import logging
 import os
 import sys
+from enum import Enum
 from typing import List, NewType
 
 import configargparse
@@ -12,7 +14,8 @@ from step_exec_lib.steps import (
 )
 from step_exec_lib.types import STEP_ALL
 
-from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline
+from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline, HelmValidateGiantSwarmPipeline, \
+    HelmBuilderValidator
 from step_exec_lib.errors import ConfigError
 from step_exec_lib.steps import Runner
 
@@ -27,6 +30,14 @@ BUILD_ENGINE_HELM3 = BuildEngineType("helm3")
 ALL_BUILD_ENGINES = [BUILD_ENGINE_HELM3]
 
 
+class Pipeline(Enum):
+    HELM_FULL = "helm-full"
+    HELM_VALIDATE_GIANTSWARM = "helm-validate-giantswarm"
+
+
+ALL_PIPELINES = [x.value for x in Pipeline]
+
+
 def get_version() -> str:
     try:
         from .version import build_ver
@@ -36,9 +47,15 @@ def get_version() -> str:
         return ver
 
 
-def get_pipeline() -> List[BuildStepsFilteringPipeline]:
+def get_pipeline(global_config: argparse.Namespace) -> List[BuildStepsFilteringPipeline]:
+    if global_config.pipeline == Pipeline.HELM_VALIDATE_GIANTSWARM.value:
+        return [
+            HelmBuilderValidator(),  # This is needed because defines the "-c" argument that is used in a lot of steps
+            HelmValidateGiantSwarmPipeline()
+        ]
+
+    # Default to the full pipeline to keep the original behaviour
     return [
-        # Todo: once we have more than 1 build or test engine, this has to be configurable
         HelmBuildFilteringPipeline(),
     ]
 
@@ -53,6 +70,14 @@ def configure_global_options(config_parser: configargparse.ArgParser) -> None:
         help="Enable debug messages.",
     )
     config_parser.add_argument("--version", action="version", version=f"{app_name} {get_version()}")
+    config_parser.add_argument(
+        "-p",
+        "--pipeline",
+        required=False,
+        default=Pipeline.HELM_FULL.value,
+        choices=ALL_PIPELINES,
+        help="Select the pipeline to run.",
+    )
     config_parser.add_argument(
         "-b",
         "--build-engine",
@@ -158,7 +183,7 @@ def main() -> None:
     if global_only_config.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    steps = get_pipeline()
+    steps = get_pipeline(global_only_config)
     config = get_config(steps)
     runner = Runner(config, steps)
     runner.run()

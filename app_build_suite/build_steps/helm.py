@@ -878,3 +878,17 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
             ],
             "Helm 3 build engine options",
         )
+
+
+class HelmValidateGiantSwarmPipeline(BuildStepsFilteringPipeline):
+    """
+    Pipeline that rns only the giantswarm specific Helm chart validations.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            [
+                GiantSwarmHelmValidator(),
+            ],
+            "Helm chart validation specific to Giant Swarm, e.g. ownership validations..."
+        )
