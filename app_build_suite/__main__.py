@@ -14,8 +14,11 @@ from step_exec_lib.steps import (
 )
 from step_exec_lib.types import STEP_ALL
 
-from app_build_suite.build_steps.helm import HelmBuildFilteringPipeline, HelmValidateGiantSwarmPipeline, \
-    HelmBuilderValidator
+from app_build_suite.build_steps.helm import (
+    HelmBuildFilteringPipeline,
+    HelmValidateGiantSwarmPipeline,
+    HelmBuilderValidator,
+)
 from step_exec_lib.errors import ConfigError
 from step_exec_lib.steps import Runner
 
@@ -51,7 +54,7 @@ def get_pipeline(global_config: argparse.Namespace) -> List[BuildStepsFilteringP
     if global_config.pipeline == Pipeline.HELM_VALIDATE_GIANTSWARM.value:
         return [
             HelmBuilderValidator(),  # This is needed because defines the "-c" argument that is used in a lot of steps
-            HelmValidateGiantSwarmPipeline()
+            HelmValidateGiantSwarmPipeline(),
         ]
 
     # Default to the full pipeline to keep the original behaviour

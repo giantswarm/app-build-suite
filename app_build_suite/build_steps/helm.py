@@ -890,5 +890,5 @@ class HelmValidateGiantSwarmPipeline(BuildStepsFilteringPipeline):
             [
                 GiantSwarmHelmValidator(),
             ],
-            "Helm chart validation specific to Giant Swarm, e.g. ownership validations..."
+            "Helm chart validation specific to Giant Swarm, e.g. ownership validations...",
         )
