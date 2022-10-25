@@ -171,6 +171,13 @@ class HelmChartToolLinter(BuildStep):
 
     def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
         config_parser.add_argument(
+            "--disable-chart-linter",
+            required=False,
+            default=False,
+            action="store_true",
+            help="Disable 'ct' chart linter.",
+        )
+        config_parser.add_argument(
             "--ct-config",
             required=False,
             help="Path to optional 'ct' lint config file.",
@@ -187,6 +194,10 @@ class HelmChartToolLinter(BuildStep):
         :param config: the config object
         :return: None
         """
+        if config.disable_chart_linter:
+            logger.debug("Not running chart linter pre-run step, skipped.")
+            return
+
         # verify if binary present
         self._assert_binary_present_in_path(self._ct_bin)
         # verify version
@@ -227,6 +238,10 @@ class HelmChartToolLinter(BuildStep):
             )
 
     def run(self, config: argparse.Namespace, _: Context) -> None:
+        if config.disable_chart_linter:
+            logger.debug("Not running chart linter build step, skipped.")
+            return
+
         args = [
             self._ct_bin,
             "lint",
