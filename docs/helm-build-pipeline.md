@@ -20,6 +20,16 @@ Helm build pipeline executes in sequence the following set of steps:
                         path to optional `ct`'s tool config file.
      - `--ct-schema`:
                         path to optional `ct` schema file.
+   If your chart is using external chart repositories for stuff like subcharts or dependencies, you might need
+   to configure `ct` to point to them: set `ct-config` to something like `./ct-config.yaml`, then create this
+   file and set content to (example for external "bitnami" chart repo):
+
+   ```yaml
+   ---
+   chart-repos:
+     - bitnami=https://charts.bitnami.com/bitnami
+   ```
+
 4. KubeLinter: this step runs [kube-linter](https://docs.kubelinter.io/) static chart verification tool.
    Make sure to check [kube-linter configuration docs](https://docs.kubelinter.io/#/configuring-kubelinter)
    to learn how to tune the verification to your taste or even
