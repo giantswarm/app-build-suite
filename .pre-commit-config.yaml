@@ -6,7 +6,7 @@ repos:
 
     # format Python code with black
     - repo: https://github.com/psf/black
-      rev: 22.6.0
+      rev: 22.8.0
       hooks:
           - id: black
             language_version: python3
@@ -34,12 +34,12 @@ repos:
 
     # static type checking with mypy
     - repo: https://github.com/pre-commit/mirrors-mypy
-      rev: v0.961
+      rev: v0.981
       hooks:
           - id: mypy
 
     - repo: https://github.com/pycqa/flake8
-      rev: '4.0.1'  # pick a git hash / tag to point to
+      rev: '5.0.4'  # pick a git hash / tag to point to
       hooks:
           - id: flake8
 
@@ -51,7 +51,7 @@ repos:
             args: [ --format=json ]
 
     - repo: https://github.com/igorshubovych/markdownlint-cli
-      rev: v0.31.1
+      rev: v0.32.2
       hooks:
           - id: markdownlint
 
