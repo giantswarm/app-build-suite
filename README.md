@@ -162,7 +162,7 @@ disable/enable any specific build steps.
 Please check below for available steps and their config options.
 
 Currently, only one build pipeline is supported. It is based on `helm`. Please check
-[this doc](../app-build-suite/docs/helm-build-pipeline.md) for
+[this doc](docs/helm-build-pipeline.md) for
 detailed description of steps and available config options.
 
 ## How to contribute
