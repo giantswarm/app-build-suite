@@ -51,7 +51,8 @@ annotations:
             # _helpers.yaml
             """
    {{- define "hello-world-app.labels" -}}
-   application.giantswarm.io/team: {{ index .Chart.Annotations "application.giantswarm.io/team" | default "honeybadger" | quote }}
+   application.giantswarm.io/team: """
+     + """{{ index .Chart.Annotations "application.giantswarm.io/team" | default "honeybadger" | quote }}
    {{- end }}""",
             True,
         ),
