@@ -61,7 +61,7 @@ Helm build pipeline executes in sequence the following set of steps:
    ([have a look at the code for details](../app_build_suite/build_steps/giant_swarm_validators/helm.py):
    - `HasValuesSchema` - checks if the `values.schema.json` file is present,
    - `HasTeamLabel` - a bit naive check if the team annotation is present (it only checks for the correct definition
-     in `Chart.yaml` and then if the `_templates.yaml` is present and the recommended label is there). Check
+     in `Chart.yaml` and then if the `_templates.yaml` is present and the recommended label is there) or is not empty. Check
      [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
 
    Available config options:
