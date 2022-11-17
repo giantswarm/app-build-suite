@@ -52,7 +52,7 @@ annotations:
             """
    {{- define "hello-world-app.labels" -}}
    application.giantswarm.io/team: """
-     + """{{ index .Chart.Annotations "application.giantswarm.io/team" | default "honeybadger" | quote }}
+            + """{{ index .Chart.Annotations "application.giantswarm.io/team" | default "honeybadger" | quote }}
    {{- end }}""",
             True,
         ),

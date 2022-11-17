@@ -45,22 +45,22 @@ for running dynamic (run-time) tests on charts built.
 ### Installation
 
 > IMPORTANT NOTE: we are planning to sunset `dabs.sh`, we recommend running locally as pure python.
-> 
+>
 > First, you need [pipenv](https://pipenv.pypa.io/en/latest/) to manage the virtual environment for ABS.
-> 
+>
 > ```shell
-> # Set up the virtual environment based on `Pipfile.lock`  
+> # Set up the virtual environment based on `Pipfile.lock`
 > pipenv install
-> 
+>
 > # Activate the virtual environment for the current shell
 > pipenv shell
-> 
+>
 > # Then simply run ABS commands with:
 > python -m app_build_suite --help
-> 
+>
 > # Example to run Helm Chart validations on a repository
 > python -m app_build_suite --step validate -c PATH_TO_HELM_CHART_ROOT
-> 
+>
 > All the examples below and under `docs` using `dabs.sh ...` can run with `python -m app_build_suite ...` too.
 > ```
 
