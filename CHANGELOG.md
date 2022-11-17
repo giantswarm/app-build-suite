@@ -4,6 +4,9 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- Added
+  - Add support for default teams in team annotation to support chart dependencies.
+
 ## [1.1.2] - 2022-03-25
 
 - Fixed

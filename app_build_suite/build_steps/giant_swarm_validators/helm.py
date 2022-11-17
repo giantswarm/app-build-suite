@@ -48,7 +48,7 @@ class HasTeamLabel:
         + escaped_label
         + r':[ \t]+{{[ \t]*index[ \t]+\.Chart\.Annotations[ \t]+"'
         + escaped_label
-        + r'"[ \t]*\|[ \t]*quote[ \t]*}}[ \t]*'
+        + r'"[ \t]*(\|[ \t]*default[ \t]+\"[a-zA-Z0-9]+\"[ \t]+){0,1}\|[ \t]*quote[ \t]*}}[ \t]*'
     )
 
     def get_check_code(self) -> str:

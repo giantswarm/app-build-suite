@@ -42,6 +42,19 @@ annotations:
    {{- end }}""",
             True,
         ),
+        # case: both files valid, helpers has default team, validation should pass
+        (
+            # Chart.yaml
+            """
+annotations:
+  application.giantswarm.io/team: 'honeybadger'""",
+            # _helpers.yaml
+            """
+   {{- define "hello-world-app.labels" -}}
+   application.giantswarm.io/team: {{ index .Chart.Annotations "application.giantswarm.io/team" | default "honeybadger" | quote }}
+   {{- end }}""",
+            True,
+        ),
         # case: team annotation present, but has no value; should fail
         (
             # Chart.yaml
