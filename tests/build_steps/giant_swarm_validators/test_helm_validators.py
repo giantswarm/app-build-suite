@@ -87,7 +87,13 @@ annotations:
             False,
         ),
     ],
-    ids=["both valid", "team label value missing", "team label name typo", "not used in _templates.yaml"],
+    ids=[
+        "both valid",
+        "valid with default team",
+        "team label value missing",
+        "team label name typo",
+        "not used in _templates.yaml",
+    ],
 )
 def test_has_team_label_validator(
     chart_yaml_input: str, templates_input: str, expected_result: bool, mocker: MockerFixture, config: Namespace

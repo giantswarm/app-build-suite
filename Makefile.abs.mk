@@ -19,7 +19,7 @@ __check_defined = \
 
 all: docker-build
 
-release: release_ver_to_code docker-build-image
+release: release_ver_to_code docker-build-image docker-test
 	git commit -am "Release ${TAG}"
 	git tag ${TAG}
 	mv dabs.sh.back dabs.sh
