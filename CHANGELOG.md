@@ -12,7 +12,6 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 - Changed
   - added support for the `default` team label value in validation
 
-
 ## [1.1.2] - 2022-03-25
 
 - Fixed
