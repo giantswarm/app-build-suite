@@ -36,7 +36,7 @@ jobs:
           token: ${{ secrets.envPAT }}
 
       - name: Execute app-build-suite
-        uses: docker://quay.io/giantswarm/app-build-suite:1.1.2
+        uses: docker://quay.io/giantswarm/app-build-suite:1.1.3
         with:
           args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/${{ inputs.app_catalog }}/" --destination app_catalog --keep-chart-changes --replace-chart-version-with-git
 
