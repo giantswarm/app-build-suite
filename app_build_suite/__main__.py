@@ -149,7 +149,7 @@ def get_config(steps: List[BuildStep]) -> configargparse.Namespace:
 
 
 def main() -> None:
-    log_format = "%(asctime)s %(name)s %(levelname)s: %(message)s"
+    log_format = "%(levelname)s: %(message)s"
     logging.basicConfig(format=log_format)
     logging.getLogger().setLevel(logging.INFO)
 
