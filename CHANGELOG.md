@@ -8,6 +8,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 - Added
   - Add support for default teams in team annotation to support chart dependencies.
+- Changed
+  - Remove timestamp, module name, and level from log template
 
 ## [1.1.3] - 2022-11-17
 
