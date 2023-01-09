@@ -64,7 +64,7 @@ class HasTeamLabel:
             try:
                 chart_yaml = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                raise GiantSwarmValidatorError(f"Error parsing YAML file '{chart_yaml}'. Error: {exc}.")
+                raise GiantSwarmValidatorError(f"Error parsing YAML file '{chart_yaml_path}'. Error: {exc}.")
         if ANNOTATIONS_KEY not in chart_yaml or GS_TEAM_LABEL_KEY not in chart_yaml[ANNOTATIONS_KEY]:
             logger.info(f"'{GS_TEAM_LABEL_KEY}' annotation not found in '{CHART_YAML}'.")
             return False
