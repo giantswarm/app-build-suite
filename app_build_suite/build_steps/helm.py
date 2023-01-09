@@ -7,9 +7,9 @@ import pathlib
 import shutil
 from datetime import datetime
 from os import listdir
-from sys import path
-from typing import List, Optional, Set, Protocol, runtime_checkable
+from typing import List, Optional, Set, Protocol, Tuple, Type, runtime_checkable
 from urllib.parse import urlsplit
+from importlib import import_module
 
 import configargparse
 import validators
@@ -814,28 +814,30 @@ class GiantSwarmHelmValidator(BuildStep):
 
         cur_mod_path = os.path.dirname(os.path.abspath(inspect.getfile(current_frame)))
         validators_mod_path = os.path.join(cur_mod_path, "giant_swarm_validators")
-        for modname in listdir(validators_mod_path):
-            if modname.endswith(".py"):
-                old_path, path[:] = path[:], [validators_mod_path]
-                try:
-                    module = __import__(modname[:-3])
-                except ImportError:
-                    logger.warning(f"Couldn't import Giant Swarm validation module '{modname}'.")
-                    continue
-                finally:  # always restore the real path
-                    path[:] = old_path
 
-                for attr in dir(module):
-                    cls = getattr(module, attr)
-                    if isinstance(cls, type) and issubclass(cls, GiantSwarmValidator):
-                        new_validator = cls()
-                        if new_validator.get_check_code() in (c.get_check_code() for c in gs_validators):
-                            raise ValidationError(
-                                self.name,
-                                f"Found more than 1 Giant Swarm validator with check code "
-                                f"'{new_validator.get_check_code()}'. Check codes have to be unique.",
-                            )
-                        gs_validators.append(new_validator)
+        cur_mod_name = __name__
+        validators_mod_name_prefix = cur_mod_name.replace("helm", "giant_swarm_validators.")
+
+        name_class_tuples: List[Tuple[str, Type]] = []
+
+        for modname in listdir(validators_mod_path):
+            if not modname.endswith(".py"):
+                continue
+
+            pkg = import_module(validators_mod_name_prefix + modname[:-3])
+            name_class_tuples = name_class_tuples + inspect.getmembers(pkg, inspect.isclass)
+
+        for _, cls in name_class_tuples:
+            if isinstance(cls, type) and issubclass(cls, GiantSwarmValidator):
+                new_validator = cls()
+                if new_validator.get_check_code() in (c.get_check_code() for c in gs_validators):
+                    raise ValidationError(
+                        self.name,
+                        f"Found more than 1 Giant Swarm validator with check code "
+                        f"'{new_validator.get_check_code()}'. Check codes have to be unique.",
+                    )
+                gs_validators.append(new_validator)
+
         return gs_validators
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
