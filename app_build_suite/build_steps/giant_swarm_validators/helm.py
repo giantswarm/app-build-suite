@@ -9,7 +9,11 @@ import argparse
 import logging
 import os
 import re
+import urllib.request
+from typing import Final, Tuple
 
+from PIL import Image, UnidentifiedImageError
+import defusedxml.ElementTree as ET
 import yaml
 from step_exec_lib.errors import Error
 
@@ -57,14 +61,7 @@ class HasTeamLabel:
     def validate(self, config: argparse.Namespace) -> bool:
         chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
 
-        # check if team label is used in Chart.yaml
-        if not os.path.exists(chart_yaml_path):
-            raise GiantSwarmValidatorError(f"Can't find file '{chart_yaml_path}'.")
-        with open(chart_yaml_path, "r") as stream:
-            try:
-                chart_yaml = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                raise GiantSwarmValidatorError(f"Error parsing YAML file '{chart_yaml_path}'. Error: {exc}.")
+        chart_yaml = get_chart_yaml(chart_yaml_path)
         if ANNOTATIONS_KEY not in chart_yaml or GS_TEAM_LABEL_KEY not in chart_yaml[ANNOTATIONS_KEY]:
             logger.info(f"'{GS_TEAM_LABEL_KEY}' annotation not found in '{CHART_YAML}'.")
             return False
@@ -98,3 +95,87 @@ class HasTeamLabel:
                     f"Template file '{HELPERS_YAML}' or '{HELPERS_TPL}' not found in " f"'{TEMPLATES_DIR}' directory."
                 )
         return helpers_file_path
+
+
+class IconIsAlmostSquare:
+    MAX_ALLOWED_DEVIATION: Final[float] = 0.33
+
+    def get_check_code(self) -> str:
+        return "C0002"
+
+    def validate(self, config: argparse.Namespace) -> bool:
+        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
+
+        chart_yaml = get_chart_yaml(chart_yaml_path)
+
+        icon_path = chart_yaml.get("icon")
+        if icon_path is None:
+            logger.info(f"Icon not found in '{CHART_YAML}'. Skipping icon validation.")
+            return True
+
+        try:
+            width, height = self.get_width_height_from_url(icon_path)
+        except GiantSwarmValidatorError as e:
+            logger.warn(f"Icon validation failed: {e.msg}")
+            return False
+
+        valid = self.is_almost_square(width, height)
+        if not valid:
+            logger.warn(f"Icon is not a square. Width: {width}, height: {height}.")
+        return valid
+
+    def is_almost_square(self, width: int, height: int) -> bool:
+        return abs(width - height) / max(height, width) < self.MAX_ALLOWED_DEVIATION
+
+    def get_width_height_from_url(self, url: str) -> Tuple[int, int]:
+        tmp_icon_path, _, = urllib.request.urlretrieve(  # nosec
+            url
+        )
+
+        try:
+            width, height = self.get_width_height_from_image(tmp_icon_path)
+            return width, height
+        except UnidentifiedImageError:
+            pass
+
+        try:
+            width, height = self.get_width_height_from_svg(tmp_icon_path)
+            return width, height
+        except ET.ParseError:
+            pass
+
+        raise GiantSwarmValidatorError(f"Icon file '{url}' is not a valid image or svg.")
+
+    def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
+        img = Image.open(path)
+        return img.width, img.height
+
+    def get_width_height_from_svg(self, path: str) -> Tuple[int, int]:
+        tree = ET.parse(path)
+        root = tree.getroot()
+        width, height = root.attrib.get("width"), root.attrib.get("height")
+        if width is not None and height is not None:
+            return self.parse_svg_size(width), self.parse_svg_size(height)
+
+        viewbox = root.attrib.get("viewBox")
+        if viewbox is not None:
+            width, height = viewbox.split(" ")[2:]
+            return self.parse_svg_size(width), self.parse_svg_size(height)
+
+        raise GiantSwarmValidatorError("Cannot parse aspect ratio from svg. Missing width, height or viewBox.")
+
+    def parse_svg_size(self, size: str) -> int:
+        if size.endswith("px"):
+            size = size[:-2]
+        return int(float(size))
+
+
+def get_chart_yaml(chart_yaml_path: str) -> dict:
+    if not os.path.exists(chart_yaml_path):
+        raise GiantSwarmValidatorError(f"Can't find file '{chart_yaml_path}'.")
+    with open(chart_yaml_path, "r") as stream:
+        try:
+            chart_yaml = yaml.safe_load(stream)
+        except yaml.YAMLError as exc:
+            raise GiantSwarmValidatorError(f"Error parsing YAML file '{chart_yaml_path}'. Error: {exc}.")
+    return chart_yaml
