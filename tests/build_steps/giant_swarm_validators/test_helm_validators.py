@@ -103,16 +103,22 @@ def test_has_team_label_validator(
     mock_exists = mocker.patch("os.path.exists")
     mock_open_chart_yaml = mocker.mock_open(read_data=chart_yaml_input)
     mock_open_templates = mocker.mock_open(read_data=templates_input)
-    mock_opens = mocker.patch("app_build_suite.build_steps.giant_swarm_validators.mixins.open")
-    mock_opens.side_effect = (mock_open_chart_yaml.return_value, mock_open_templates.return_value)
+    mock_opens_chart_yaml = mocker.patch("app_build_suite.build_steps.giant_swarm_validators.mixins.open")
+    mock_opens_template_yaml = mocker.patch("app_build_suite.build_steps.giant_swarm_validators.helm.open")
+
+    mock_opens_chart_yaml.return_value = mock_open_chart_yaml()
+    mock_opens_template_yaml.return_value = mock_open_templates()
 
     val = HasTeamLabel()
     assert val.validate(config) == expected_result
     assert mock_exists.call_args_list[0].args[0] == os.path.join(config.chart_dir, CHART_YAML)
-    assert mock_opens.call_args_list[0].args[0] == os.path.join(config.chart_dir, CHART_YAML)
+    assert mock_opens_chart_yaml.call_args_list[0].args[0] == os.path.join(config.chart_dir, CHART_YAML)
+
     if mock_exists.call_count > 1:
         assert mock_exists.call_args_list[1].args[0] == os.path.join(config.chart_dir, TEMPLATES_DIR, HELPERS_YAML)
-        assert mock_opens.call_args_list[1].args[0] == os.path.join(config.chart_dir, TEMPLATES_DIR, HELPERS_YAML)
+        assert mock_opens_template_yaml.call_args_list[0].args[0] == os.path.join(
+            config.chart_dir, TEMPLATES_DIR, HELPERS_YAML
+        )
 
 
 @pytest.mark.parametrize(
