@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import urllib.request
+import urllib.error
 from typing import Final, Tuple
 
 from PIL import Image, UnidentifiedImageError
@@ -119,18 +120,19 @@ class IconIsAlmostSquare:
             logger.warn(f"Icon validation failed: {e.msg}")
             return False
 
-        valid = self.is_almost_square(width, height)
+        deviation = self.get_deviation(width, height)
+        valid = self.is_almost_square(deviation)
         if not valid:
-            logger.warn(f"Icon is not a square. Width: {width}, height: {height}.")
+            logger.warn(
+                "The icon should be close to a square shape, but it is not.\n "
+                + f"width: {width}, height: {height}, normalized deviation: {deviation}, "
+                + f"max allowed deviation: {self.MAX_ALLOWED_DEVIATION}."
+            )
+
         return valid
 
-    def is_almost_square(self, width: int, height: int) -> bool:
-        return abs(width - height) / max(height, width) < self.MAX_ALLOWED_DEVIATION
-
     def get_width_height_from_url(self, url: str) -> Tuple[int, int]:
-        tmp_icon_path, _, = urllib.request.urlretrieve(  # nosec
-            url
-        )
+        tmp_icon_path = self.fetch_icon_to_tmp(url)
 
         try:
             width, height = self.get_width_height_from_image(tmp_icon_path)
@@ -145,6 +147,12 @@ class IconIsAlmostSquare:
             pass
 
         raise GiantSwarmValidatorError(f"Icon file '{url}' is not a valid image or svg.")
+
+    def fetch_icon_to_tmp(self, icon_path: str) -> str:
+        try:
+            return urllib.request.urlretrieve(icon_path)[0]  # nosec
+        except urllib.error.URLError as exc:
+            raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
         img = Image.open(path)
@@ -162,12 +170,18 @@ class IconIsAlmostSquare:
             width, height = viewbox.split(" ")[2:]
             return self.parse_svg_size(width), self.parse_svg_size(height)
 
-        raise GiantSwarmValidatorError("Cannot parse aspect ratio from svg. Missing width, height or viewBox.")
+        raise GiantSwarmValidatorError("Cannot parse aspect ratio from svg. Missing width & height or viewBox.")
 
     def parse_svg_size(self, size: str) -> int:
         if size.endswith("px"):
             size = size[:-2]
         return int(float(size))
+
+    def get_deviation(self, width: int, height: int) -> float:
+        return abs(width - height) / max(width, height)
+
+    def is_almost_square(self, deviation: float) -> bool:
+        return deviation < self.MAX_ALLOWED_DEVIATION
 
 
 def get_chart_yaml(chart_yaml_path: str) -> dict:
