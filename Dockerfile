@@ -60,6 +60,8 @@ ENV USE_UID=0 \
 # install dependencies
 RUN apt-get update && \
     apt-get install --no-install-recommends -y git sudo && \
+    # svg processing for icon validation
+    apt-get install --no-install-recommends -y libpangocairo-1.0-0 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # pip dependencies for ct
