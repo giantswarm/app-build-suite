@@ -19,7 +19,7 @@ step-exec-lib = ">=0.1"
 semver = ">=2.13"
 gitpython = ">=3"
 pillow = ">=9.4.0"
-defusedxml = ">=0.7.1"
+cairosvg = ">=2.5.2"
 
 [requires]
 python_version = "3.10"

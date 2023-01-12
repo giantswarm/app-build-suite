@@ -11,11 +11,13 @@ import os
 import re
 import urllib.request
 import urllib.error
+import imghdr
+import tempfile
 from typing import Final, Tuple
 
-from PIL import Image, UnidentifiedImageError
-import defusedxml.ElementTree as ET
+from PIL import Image
 import yaml
+from cairosvg import svg2png
 from step_exec_lib.errors import Error
 
 from app_build_suite.build_steps.helm_consts import (
@@ -114,16 +116,29 @@ class IconIsAlmostSquare:
             logger.info(f"Icon not found in '{CHART_YAML}'. Skipping icon validation.")
             return True
 
+        img_path = self.fetch_icon_to_tmp(icon_path)
+
+        if not self.is_image(img_path):
+            try:
+                png_path = self.convert_svg_to_png(img_path)
+                os.remove(img_path)
+                img_path = png_path
+            except Exception:
+                logger.warning("Icon is not a valid image or SVG.")
+                return False
+
         try:
-            width, height = self.get_width_height_from_url(icon_path)
+            width, height = self.get_width_height_from_image(img_path)
         except GiantSwarmValidatorError as e:
             logger.warn(f"Icon validation failed: {e.msg}")
             return False
+        finally:
+            os.remove(img_path)
 
         deviation = self.get_deviation(width, height)
         valid = self.is_almost_square(deviation)
         if not valid:
-            logger.warn(
+            logger.warning(
                 "The icon should be close to a square shape, but it is not.\n "
                 + f"width: {width}, height: {height}, normalized deviation: {deviation}, "
                 + f"max allowed deviation: {self.MAX_ALLOWED_DEVIATION}."
@@ -131,46 +146,24 @@ class IconIsAlmostSquare:
 
         return valid
 
-    def get_width_height_from_url(self, url: str) -> Tuple[int, int]:
-        tmp_icon_path = self.fetch_icon_to_tmp(url)
+    def is_image(self, path: str) -> bool:
+        return imghdr.what(path) is not None
 
-        try:
-            width, height = self.get_width_height_from_image(tmp_icon_path)
-            return width, height
-        except UnidentifiedImageError:
-            pass
-
-        try:
-            width, height = self.get_width_height_from_svg(tmp_icon_path)
-            return width, height
-        except ET.ParseError:
-            pass
-
-        raise GiantSwarmValidatorError(f"Icon file '{url}' is not a valid image or svg.")
+    def convert_svg_to_png(self, svg_path: str) -> str:
+        _, tmp_file_path = tempfile.mkstemp()
+        svg2png(url=svg_path, write_to=tmp_file_path)
+        return tmp_file_path
 
     def fetch_icon_to_tmp(self, icon_path: str) -> str:
+        _, tmp_file_path = tempfile.mkstemp()
         try:
-            return urllib.request.urlretrieve(icon_path)[0]  # nosec
+            return urllib.request.urlretrieve(icon_path, tmp_file_path)[0]  # nosec
         except urllib.error.URLError as exc:
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
         img = Image.open(path)
         return img.width, img.height
-
-    def get_width_height_from_svg(self, path: str) -> Tuple[int, int]:
-        tree = ET.parse(path)
-        root = tree.getroot()
-        width, height = root.attrib.get("width"), root.attrib.get("height")
-        if width is not None and height is not None:
-            return self.parse_svg_size(width), self.parse_svg_size(height)
-
-        viewbox = root.attrib.get("viewBox")
-        if viewbox is not None:
-            width, height = viewbox.split(" ")[2:]
-            return self.parse_svg_size(width), self.parse_svg_size(height)
-
-        raise GiantSwarmValidatorError("Cannot parse aspect ratio from svg. Missing width & height or viewBox.")
 
     def parse_svg_size(self, size: str) -> int:
         if size.endswith("px"):
