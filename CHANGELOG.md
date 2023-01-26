@@ -4,6 +4,9 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- Added
+  - Add icon exists and has correct aspect ratio validation
+
 ## [1.1.4] - 2022-12-07
 
 - Added

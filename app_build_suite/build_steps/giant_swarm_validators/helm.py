@@ -9,9 +9,9 @@ import argparse
 import logging
 import os
 import re
+from app_build_suite.build_steps.giant_swarm_validators.errors import GiantSwarmValidatorError
 
-import yaml
-from step_exec_lib.errors import Error
+from app_build_suite.build_steps.giant_swarm_validators.mixins import UseChartYaml
 
 from app_build_suite.build_steps.helm_consts import (
     VALUES_SCHEMA_JSON,
@@ -28,10 +28,6 @@ ANNOTATIONS_KEY = "annotations"
 GS_TEAM_LABEL_KEY = "application.giantswarm.io/team"
 
 
-class GiantSwarmValidatorError(Error):
-    pass
-
-
 class HasValuesSchema:
     def get_check_code(self) -> str:
         return "F0001"
@@ -40,7 +36,7 @@ class HasValuesSchema:
         return os.path.exists(os.path.join(config.chart_dir, VALUES_SCHEMA_JSON))
 
 
-class HasTeamLabel:
+class HasTeamLabel(UseChartYaml):
 
     escaped_label = re.escape(GS_TEAM_LABEL_KEY)
     _label_regexp = (
@@ -55,16 +51,8 @@ class HasTeamLabel:
         return "C0001"
 
     def validate(self, config: argparse.Namespace) -> bool:
-        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
+        chart_yaml = self.get_chart_yaml(config)
 
-        # check if team label is used in Chart.yaml
-        if not os.path.exists(chart_yaml_path):
-            raise GiantSwarmValidatorError(f"Can't find file '{chart_yaml_path}'.")
-        with open(chart_yaml_path, "r") as stream:
-            try:
-                chart_yaml = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                raise GiantSwarmValidatorError(f"Error parsing YAML file '{chart_yaml}'. Error: {exc}.")
         if ANNOTATIONS_KEY not in chart_yaml or GS_TEAM_LABEL_KEY not in chart_yaml[ANNOTATIONS_KEY]:
             logger.info(f"'{GS_TEAM_LABEL_KEY}' annotation not found in '{CHART_YAML}'.")
             return False
