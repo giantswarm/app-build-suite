@@ -6,6 +6,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 - Added
   - Add icon exists and has correct aspect ratio validation
+- Changed
+  - Updated team annotation to set a default value in example
 
 ## [1.1.4] - 2022-12-07
 
