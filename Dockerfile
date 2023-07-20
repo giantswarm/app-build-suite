@@ -5,7 +5,7 @@ ARG HELM_VER=v3.12.2
 # renovate: datasource=github-releases depName=helm/chart-testing
 ARG CT_VER=v3.9.0
 # renovate: datasource=github-releases depName=stackrox/kube-linter
-ARG KUBELINTER_VER=0.5.0
+ARG KUBELINTER_VER=v0.6.4
 
 RUN apt-get update && apt-get install --no-install-recommends -y wget \
     && mkdir -p /binaries \
