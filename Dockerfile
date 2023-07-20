@@ -5,16 +5,16 @@ ARG HELM_VER=v3.12.2
 # renovate: datasource=github-releases depName=helm/chart-testing
 ARG CT_VER=v3.9.0
 # renovate: datasource=github-releases depName=stackrox/kube-linter
-ARG KUBELINTER_VER=0.5.0
+ARG KUBELINTER_VER=v0.6.4
 
 RUN apt-get update && apt-get install --no-install-recommends -y wget \
     && mkdir -p /binaries \
     && wget -qO - https://get.helm.sh/helm-${HELM_VER}-linux-amd64.tar.gz | \
-       tar -C /binaries --strip-components 1 -xvzf - linux-amd64/helm \
+    tar -C /binaries --strip-components 1 -xvzf - linux-amd64/helm \
     && wget -qO - https://github.com/helm/chart-testing/releases/download/${CT_VER}/chart-testing_${CT_VER##v}_linux_amd64.tar.gz | \
-       tar -C /binaries -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml && mv /binaries/etc /etc/ct \
-    && wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER##v}/kube-linter-linux.tar.gz | \
-       tar -C /binaries -xvzf -
+    tar -C /binaries -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml && mv /binaries/etc /etc/ct \
+    && wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER}/kube-linter-linux.tar.gz | \
+    tar -C /binaries -xvzf -
 
 COPY container-entrypoint.sh /binaries
 
@@ -28,7 +28,7 @@ ENV LANG=C.UTF-8 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONFAULTHANDLER=1 \
     ABS_DIR="/abs" \
-    PIPENV_VER="2022.1.8"
+    PIPENV_VER="2023.7.11"
 
 RUN pip install --no-cache-dir pipenv==${PIPENV_VER}
 
