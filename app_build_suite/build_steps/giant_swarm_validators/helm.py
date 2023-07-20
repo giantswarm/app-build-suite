@@ -37,7 +37,6 @@ class HasValuesSchema:
 
 
 class HasTeamLabel(UseChartYaml):
-
     escaped_label = re.escape(GS_TEAM_LABEL_KEY)
     _label_regexp = (
         r"[ \t]*"
