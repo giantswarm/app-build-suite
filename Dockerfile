@@ -28,7 +28,7 @@ ENV LANG=C.UTF-8 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONFAULTHANDLER=1 \
     ABS_DIR="/abs" \
-    PIPENV_VER="2022.1.8"
+    PIPENV_VER="2023.7.11"
 
 RUN pip install --no-cache-dir pipenv==${PIPENV_VER}
 
