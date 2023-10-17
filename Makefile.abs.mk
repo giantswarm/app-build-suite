@@ -8,7 +8,7 @@ export DATE ?= $(shell date '+%FT%T%:z')
 
 IMG_VER ?= ${VER}-${COMMIT}
 
-.PHONY: all release release_ver_to_code docker-build docker-build-image docker-build-ver docker-push docker-build-test test docker-test docker-test-ci
+.PHONY: all release release_ver_to_code docker-build docker-build-no-version docker-push docker-build-test test docker-test docker-test-ci
 
 check_defined = \
     $(strip $(foreach 1,$1, \
@@ -19,28 +19,30 @@ __check_defined = \
 
 all: docker-build
 
-release: release_ver_to_code docker-build-image docker-test
-	git commit -am "Release ${TAG}"
+release: release_ver_to_code docker-build-no-version docker-test
+	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
+	git add --force app_build_suite/version.py
+	git commit -am "Release ${TAG}" --no-verify
 	git tag ${TAG}
 	mv dabs.sh.back dabs.sh
-	echo "build_ver = \"${TAG}-dev\"\n" > app_build_suite/version.py
-	git commit -am "Post-release version set for ${TAG}"
+	echo "build_ver = \"${TAG}-dev\"" > app_build_suite/version.py
+	git add --force app_build_suite/version.py
+	git commit -am "Post-release version set for ${TAG}" --no-verify
 
 release_ver_to_code:
 	$(call check_defined, TAG)
-	echo "build_ver = \"${TAG}\"\n" > app_build_suite/version.py
+	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
 	bash -c 'sed -i "s/latest/$${TAG#v}/" dabs.sh'
 
 # Build the docker image from locally built binary
-docker-build: docker-build-ver docker-build-image
-
-docker-build-image:
+docker-build-no-version:
 	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
 
-docker-build-ver:
-	echo "build_ver = \"${VER}-${COMMIT}\"\n" > app_build_suite/version.py
+docker-build:
+	echo "build_ver = \"${VER}-${COMMIT}\"" > app_build_suite/version.py
+	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
 
 # Push the docker image
 docker-push: docker-build
