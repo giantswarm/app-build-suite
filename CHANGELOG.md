@@ -6,8 +6,15 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 - Added
   - Add icon exists and has correct aspect ratio validation
+
 - Changed
   - Updated team annotation to set a default value in example
+  - Updated dependencies for shared `push-to-app-catalog` GitHub Workflow
+
+## [1.1.5] - 2023-07-20
+
+- Changed
+  - Updated python dependencies
 
 ## [1.1.4] - 2022-12-07
 
