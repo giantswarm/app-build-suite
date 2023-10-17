@@ -22,19 +22,21 @@ all: docker-build
 release: release_ver_to_code docker-build-no-version docker-test
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	git add --force app_build_suite/version.py
-	git commit -am "Release ${TAG}" --no-verify
+	git add dabs.sh
+	git commit -m "Release ${TAG}" --no-verify
 	git tag ${TAG}
 	mv dabs.sh.back dabs.sh
 	echo "build_ver = \"${TAG}-dev\"" > app_build_suite/version.py
+	git add dabs.sh
 	git add --force app_build_suite/version.py
-	git commit -am "Post-release version set for ${TAG}" --no-verify
+	git commit -m "Post-release version set for ${TAG}" --no-verify
 
 release_ver_to_code:
 	$(call check_defined, TAG)
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
-	bash -c 'sed -i "s/latest/$${TAG#v}/" dabs.sh'
+	TAG=${TAG} bash -c 'sed -i "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh'
 
 # Build the docker image from locally built binary
 docker-build-no-version:
