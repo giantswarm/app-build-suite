@@ -20,15 +20,17 @@ __check_defined = \
 all: docker-build
 
 release: release_ver_to_code docker-build-image docker-test
-	git commit -am "Release ${TAG}"
+	git add --force app_build_suite/version.py
+	git commit -am "Release ${TAG}" --no-verify
 	git tag ${TAG}
 	mv dabs.sh.back dabs.sh
-	echo "build_ver = \"${TAG}-dev\"\n" > app_build_suite/version.py
-	git commit -am "Post-release version set for ${TAG}"
+	echo "build_ver = \"${TAG}-dev\"" > app_build_suite/version.py
+	git add --force app_build_suite/version.py
+	git commit -am "Post-release version set for ${TAG}" --no-verify
 
 release_ver_to_code:
 	$(call check_defined, TAG)
-	echo "build_ver = \"${TAG}\"\n" > app_build_suite/version.py
+	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
 	bash -c 'sed -i "s/latest/$${TAG#v}/" dabs.sh'
