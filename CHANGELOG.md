@@ -4,10 +4,19 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [1.2.0] - 2023-10-17
+
 - Added
   - Add icon exists and has correct aspect ratio validation
+
 - Changed
   - Updated team annotation to set a default value in example
+  - Updated dependencies for shared `push-to-app-catalog` GitHub Workflow
+
+## [1.1.5] - 2023-07-20
+
+- Changed
+  - Updated python dependencies
 
 ## [1.1.4] - 2022-12-07
 
@@ -161,7 +170,9 @@ Initial release
   - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/giantswarm/app-build-suite/compare/v1.1.4...v1.2.0
+[1.1.5]: https://github.com/giantswarm/app-build-suite/compare/v1.1.4...v1.1.5
 [1.1.4]: https://github.com/giantswarm/app-build-suite/compare/v1.0.4...v1.1.4
 [1.0.4]: https://github.com/giantswarm/app-build-suite/compare/v1.0.3...v1.0.4
 [1.0.3]: https://github.com/giantswarm/app-build-suite/compare/v1.0.2...v1.0.3
