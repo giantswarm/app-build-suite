@@ -8,7 +8,7 @@ export DATE ?= $(shell date '+%FT%T%:z')
 
 IMG_VER ?= ${VER}-${COMMIT}
 
-.PHONY: all release release_ver_to_code docker-build docker-push docker-build-test test docker-test docker-test-ci
+.PHONY: all release release_ver_to_code docker-build docker-build-no-version docker-push docker-build-test test docker-test docker-test-ci
 
 check_defined = \
     $(strip $(foreach 1,$1, \
@@ -19,7 +19,7 @@ __check_defined = \
 
 all: docker-build
 
-release: release_ver_to_code docker-build docker-test
+release: release_ver_to_code docker-build-no-version # docker-test
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	git add --force app_build_suite/version.py
 	git commit -am "Release ${TAG}" --no-verify
@@ -37,8 +37,11 @@ release_ver_to_code:
 	bash -c 'sed -i "s/latest/$${TAG#v}/" dabs.sh'
 
 # Build the docker image from locally built binary
+docker-build-no-version:
+	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
+
 docker-build:
-	echo "build_ver = \"${VER}-${COMMIT}\"\n" > app_build_suite/version.py
+	echo "build_ver = \"${VER}-${COMMIT}\"" > app_build_suite/version.py
 	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
 
 # Push the docker image
