@@ -19,7 +19,7 @@ __check_defined = \
 
 all: docker-build
 
-release: release_ver_to_code docker-build-no-version # docker-test
+release: release_ver_to_code docker-build-no-version docker-test
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	git add --force app_build_suite/version.py
 	git commit -am "Release ${TAG}" --no-verify
