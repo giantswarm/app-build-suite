@@ -1,32 +1,6 @@
 {
   "extends": [
-    "config:base"
+    "github>giantswarm/renovate-presets:default.json5",
+    "github>giantswarm/renovate-presets:lang-python.json5",
   ],
-  "labels": ["dependencies"],
-  "assigneesFromCodeOwners": true,
-  "packageRules": [
-    {
-      "matchUpdateTypes": ["patch", "pin", "digest"],
-      "automerge": true
-    }
-  ],
-  "dependencyDashboard": true,
-  "ignorePaths": [
-    ".github/workflows/zz_generated.*",
-    ".github/workflows/codeql-analysis.yml"
-  ],
-  "ignoreDeps": [
-    "architect",
-    "zricethezav/gitleaks-action",
-    "actions/setup-go"
-  ],
-  "regexManagers": [
-    {
-      "fileMatch": ["^Dockerfile$"],
-      "matchStrings": [
-        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\sARG .+_VER=(?<currentValue>.*)\\s"
-      ],
-      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
-    }
-  ]
 }
