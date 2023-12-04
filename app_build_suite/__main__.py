@@ -90,12 +90,21 @@ def get_default_config_file_path() -> str:
         opt = short_opt if short_opt in sys.argv else long_opt
         c_ind = sys.argv.index(opt)
         chart_dir = sys.argv[c_ind + 1]
-        charts_config_path = os.path.join(base_dir, chart_dir, ".abs", "main.yaml")
-    if os.path.isfile(charts_config_path):
-        config_path = charts_config_path
-    else:
+        charts_config_path = os.path.join(base_dir, chart_dir, ".abs", "main.")
+    if os.path.isfile(charts_config_path + "yaml"):
+        config_path = charts_config_path + "yaml"
+    elif os.path.isfile(charts_config_path + "yml"):
+        config_path = charts_config_path + "yml"
+    elif os.path.isfile(os.path.join(base_dir, ".abs", "main.yaml")):
         config_path = os.path.join(base_dir, ".abs", "main.yaml")
-    logger.debug(f"Using {config_path} as configuration file path.")
+    elif os.path.isfile(os.path.join(base_dir, ".abs", "main.yml")):
+        config_path = os.path.join(base_dir, ".abs", "main.yml")
+    else:
+        config_path = ""
+    if config_path:
+        logger.info(f"Using {config_path} as configuration file path.")
+    else:
+        logger.info("No configuration file found.")
     return config_path
 
 
