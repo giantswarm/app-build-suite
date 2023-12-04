@@ -7,6 +7,8 @@ ARG CT_VER=v3.10.1
 # renovate: datasource=github-releases depName=stackrox/kube-linter
 ARG KUBELINTER_VER=v0.6.5
 
+ARG KUBECTL_VER=v1.28.4
+
 RUN apt-get update && apt-get install --no-install-recommends -y wget \
     && mkdir -p /binaries \
     && wget -qO - https://get.helm.sh/helm-${HELM_VER}-linux-amd64.tar.gz | \
@@ -14,7 +16,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y wget \
     && wget -qO - https://github.com/helm/chart-testing/releases/download/${CT_VER}/chart-testing_${CT_VER##v}_linux_amd64.tar.gz | \
     tar -C /binaries -xvzf - ct etc/lintconf.yaml etc/chart_schema.yaml && mv /binaries/etc /etc/ct \
     && wget -qO - https://github.com/stackrox/kube-linter/releases/download/${KUBELINTER_VER}/kube-linter-linux.tar.gz | \
-    tar -C /binaries -xvzf -
+    tar -C /binaries -xvzf - \
+    && wget -P /binaries https://dl.k8s.io/release/${KUBECTL_VER}/bin/linux/amd64/kubectl && chmod +x /binaries/kubectl
+
 
 COPY container-entrypoint.sh /binaries
 
