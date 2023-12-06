@@ -4,6 +4,12 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [1.2.2] - 2023-12-03
+
+- Fixes:
+  - `kubectl` was missing from upstream image
+  - only `.yaml` extension was accepted for the config file (now `.yml` is fine as well)
+
 ## [1.2.0] - 2023-10-17
 
 - Added
