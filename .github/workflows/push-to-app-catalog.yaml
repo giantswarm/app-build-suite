@@ -51,7 +51,7 @@ jobs:
           helm repo index --url https://${{ inputs.organization }}.github.io/${{ inputs.app_catalog }}/ .
 
       - name: Install yq
-        uses: giantswarm/install-binary-action@v1.1.0
+        uses: giantswarm/install-binary-action@v2.0.0
         with:
           binary: "yq"
           download_url: "https://github.com/mikefarah/yq/releases/download/${version}/${binary}_linux_amd64.tar.gz"
