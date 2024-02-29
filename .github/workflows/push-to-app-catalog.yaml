@@ -41,7 +41,7 @@ jobs:
           args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/${{ inputs.app_catalog }}/" --destination app_catalog --keep-chart-changes --replace-chart-version-with-git
 
       - name: Setup Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
           version: v3.8.1
 
