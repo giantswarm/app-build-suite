@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
     architect: giantswarm/architect@4.35.5
-    codecov: codecov/codecov@4.0.1
+    codecov: codecov/codecov@4.1.0
 
 workflows:
     test:
