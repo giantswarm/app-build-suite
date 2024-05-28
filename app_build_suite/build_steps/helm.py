@@ -1,6 +1,7 @@
 """Build steps implementing helm3 based builds."""
 import argparse
 import inspect
+import json
 import logging
 import os
 import pathlib
@@ -844,6 +845,76 @@ class GiantSwarmHelmValidator(BuildStep):
         pass
 
 
+class HelmSchemaValidator(BuildStep):
+    """
+    Runs helm-schema to check if the values.schema.json file is up to date.
+    """
+
+    _helm_schema_bin = "helm-schema"
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_VALIDATE}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--validate-helm-schema",
+            required=False,
+            default=True,
+            action="store_true",
+            help="Should the schema be validated using 'helm-schema' tool",
+        )
+
+    # noinspection PyMethodMayBeStatic
+    def _is_enabled(self, config: argparse.Namespace) -> bool:
+        return config.validate_helm_schema
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if the binary 'helm-schema' is present
+        :param config: Configuration Namespace object.
+        :return: None
+        """
+        if not self._is_enabled(config):
+            logger.debug("No values.yaml schema validation requested, skipping pre-run.")
+            return
+        self._assert_binary_present_in_path(self._helm_schema_bin)
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """
+        Generates the schema file and validates against the one already present in the chart's directory.
+        :param config: the config object
+        :param context: the context object
+        :return: None
+        """
+        schema_file_name = "values.schema.json"
+        tmp_schema_file_name = "tmp_values.schema.json"
+        args = [
+            self._helm_schema_bin,
+            "-o",
+            tmp_schema_file_name,
+            "-c",
+            config.chart_dir,
+        ]
+        logger.info("Running helm-schema tool")
+        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
+        for line in run_res.stdout.splitlines():
+            logger.info(line)
+        if run_res.returncode != 0:
+            logger.error(f"{self._helm_schema_bin} run failed with exit code {run_res.returncode}")
+            raise BuildError(self.name, "Schema generation failed")
+        # load json schema files and check if they are the same
+        with open(os.path.join(config.chart_dir, tmp_schema_file_name)) as f:
+            tmp_schema = json.load(f)
+        with open(os.path.join(config.chart_dir, schema_file_name)) as f:
+            schema = json.load(f)
+        os.remove(os.path.join(config.chart_dir, tmp_schema_file_name))
+        if schema != tmp_schema:
+            logger.error(f"Schema file '{schema_file_name}' is not up to date. Regenerate it with 'helm-schema' tool.")
+            raise BuildError(self.name, "Schema file is not up to date")
+        logger.info("Schema file is up to date.")
+
+
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     """
     Pipeline that combines all the steps required to use helm3 as a chart builder.
@@ -854,6 +925,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
             [
                 HelmBuilderValidator(),
                 GiantSwarmHelmValidator(),
+                HelmSchemaValidator(),
                 HelmGitVersionSetter(),
                 HelmRequirementsUpdater(),
                 HelmChartToolLinter(),
