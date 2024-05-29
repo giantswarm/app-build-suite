@@ -1,4 +1,4 @@
-FROM golang:1.22-bookworm AS binaries
+FROM golang:1.22-bullseye AS binaries
 
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VER=v3.15.1
