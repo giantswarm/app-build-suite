@@ -1,97 +1,97 @@
 {
-  "properties": {
-    "deployment": {
-      "properties": {
-        "replicas": {
-          "default": "1",
-          "title": "replicas",
-          "type": "integer"
-        }
-      },
-      "title": "deployment",
-      "type": "object",
-      "required": [
-        "replicas"
-      ]
-    },
-    "global": {
-      "description": "Global values are values that can be accessed from any chart or subchart by exactly the same name.",
-      "title": "global",
-      "type": "object"
-    },
-    "hostname": {
-      "default": "helloworld.clusterid.k8s.installation.region.provider.gigantic.io",
-      "title": "hostname",
-      "type": "string"
-    },
-    "image": {
-      "properties": {
-        "name": {
-          "default": "giantswarm/helloworld",
-          "title": "name",
-          "type": "string"
-        },
-        "registry": {
-          "default": "gsoci.azurecr.io",
-          "title": "registry",
-          "type": "string"
-        },
-        "tag": {
-          "default": "0.2.0",
-          "title": "tag",
-          "type": "string"
-        }
-      },
-      "title": "image",
-      "type": "object",
-      "required": [
-        "registry",
-        "name",
-        "tag"
-      ]
-    },
-    "ingressClassName": {
-      "default": "nginx",
-      "title": "ingressClassName",
-      "type": "string"
-    },
-    "obtainTLSCertificate": {
-      "default": "false",
-      "title": "obtainTLSCertificate",
-      "type": "boolean"
-    },
-    "resource": {
-      "properties": {
-        "default": {
-          "properties": {
-            "name": {
-              "default": "{{ .Release.Name }}",
-              "title": "name",
-              "type": "string"
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": [
+        "image",
+        "resource",
+        "deployment",
+        "hostname",
+        "obtainTLSCertificate",
+        "ingressClassName"
+    ],
+    "properties": {
+        "deployment": {
+            "type": "object",
+            "title": "deployment",
+            "required": [
+                "replicas"
+            ],
+            "properties": {
+                "replicas": {
+                    "type": "integer",
+                    "title": "replicas",
+                    "default": "1"
+                }
             }
-          },
-          "title": "default",
-          "type": "object",
-          "required": [
-            "name"
-          ]
+        },
+        "global": {
+            "type": "object",
+            "title": "global",
+            "description": "Global values are values that can be accessed from any chart or subchart by exactly the same name."
+        },
+        "hostname": {
+            "type": "string",
+            "title": "hostname",
+            "default": "helloworld.clusterid.k8s.installation.region.provider.gigantic.io"
+        },
+        "image": {
+            "type": "object",
+            "title": "image",
+            "required": [
+                "registry",
+                "name",
+                "tag"
+            ],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "title": "name",
+                    "default": "giantswarm/helloworld"
+                },
+                "registry": {
+                    "type": "string",
+                    "title": "registry",
+                    "default": "gsoci.azurecr.io"
+                },
+                "tag": {
+                    "type": "string",
+                    "title": "tag",
+                    "default": "0.2.0"
+                }
+            }
+        },
+        "ingressClassName": {
+            "type": "string",
+            "title": "ingressClassName",
+            "default": "nginx"
+        },
+        "obtainTLSCertificate": {
+            "type": "boolean",
+            "title": "obtainTLSCertificate",
+            "default": "false"
+        },
+        "resource": {
+            "type": "object",
+            "title": "resource",
+            "required": [
+                "default"
+            ],
+            "properties": {
+                "default": {
+                    "type": "object",
+                    "title": "default",
+                    "required": [
+                        "name"
+                    ],
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "title": "name",
+                            "default": "{{ .Release.Name }}"
+                        }
+                    }
+                }
+            }
         }
-      },
-      "title": "resource",
-      "type": "object",
-      "required": [
-        "default"
-      ]
     }
-  },
-  "$schema": "http://json-schema.org/draft-07/schema#",
-  "type": "object",
-  "required": [
-    "image",
-    "resource",
-    "deployment",
-    "hostname",
-    "obtainTLSCertificate",
-    "ingressClassName"
-  ]
 }

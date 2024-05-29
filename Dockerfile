@@ -8,6 +8,10 @@ ARG CT_VER=v3.11.0
 ARG KUBELINTER_VER=v0.6.8
 # renovate: datasource=github-releases depName=dadav/helm-schema
 ARG HELM_SCHEMA_VER=0.11.2
+# renovate: datasource=github-releases depName=giantswarm/schemalint
+ARG SCHEMALINT_VER=v2.5.1
+# renovate: datasource=github-releases depName=giantswarm/schemadocs
+ARG SCHEMADOCS_VER=v0.0.7
 
 ARG KUBECTL_VER=v1.28.4
 
@@ -26,8 +30,9 @@ COPY container-entrypoint.sh /binaries
 
 RUN chmod +x /binaries/*
 
-RUN echo $GOPATH && go install "github.com/dadav/helm-schema/cmd/helm-schema@${HELM_SCHEMA_VER}"
-
+RUN go install "github.com/dadav/helm-schema/cmd/helm-schema@${HELM_SCHEMA_VER}"
+RUN go install "github.com/giantswarm/schemalint/v2@${SCHEMALINT_VER}"
+RUN go install "github.com/giantswarm/schemadocs@${SCHEMADOCS_VER}"
 
 FROM python:3.10.3-slim AS base
 
@@ -78,6 +83,8 @@ RUN pip install --no-cache-dir yamllint==${CT_YAMLLINT_VER} yamale==${CT_YAMALE_
 COPY --from=builder ${ABS_DIR}/.venv ${ABS_DIR}/.venv
 
 COPY --from=binaries /go/bin/helm-schema  /usr/local/bin/
+COPY --from=binaries /go/bin/schemalint  /usr/local/bin/
+COPY --from=binaries /go/bin/schemadocs  /usr/local/bin/
 COPY --from=binaries /binaries/* /usr/local/bin/
 COPY --from=binaries /etc/ct /etc/ct
 
