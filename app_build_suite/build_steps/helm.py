@@ -246,6 +246,8 @@ class HelmChartToolLinter(BuildStep):
         for line in run_res.stdout.splitlines():
             logger.info(line)
         if run_res.returncode != 0:
+            for line in run_res.stderr.splitlines():
+                logger.error(line)
             logger.error(f"{self._ct_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Linting failed")
 
@@ -316,6 +318,8 @@ class KubeLinter(BuildStep):
         for line in run_res.stdout.splitlines():
             logger.info(line)
         if run_res.returncode != 0:
+            for line in run_res.stderr.splitlines():
+                logger.error(line)
             logger.error(f"{self._kubelinter_bin} run failed with exit code {run_res.returncode}")
             for line in run_res.stderr.splitlines():
                 logger.error(line)
@@ -483,6 +487,8 @@ class HelmChartBuilder(BuildStep):
                         f"is not equal to '{context[context_key_chart_full_path]}'",
                     )
         if run_res.returncode != 0:
+            for line in run_res.stderr.splitlines():
+                logger.error(line)
             logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart build failed")
 
@@ -890,18 +896,14 @@ class HelmSchemaValidator(BuildStep):
         """
         schema_file_name = "values.schema.json"
         tmp_schema_file_name = "tmp_values.schema.json"
-        args = [
-            self._helm_schema_bin,
-            "-o",
-            tmp_schema_file_name,
-            "-c",
-            config.chart_dir,
-        ]
+        args = [self._helm_schema_bin, "-o", tmp_schema_file_name, "-c", config.chart_dir, "-k", "additionalProperties"]
         logger.info("Running helm-schema tool")
         run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
         for line in run_res.stdout.splitlines():
             logger.info(line)
         if run_res.returncode != 0:
+            for line in run_res.stderr.splitlines():
+                logger.error(line)
             logger.error(f"{self._helm_schema_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Schema generation failed")
         # load json schema files and check if they are the same
