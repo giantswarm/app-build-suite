@@ -988,13 +988,16 @@ class ValuesYamlValidator(BuildStep):
         :param context: the context object
         :return: None
         """
-        schema_file_name = "values.schema.json"
-        with open(os.path.join(config.chart_dir, schema_file_name)) as f:
+        schema_file_name = os.path.join(config.chart_dir, "values.schema.json")
+        with open(schema_file_name) as f:
             schema = json.load(f)
 
-        files = [
-            f for f in os.listdir(os.path.join(config.chart_dir, "ci/")) if os.path.isfile(f) and f.endswith(".yaml")
-        ]
+        ci_dir = os.path.join(config.chart_dir, "ci/")
+        files: list[str] = []
+        for file in os.listdir(ci_dir):
+            file_path = os.path.join(ci_dir, file)
+            if os.path.isfile(file_path) and file.endswith(".yaml"):
+                files.append(file_path)
         files.append(os.path.join(config.chart_dir, "values.yaml"))
 
         for file in files:
@@ -1009,6 +1012,75 @@ class ValuesYamlValidator(BuildStep):
             logger.info(f"File {file} successfully validated with the {schema_file_name} file.")
 
 
+class SchemadocsValidator(BuildStep):
+    """
+    Runs schemadocs to check if the README.md file is up-to-date.
+    """
+
+    _schemadocs_bin = "schemadocs"
+    _found_readme_files: list[str] = []
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_VALIDATE}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--validate-schemadocs-readme",
+            required=False,
+            default=True,
+            action="store_true",
+            help="Should the README.md content be validated using the 'schemadocs' tool",
+        )
+
+    # noinspection PyMethodMayBeStatic
+    def _is_enabled(self, config: argparse.Namespace) -> bool:
+        return config.validate_schemadocs_readme
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if the binary 'schemadocs' is present and if the README.md file exists and has correct markers
+        :param config: Configuration Namespace object.
+        :return: None
+        """
+        if not self._is_enabled(config):
+            logger.debug("No schemadocs validation requested, skipping pre-run.")
+            return
+        self._assert_binary_present_in_path(self._schemadocs_bin)
+
+        for file in ["README.md", os.path.join(config.chart_dir, "README.md")]:
+            if os.path.isfile(file):
+                with open(file, "r") as f:
+                    if "<!-- DOCS_START -->" in f.read():
+                        logger.debug(f"Found README.md file with schemadocs tags: {file}")
+                        self._found_readme_files.append(file)
+        if len(self._found_readme_files) == 0:
+            logger.warning("'schemadocs' validation requested, but no README.md file found with schemadocs tags.")
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """
+        Uses the 'schemadocs' tool to validate the README.md file.
+        :param config: the config object
+        :param context: the context object
+        :return: None
+        """
+        schema_file_name = os.path.join(config.chart_dir, "values.schema.json")
+        for file in self._found_readme_files:
+            logger.info(f"Running 'schemadocs' tool for file {file}")
+            args = [self._schemadocs_bin, "validate", file, "--schema", schema_file_name]
+            run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
+            for line in run_res.stdout.splitlines():
+                logger.info(line)
+            if run_res.returncode != 0:
+                for line in run_res.stderr.splitlines():
+                    logger.error(line)
+                logger.error(f"'schemadocs' run failed for file {file} with exit code {run_res.returncode}")
+                raise BuildError(
+                    self.name, f"'schemadocs' run failed for file {file} with exit code {run_res.returncode}"
+                )
+            logger.info(f"Readme file '{file}' is up to date.")
+
+
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     """
     Pipeline that combines all the steps required to use helm3 as a chart builder.
@@ -1021,6 +1093,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
                 GiantSwarmHelmValidator(),
                 HelmSchemaValidator(),
                 ValuesYamlValidator(),
+                SchemadocsValidator(),
                 HelmGitVersionSetter(),
                 HelmRequirementsUpdater(),
                 HelmChartToolLinter(),
