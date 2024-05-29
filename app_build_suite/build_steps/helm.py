@@ -11,6 +11,7 @@ from os import listdir
 from typing import List, Optional, Set, Protocol, Tuple, Type, runtime_checkable
 from urllib.parse import urlsplit
 from importlib import import_module
+from jsonschema import validate
 
 import configargparse
 import validators
@@ -915,6 +916,60 @@ class HelmSchemaValidator(BuildStep):
         logger.info("Schema file is up to date.")
 
 
+class ValuesYamlValidator(BuildStep):
+    """
+    Runs validation to check if values.yaml conforms to the values.schema.json schema.
+    """
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_VALIDATE}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--validate-values-yaml",
+            required=False,
+            default=True,
+            action="store_true",
+            help="Should the values.yaml file be validated using the values.schema.json file",
+        )
+
+    # noinspection PyMethodMayBeStatic
+    def _is_enabled(self, config: argparse.Namespace) -> bool:
+        return config.validate_helm_schema
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if the validation is enabled.
+        :param config: Configuration Namespace object.
+        :return: None
+        """
+        if not self._is_enabled(config):
+            logger.debug("No values.yaml validation requested, skipping pre-run.")
+            return
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """
+        Generates the schema file and validates against the one already present in the chart's directory.
+        :param config: the config object
+        :param context: the context object
+        :return: None
+        """
+        schema_file_name = "values.schema.json"
+        with open(os.path.join(config.chart_dir, schema_file_name)) as f:
+            schema = json.load(f)
+
+        with open(os.path.join(config.chart_dir, "values.yaml")) as f:
+            values = yaml.safe_load(f)
+
+        try:
+            validate(instance=values, schema=schema)
+        except ValidationError as e:
+            logger.error(f"values.yaml does not conform to the schema: {e}")
+            raise BuildError(self.name, "values.yaml does not conform to the schema")
+        logger.info(f"values.yaml file successfully validated with the {schema_file_name} file.")
+
+
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     """
     Pipeline that combines all the steps required to use helm3 as a chart builder.
@@ -926,6 +981,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
                 HelmBuilderValidator(),
                 GiantSwarmHelmValidator(),
                 HelmSchemaValidator(),
+                ValuesYamlValidator(),
                 HelmGitVersionSetter(),
                 HelmRequirementsUpdater(),
                 HelmChartToolLinter(),
