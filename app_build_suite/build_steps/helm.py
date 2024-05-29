@@ -622,7 +622,7 @@ class HelmChartMetadataPreparer(BuildStep):
             and original_annotations != chart_yaml[self._key_annotations]
         ):
             logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
-            shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
+            shutil.copy2(chart_yaml_path, f"{chart_yaml_path}.back")
             context[context_key_changes_made] = True
         self.write_chart_yaml(chart_yaml_path, chart_yaml)
 
@@ -858,6 +858,7 @@ class HelmSchemaValidator(BuildStep):
     """
 
     _helm_schema_bin = "helm-schema"
+    _schemalint_bin = "schemalint"
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -886,6 +887,7 @@ class HelmSchemaValidator(BuildStep):
             logger.debug("No values.yaml schema validation requested, skipping pre-run.")
             return
         self._assert_binary_present_in_path(self._helm_schema_bin)
+        self._assert_binary_present_in_path(self._schemalint_bin)
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         """
@@ -896,16 +898,45 @@ class HelmSchemaValidator(BuildStep):
         """
         schema_file_name = "values.schema.json"
         tmp_schema_file_name = "tmp_values.schema.json"
-        args = [self._helm_schema_bin, "-o", tmp_schema_file_name, "-c", config.chart_dir, "-k", "additionalProperties"]
-        logger.info("Running helm-schema tool")
-        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
-        for line in run_res.stdout.splitlines():
-            logger.info(line)
-        if run_res.returncode != 0:
-            for line in run_res.stderr.splitlines():
-                logger.error(line)
-            logger.error(f"{self._helm_schema_bin} run failed with exit code {run_res.returncode}")
-            raise BuildError(self.name, "Schema generation failed")
+
+        tools = [
+            (
+                self._helm_schema_bin,
+                "Schema generation",
+                [
+                    self._helm_schema_bin,
+                    "-o",
+                    tmp_schema_file_name,
+                    "-c",
+                    config.chart_dir,
+                    "-k",
+                    "additionalProperties",
+                ],
+            ),
+            (
+                self._schemalint_bin,
+                "Schema normalization",
+                [
+                    self._schemalint_bin,
+                    "normalize",
+                    "--force",
+                    os.path.join(config.chart_dir, tmp_schema_file_name),
+                    "-o",
+                    os.path.join(config.chart_dir, schema_file_name),
+                ],
+            ),
+        ]
+        for tool, desc, args in tools:
+            logger.info(f"Running {tool} tool")
+            run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
+            for line in run_res.stdout.splitlines():
+                logger.info(line)
+            if run_res.returncode != 0:
+                for line in run_res.stderr.splitlines():
+                    logger.error(line)
+                logger.error(f"{tool} run failed with exit code {run_res.returncode}")
+                raise BuildError(self.name, f"{desc} failed")
+
         # load json schema files and check if they are the same
         with open(os.path.join(config.chart_dir, tmp_schema_file_name)) as f:
             tmp_schema = json.load(f)
