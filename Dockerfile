@@ -1,4 +1,4 @@
-FROM quay.io/giantswarm/python:3.10.3-slim AS binaries
+FROM golang:1.22-bookworm AS binaries
 
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VER=v3.15.1
@@ -6,6 +6,8 @@ ARG HELM_VER=v3.15.1
 ARG CT_VER=v3.11.0
 # renovate: datasource=github-releases depName=stackrox/kube-linter
 ARG KUBELINTER_VER=v0.6.8
+# renovate: datasource=github-releases depName=dadav/helm-schema
+ARG HELM_SCHEMA_VER=0.11.2
 
 ARG KUBECTL_VER=v1.28.4
 
@@ -24,8 +26,10 @@ COPY container-entrypoint.sh /binaries
 
 RUN chmod +x /binaries/*
 
+RUN echo $GOPATH && go install "github.com/dadav/helm-schema/cmd/helm-schema@${HELM_SCHEMA_VER}"
 
-FROM quay.io/giantswarm/python:3.10.3-slim AS base
+
+FROM python:3.10.3-slim AS base
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
@@ -69,10 +73,11 @@ RUN apt-get update && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # pip dependencies for ct
-RUN pip install yamllint==${CT_YAMLLINT_VER} yamale==${CT_YAMALE_VER}
+RUN pip install --no-cache-dir yamllint==${CT_YAMLLINT_VER} yamale==${CT_YAMALE_VER}
 
 COPY --from=builder ${ABS_DIR}/.venv ${ABS_DIR}/.venv
 
+COPY --from=binaries /go/bin/helm-schema  /usr/local/bin/
 COPY --from=binaries /binaries/* /usr/local/bin/
 COPY --from=binaries /etc/ct /etc/ct
 
@@ -83,7 +88,7 @@ WORKDIR $ABS_DIR/workdir
 
 # we assume the user will be using UID==1000 and GID=1000; if that's not true, we'll run `chown`
 # in the container's startup script
-RUN chown -R 1000:1000 $ABS_DIR
+RUN chown -R 1000:1000 "$ABS_DIR"
 
 ENTRYPOINT ["container-entrypoint.sh"]
 
