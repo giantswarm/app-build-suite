@@ -1,14 +1,14 @@
 image:
-  registry: 'quay.io'
-  name: 'giantswarm/helloworld'
-  tag: '0.2.0'
+    registry: "gsoci.azurecr.io"
+    name: "giantswarm/helloworld"
+    tag: "0.2.0"
 
 resource:
-  default:
-    name: '{{ .Release.Name }}'
+    default:
+        name: "{{ .Release.Name }}"
 
 deployment:
-  replicas: 1
+    replicas: 1
 
 hostname: helloworld.clusterid.k8s.installation.region.provider.gigantic.io
 

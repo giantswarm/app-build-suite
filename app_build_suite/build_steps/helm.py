@@ -1,6 +1,7 @@
 """Build steps implementing helm3 based builds."""
 import argparse
 import inspect
+import json
 import logging
 import os
 import pathlib
@@ -10,6 +11,7 @@ from os import listdir
 from typing import List, Optional, Set, Protocol, Tuple, Type, runtime_checkable
 from urllib.parse import urlsplit
 from importlib import import_module
+from jsonschema import validate
 
 import configargparse
 import validators
@@ -244,6 +246,8 @@ class HelmChartToolLinter(BuildStep):
         for line in run_res.stdout.splitlines():
             logger.info(line)
         if run_res.returncode != 0:
+            for line in run_res.stderr.splitlines():
+                logger.error(line)
             logger.error(f"{self._ct_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Linting failed")
 
@@ -314,6 +318,8 @@ class KubeLinter(BuildStep):
         for line in run_res.stdout.splitlines():
             logger.info(line)
         if run_res.returncode != 0:
+            for line in run_res.stderr.splitlines():
+                logger.error(line)
             logger.error(f"{self._kubelinter_bin} run failed with exit code {run_res.returncode}")
             for line in run_res.stderr.splitlines():
                 logger.error(line)
@@ -481,6 +487,8 @@ class HelmChartBuilder(BuildStep):
                         f"is not equal to '{context[context_key_chart_full_path]}'",
                     )
         if run_res.returncode != 0:
+            for line in run_res.stderr.splitlines():
+                logger.error(line)
             logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart build failed")
 
@@ -614,7 +622,7 @@ class HelmChartMetadataPreparer(BuildStep):
             and original_annotations != chart_yaml[self._key_annotations]
         ):
             logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
-            shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
+            shutil.copy2(chart_yaml_path, f"{chart_yaml_path}.back")
             context[context_key_changes_made] = True
         self.write_chart_yaml(chart_yaml_path, chart_yaml)
 
@@ -844,6 +852,235 @@ class GiantSwarmHelmValidator(BuildStep):
         pass
 
 
+class HelmSchemaValidator(BuildStep):
+    """
+    Runs helm-schema to check if the values.schema.json file is up to date.
+    """
+
+    _helm_schema_bin = "helm-schema"
+    _schemalint_bin = "schemalint"
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_VALIDATE}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--validate-helm-schema",
+            required=False,
+            default=True,
+            action="store_true",
+            help="Should the schema be validated using 'helm-schema' tool",
+        )
+
+    # noinspection PyMethodMayBeStatic
+    def _is_enabled(self, config: argparse.Namespace) -> bool:
+        return config.validate_helm_schema
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if the binary 'helm-schema' is present
+        :param config: Configuration Namespace object.
+        :return: None
+        """
+        if not self._is_enabled(config):
+            logger.debug("No values.yaml schema validation requested, skipping pre-run.")
+            return
+        self._assert_binary_present_in_path(self._helm_schema_bin)
+        self._assert_binary_present_in_path(self._schemalint_bin)
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """
+        Generates the schema file and validates against the one already present in the chart's directory.
+        :param config: the config object
+        :param context: the context object
+        :return: None
+        """
+        schema_file_name = "values.schema.json"
+        tmp_schema_file_name = "tmp_values.schema.json"
+
+        tools = [
+            (
+                self._helm_schema_bin,
+                "Schema generation",
+                [
+                    self._helm_schema_bin,
+                    "-o",
+                    tmp_schema_file_name,
+                    "-c",
+                    config.chart_dir,
+                    "-k",
+                    "additionalProperties",
+                ],
+            ),
+            (
+                self._schemalint_bin,
+                "Schema normalization",
+                [
+                    self._schemalint_bin,
+                    "normalize",
+                    "--force",
+                    os.path.join(config.chart_dir, tmp_schema_file_name),
+                    "-o",
+                    os.path.join(config.chart_dir, schema_file_name),
+                ],
+            ),
+        ]
+        for tool, desc, args in tools:
+            logger.info(f"Running {tool} tool")
+            run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
+            for line in run_res.stdout.splitlines():
+                logger.info(line)
+            if run_res.returncode != 0:
+                for line in run_res.stderr.splitlines():
+                    logger.error(line)
+                logger.error(f"{tool} run failed with exit code {run_res.returncode}")
+                raise BuildError(self.name, f"{desc} failed")
+
+        # load json schema files and check if they are the same
+        with open(os.path.join(config.chart_dir, tmp_schema_file_name)) as f:
+            tmp_schema = json.load(f)
+        with open(os.path.join(config.chart_dir, schema_file_name)) as f:
+            schema = json.load(f)
+        os.remove(os.path.join(config.chart_dir, tmp_schema_file_name))
+        if schema != tmp_schema:
+            logger.error(f"Schema file '{schema_file_name}' is not up to date. Regenerate it with 'helm-schema' tool.")
+            raise BuildError(self.name, "Schema file is not up to date")
+        logger.info("Schema file is up to date.")
+
+
+class ValuesYamlValidator(BuildStep):
+    """
+    Runs validation to check if values.yaml conforms to the values.schema.json schema.
+    """
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_VALIDATE}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--validate-values-yaml",
+            required=False,
+            default=True,
+            action="store_true",
+            help="Should the values.yaml file be validated using the values.schema.json file",
+        )
+
+    # noinspection PyMethodMayBeStatic
+    def _is_enabled(self, config: argparse.Namespace) -> bool:
+        return config.validate_helm_schema
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if the validation is enabled.
+        :param config: Configuration Namespace object.
+        :return: None
+        """
+        if not self._is_enabled(config):
+            logger.debug("No values.yaml validation requested, skipping pre-run.")
+            return
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """
+        Generates the schema file and validates against the one already present in the chart's directory.
+        :param config: the config object
+        :param context: the context object
+        :return: None
+        """
+        schema_file_name = os.path.join(config.chart_dir, "values.schema.json")
+        with open(schema_file_name) as f:
+            schema = json.load(f)
+
+        ci_dir = os.path.join(config.chart_dir, "ci/")
+        files: list[str] = []
+        for file in os.listdir(ci_dir):
+            file_path = os.path.join(ci_dir, file)
+            if os.path.isfile(file_path) and file.endswith(".yaml"):
+                files.append(file_path)
+        files.append(os.path.join(config.chart_dir, "values.yaml"))
+
+        for file in files:
+            with open(file) as f:
+                values = yaml.safe_load(f)
+
+            try:
+                validate(instance=values, schema=schema)
+            except ValidationError as e:
+                logger.error(f"File {file} does not conform to the schema: {e}")
+                raise BuildError(self.name, f"File {file} does not conform to the schema")
+            logger.info(f"File {file} successfully validated with the {schema_file_name} file.")
+
+
+class SchemadocsValidator(BuildStep):
+    """
+    Runs schemadocs to check if the README.md file is up-to-date.
+    """
+
+    _schemadocs_bin = "schemadocs"
+    _found_readme_files: list[str] = []
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_VALIDATE}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--validate-schemadocs-readme",
+            required=False,
+            default=True,
+            action="store_true",
+            help="Should the README.md content be validated using the 'schemadocs' tool",
+        )
+
+    # noinspection PyMethodMayBeStatic
+    def _is_enabled(self, config: argparse.Namespace) -> bool:
+        return config.validate_schemadocs_readme
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Checks if the binary 'schemadocs' is present and if the README.md file exists and has correct markers
+        :param config: Configuration Namespace object.
+        :return: None
+        """
+        if not self._is_enabled(config):
+            logger.debug("No schemadocs validation requested, skipping pre-run.")
+            return
+        self._assert_binary_present_in_path(self._schemadocs_bin)
+
+        for file in ["README.md", os.path.join(config.chart_dir, "README.md")]:
+            if os.path.isfile(file):
+                with open(file, "r") as f:
+                    if "<!-- DOCS_START -->" in f.read():
+                        logger.debug(f"Found README.md file with schemadocs tags: {file}")
+                        self._found_readme_files.append(file)
+        if len(self._found_readme_files) == 0:
+            logger.warning("'schemadocs' validation requested, but no README.md file found with schemadocs tags.")
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """
+        Uses the 'schemadocs' tool to validate the README.md file.
+        :param config: the config object
+        :param context: the context object
+        :return: None
+        """
+        schema_file_name = os.path.join(config.chart_dir, "values.schema.json")
+        for file in self._found_readme_files:
+            logger.info(f"Running 'schemadocs' tool for file {file}")
+            args = [self._schemadocs_bin, "validate", file, "--schema", schema_file_name]
+            run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
+            for line in run_res.stdout.splitlines():
+                logger.info(line)
+            if run_res.returncode != 0:
+                for line in run_res.stderr.splitlines():
+                    logger.error(line)
+                logger.error(f"'schemadocs' run failed for file {file} with exit code {run_res.returncode}")
+                raise BuildError(
+                    self.name, f"'schemadocs' run failed for file {file} with exit code {run_res.returncode}"
+                )
+            logger.info(f"Readme file '{file}' is up to date.")
+
+
 class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     """
     Pipeline that combines all the steps required to use helm3 as a chart builder.
@@ -854,6 +1091,9 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
             [
                 HelmBuilderValidator(),
                 GiantSwarmHelmValidator(),
+                HelmSchemaValidator(),
+                ValuesYamlValidator(),
+                SchemadocsValidator(),
                 HelmGitVersionSetter(),
                 HelmRequirementsUpdater(),
                 HelmChartToolLinter(),
