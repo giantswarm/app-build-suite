@@ -1,7 +1,7 @@
 FROM golang:1.22-bullseye AS binaries
 
 # renovate: datasource=github-releases depName=helm/helm
-ARG HELM_VER=v3.15.1
+ARG HELM_VER=v3.15.2
 # renovate: datasource=github-releases depName=helm/chart-testing
 ARG CT_VER=v3.11.0
 # renovate: datasource=github-releases depName=stackrox/kube-linter
