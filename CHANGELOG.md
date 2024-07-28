@@ -4,6 +4,11 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- Added:
+  - validation if the values.yaml JSON schema is up to date with the values.yaml file
+  - validation if the values.yaml file all files in `ci/` dir are valid using the generated schema
+  - validation if the README.md docs are up-to-date with the values.yaml file
+
 ## [1.2.2] - 2023-12-03
 
 - Fixes:

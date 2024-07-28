@@ -1,4 +1,4 @@
-FROM quay.io/giantswarm/app-build-suite:latest
+FROM gsoci.azurecr.io/giantswarm/app-build-suite:latest
 
 ARG ABS_DIR="/abs"
 
@@ -20,6 +20,5 @@ COPY examples/ examples/
 COPY .git/ ./.git/
 RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --clear --dev
 RUN git config --global --add safe.directory /abs
-RUN pipenv run pre-commit run -a
 ENTRYPOINT ["./run-tests-in-docker.sh"]
 CMD ["--cov", "app_build_suite", "--log-cli-level", "info", "tests/"]

@@ -1,46 +1,93 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
+    "required": [
+        "image",
+        "resource",
+        "deployment",
+        "hostname",
+        "obtainTLSCertificate",
+        "ingressClassName"
+    ],
     "properties": {
         "deployment": {
             "type": "object",
+            "title": "deployment",
+            "required": [
+                "replicas"
+            ],
             "properties": {
                 "replicas": {
-                    "type": "integer"
+                    "type": "integer",
+                    "title": "replicas",
+                    "default": "1"
                 }
             }
         },
+        "global": {
+            "type": "object",
+            "title": "global",
+            "description": "Global values are values that can be accessed from any chart or subchart by exactly the same name."
+        },
         "hostname": {
-            "type": "string"
+            "type": "string",
+            "title": "hostname",
+            "default": "helloworld.clusterid.k8s.installation.region.provider.gigantic.io"
         },
         "image": {
             "type": "object",
+            "title": "image",
+            "required": [
+                "registry",
+                "name",
+                "tag"
+            ],
             "properties": {
                 "name": {
-                    "type": "string"
+                    "type": "string",
+                    "title": "name",
+                    "default": "giantswarm/helloworld"
                 },
                 "registry": {
-                    "type": "string"
+                    "type": "string",
+                    "title": "registry",
+                    "default": "gsoci.azurecr.io"
                 },
                 "tag": {
-                    "type": "string"
+                    "type": "string",
+                    "title": "tag",
+                    "default": "0.2.0"
                 }
             }
         },
         "ingressClassName": {
-            "type": "string"
+            "type": "string",
+            "title": "ingressClassName",
+            "default": "nginx"
         },
         "obtainTLSCertificate": {
-            "type": "boolean"
+            "type": "boolean",
+            "title": "obtainTLSCertificate",
+            "default": "false"
         },
         "resource": {
             "type": "object",
+            "title": "resource",
+            "required": [
+                "default"
+            ],
             "properties": {
                 "default": {
                     "type": "object",
+                    "title": "default",
+                    "required": [
+                        "name"
+                    ],
                     "properties": {
                         "name": {
-                            "type": "string"
+                            "type": "string",
+                            "title": "name",
+                            "default": "{{ .Release.Name }}"
                         }
                     }
                 }
