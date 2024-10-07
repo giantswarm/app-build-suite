@@ -1,18 +1,21 @@
+annotations:
+  application.giantswarm.io/metadata: http://localhost/hello-world-app-0.0.0-4b75fbc8e6fdbbbed45bbffbc3e47f5499312f96.tgz-meta/main.yaml
+  application.giantswarm.io/team: honeybadger
+  application.giantswarm.io/values-schema: http://localhost/hello-world-app-0.0.0-4b75fbc8e6fdbbbed45bbffbc3e47f5499312f96.tgz-meta/values.schema.json
 apiVersion: v2
-name: hello-world-app
-version: "0.2.1"
-appVersion: "0.1.0"
+appVersion: 0.1.0
+description: A chart that deploys a basic hello world site and lets you test values
+  merging of user values configmap and secrets.
 home: https://github.com/giantswarm/hello-world-app
-description: A chart that deploys a basic hello world site and lets you test values merging of user values configmap and secrets.
 icon: https://s.giantswarm.io/app-icons/1/png/hello-world-app-light.png
 keywords:
-  - hello-world
-  - demo
-  - webapp
-sources:
-  - https://github.com/giantswarm/hello-world-app
-  - https://github.com/giantswarm/helloworld
+- hello-world
+- demo
+- webapp
 maintainers:
-  - name: Giant Swarm - Honeybadger
-annotations:
-  application.giantswarm.io/team: "honeybadger"
+- name: Giant Swarm - Honeybadger
+name: hello-world-app
+sources:
+- https://github.com/giantswarm/hello-world-app
+- https://github.com/giantswarm/helloworld
+version: 0.0.0-4b75fbc8e6fdbbbed45bbffbc3e47f5499312f96
