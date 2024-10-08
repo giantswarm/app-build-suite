@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "f9c10caedf67052f54fa80f43086bb93d618bd3d7a6800b71be8fa072a46b250"
+            "sha256": "cdd2508dd1a9ef73a6150da142814f108d42597ea074a216c529951a26f5499b"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -499,12 +499,12 @@
         },
         "step-exec-lib": {
             "hashes": [
-                "sha256:0d2b21a92065e4c1da2584af421585e2194180b3c4c66041b2fb94c3785a73d9",
-                "sha256:7cd956be2eb4f5b38be0073eafd972db67f8c33d2154798dfe49b62e04b27880"
+                "sha256:146044f99df167d923f1fe991a882b923ed12a871445a405c20b3f660a29231f",
+                "sha256:f3a3797fa8d4f0daba1c0f4e42c4f46c988e84e02edb2d3169a91e1bcc0a2562"
             ],
             "index": "pypi",
             "markers": "python_version >= '3.9' and python_version < '4.0'",
-            "version": "==0.2.3"
+            "version": "==0.2.4"
         },
         "tinycss2": {
             "hashes": [
