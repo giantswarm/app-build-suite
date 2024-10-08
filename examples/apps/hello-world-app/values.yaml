@@ -1,5 +1,5 @@
 image:
-  registry: 'quay.io'
+  registry: 'gsoci.azurecr.io'
   name: 'giantswarm/helloworld'
   tag: '0.2.0'
 

@@ -2,7 +2,7 @@ color: red
 oldColor: green
 
 image:
-  registry: 'quay.io'
+  registry: 'gsoci.azurecr.io'
   name: 'giantswarm/hello-world-app'
   tag: '0.0.1'
 

@@ -2,7 +2,6 @@ import argparse
 import os
 import urllib.request
 import urllib.error
-import imghdr
 import tempfile
 import logging
 from typing import Final, Tuple
@@ -82,7 +81,12 @@ class IconIsAlmostSquare(UseChartYaml):
         return valid
 
     def is_image(self, path: str) -> bool:
-        return imghdr.what(path) is not None
+        try:
+            with Image.open(path) as img:
+                img.verify()
+                return True
+        except (IOError, SyntaxError):
+            return False
 
     def convert_svg_to_png(self, svg_path: str) -> str:
         _, tmp_file_path = tempfile.mkstemp()
