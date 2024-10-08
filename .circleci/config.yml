@@ -10,7 +10,6 @@ workflows:
             - run-tests:
                   name: run-tests
                   filters:
-                      # Needed to trigger job also on git tag.
                       tags:
                           only: /^v.*/
 
@@ -20,7 +19,10 @@ workflows:
                   requires:
                       - run-tests
                   filters:
-                      # Needed to trigger job also on git tag.
+                      branches:
+                          ignore:
+                            - main
+                            - master
                       tags:
                           only: /^v.*/
 
@@ -42,7 +44,10 @@ workflows:
                   dockerfile: "./circleci.Dockerfile"
                   tag-suffix: "-circleci"
                   filters:
-                      # Needed to trigger job also on git tag.
+                      branches:
+                          ignore:
+                            - main
+                            - master
                       tags:
                           only: /^v.*/
 
