@@ -64,7 +64,7 @@ jobs:
             - run:
                   name: Generate container tag like architect orb does it
                   command: |
-                      echo -n "quay.io/giantswarm/app-build-suite:$(architect project version)" > .docker_image_name
+                      echo -n "gsoci.azurecr.io/giantswarm/app-build-suite:$(architect project version)" > .docker_image_name
             - run:
                   name: Augment circleci.Dockerfile
                   command: |
