@@ -1,4 +1,5 @@
 """Main module. Loads configuration and executes main control loops."""
+
 import logging
 import os
 import sys

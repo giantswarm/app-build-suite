@@ -5,6 +5,7 @@ General idea for naming validation checks:
   - file system layout and structure: "F"
   - Chart.yaml related problems "C"
 """
+
 import argparse
 import logging
 import os
