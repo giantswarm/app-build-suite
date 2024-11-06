@@ -5,7 +5,7 @@ ARG HELM_VER=v3.16.2
 # renovate: datasource=github-releases depName=helm/chart-testing
 ARG CT_VER=v3.11.0
 # renovate: datasource=github-releases depName=stackrox/kube-linter
-ARG KUBELINTER_VER=v0.6.8
+ARG KUBELINTER_VER=v0.7.0
 
 ARG KUBECTL_VER=v1.28.4
 
