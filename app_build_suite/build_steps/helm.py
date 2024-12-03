@@ -19,7 +19,6 @@ from step_exec_lib.errors import ValidationError
 from step_exec_lib.steps import BuildStep, BuildStepsFilteringPipeline
 from step_exec_lib.types import Context, StepType
 from step_exec_lib.utils.files import get_file_sha256
-from step_exec_lib.utils.git import GitRepoVersionInfo
 from step_exec_lib.utils.processes import run_and_log
 
 from app_build_suite.build_steps.helm_consts import (
@@ -32,6 +31,7 @@ from app_build_suite.build_steps.helm_consts import (
 )
 from app_build_suite.build_steps.steps import STEP_BUILD, STEP_VALIDATE, STEP_STATIC_CHECK, STEP_METADATA
 from app_build_suite.errors import BuildError
+from app_build_suite.utils.git import GitRepoVersionInfo
 
 logger = logging.getLogger(__name__)
 
