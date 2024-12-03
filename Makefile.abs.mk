@@ -19,12 +19,12 @@ __check_defined = \
 
 all: docker-build
 
-release: release_ver_to_code docker-build-no-version docker-test
-	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
+release: docker-test release_ver_to_code
 	git add --force app_build_suite/version.py
-	git add dabs.sh
+	git add dabs.sh setup.py
 	git commit -m "Release ${TAG}" --no-verify
 	git tag ${TAG}
+	docker build . -t ${IMG}:latest -t ${IMG}:${TAG}
 	mv dabs.sh.back dabs.sh
 	echo "build_ver = \"${TAG}-dev\"" > app_build_suite/version.py
 	git add dabs.sh
@@ -33,10 +33,11 @@ release: release_ver_to_code docker-build-no-version docker-test
 
 release_ver_to_code:
 	$(call check_defined, TAG)
+	sed -i 's/version\=".*"/version\="'${TAG}'"/' setup.py
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
-	TAG=${TAG} bash -c 'sed -i "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh'
+	sed -i "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh
 
 # Build the docker image from locally built binary
 docker-build-no-version:
