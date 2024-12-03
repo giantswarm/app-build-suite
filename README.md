@@ -1,7 +1,7 @@
 # app-build-suite
 
 [![build](https://circleci.com/gh/giantswarm/app-build-suite.svg?style=svg)](https://circleci.com/gh/giantswarm/app-build-suite)
-[![codecov](https://codecov.io/gh/giantswarm/app-build-suite/branch/master/graph/badge.svg)](https://codecov.io/gh/giantswarm/app-build-suite)
+[![codecov](https://codecov.io/github/giantswarm/app-build-suite/graph/badge.svg?token=1EPCRLFSQJ)](https://codecov.io/github/giantswarm/app-build-suite)
 [![Apache License](https://img.shields.io/badge/license-apache-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0)
 
 A tool to build apps (Helm Charts) for
