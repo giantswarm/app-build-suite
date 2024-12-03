@@ -39,7 +39,7 @@ RUN pip install --no-cache-dir pipenv==${PIPENV_VER}
 WORKDIR $ABS_DIR
 
 
-FROM base as builder
+FROM base AS builder
 
 # pip prerequesties
 RUN apt-get update && \
