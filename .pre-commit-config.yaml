@@ -27,14 +27,14 @@ repos:
           - id: python-check-blanket-noqa
     # bandit
     - repo: https://github.com/PyCQA/bandit
-      rev: '1.7.10'
+      rev: '1.8.0'
       hooks:
           - id: bandit
             args: [ "-c", ".bandit" ]
 
     # static type checking with mypy
     - repo: https://github.com/pre-commit/mirrors-mypy
-      rev: v1.11.2
+      rev: v1.13.0
       hooks:
           - id: mypy
 
@@ -51,7 +51,7 @@ repos:
             args: [ --format=json ]
 
     - repo: https://github.com/igorshubovych/markdownlint-cli
-      rev: v0.42.0
+      rev: v0.43.0
       hooks:
           - id: markdownlint
 
