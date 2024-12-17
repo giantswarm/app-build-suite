@@ -739,9 +739,9 @@ class HelmChartYAMLRestorer(BuildStep):
 class GiantSwarmValidator(Protocol):
     """This class is only used for type hinting of simple giant_swarm_validators below"""
 
-    def validate(self, config: argparse.Namespace) -> bool: ...
+    def validate(self, config: argparse.Namespace) -> bool: ...  # noqa: E704
 
-    def get_check_code(self) -> str: ...
+    def get_check_code(self) -> str: ...  # noqa: E704
 
 
 class GiantSwarmHelmValidator(BuildStep):
