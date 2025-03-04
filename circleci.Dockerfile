@@ -1,4 +1,4 @@
-FROM gsoci.azurecr.io/giantswarm/conftest:v0.56.0 AS conftest
+FROM gsoci.azurecr.io/giantswarm/conftest:v0.58.0 AS conftest
 
 FROM changeme
 
