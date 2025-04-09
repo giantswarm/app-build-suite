@@ -1,7 +1,7 @@
 FROM gsoci.azurecr.io/giantswarm/python:3.12.7-slim AS binaries
 
 # renovate: datasource=github-releases depName=helm/helm
-ARG HELM_VER=v3.17.2
+ARG HELM_VER=v3.17.3
 # renovate: datasource=github-releases depName=helm/chart-testing
 ARG CT_VER=v3.12.0
 # renovate: datasource=github-releases depName=stackrox/kube-linter
