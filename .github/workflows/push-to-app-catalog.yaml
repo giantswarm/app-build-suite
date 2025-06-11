@@ -64,7 +64,7 @@ jobs:
               run: echo "::set-output name=version::$(yq e '.version' helm/${{ inputs.chart }}/Chart.yaml)"
 
             - name: Commit changes to app catalog repository
-              uses: stefanzweifel/git-auto-commit-action@v5
+              uses: stefanzweifel/git-auto-commit-action@v6
               with:
                   branch: main
                   commit_message: add ${{ inputs.chart }}-${{ steps.chart-version.outputs.version }}
