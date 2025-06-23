@@ -4,6 +4,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+- Upgrade Python to 3.13
+
 ## 1.2.8 - 2024-12-03
 
 -   fix: bug in the release process set wrong version in the code in the container

@@ -15,10 +15,10 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     keywords=["helm chart", "building"],
     classifiers=[
-        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
         "Development Status :: 4 - Beta",
     ],
-    python_requires=">=3.12",
+    python_requires=">=3.13",
 )
