@@ -6,6 +6,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [1.2.9] - 2025-08-05
 
+### Changed
+
 - Update conftest to v0.62.0
 - Update helm to v3.18.4
 - Update kubelinter to v0.7.5
