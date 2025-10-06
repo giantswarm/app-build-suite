@@ -4,6 +4,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+### Changed
+
+- Update conftest to [v0.63.0](https://github.com/open-policy-agent/conftest/releases/tag/v0.63.0)
+
 ## [1.2.9] - 2025-08-05
 
 ### Changed
