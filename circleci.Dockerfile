@@ -1,10 +1,10 @@
 FROM gsoci.azurecr.io/giantswarm/conftest:v0.63.0 AS conftest
 
-FROM changeme
+FROM gsoci.azurecr.io/giantswarm/app-build-suite:1.2.9
 
 COPY --from=conftest /usr/local/bin/conftest /usr/local/bin/conftest
 
-RUN apt-get update && apt-get install -y openssh-client
+RUN apt-get update && apt-get install -y openssh-client curl jq
 
 # Setup ssh config for github.com
 RUN mkdir -p ~/.ssh &&\
