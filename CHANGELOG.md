@@ -11,6 +11,11 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 - Update conftest to [v0.63.0](https://github.com/open-policy-agent/conftest/releases/tag/v0.63.0)
 - Update helm/chart-testing to v3.14.0
 
+### Added
+
+- Add `curl` and `jq` to CircleCI image.
+- Add `libatomic1` to test runner image as a dependency to `pre-commit`.
+
 ## [1.2.9] - 2025-08-05
 
 ### Changed
