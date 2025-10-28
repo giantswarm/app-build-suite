@@ -4,10 +4,17 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [1.2.10] - 2025-10-28
+
 ### Changed
 
 - Update conftest to [v0.63.0](https://github.com/open-policy-agent/conftest/releases/tag/v0.63.0)
 - Update helm/chart-testing to v3.14.0
+
+### Added
+
+- Add `curl` and `jq` to CircleCI image.
+- Add `libatomic1` to test runner image as a dependency to `pre-commit`.
 
 ## [1.2.9] - 2025-08-05
 
@@ -221,7 +228,8 @@ Initial release
     -   config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 -   testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v1.2.9...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v1.2.10...HEAD
+[1.2.10]: https://github.com/giantswarm/app-build-suite/compare/v1.2.9...v1.2.10
 [1.2.9]: https://github.com/giantswarm/app-build-suite/compare/v1.2.0...v1.2.9
 [1.2.0]: https://github.com/giantswarm/app-build-suite/compare/v1.1.4...v1.2.0
 [1.1.5]: https://github.com/giantswarm/app-build-suite/compare/v1.1.4...v1.1.5
