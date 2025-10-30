@@ -4,6 +4,12 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+## [1.3.0] - 2025-10-30
+
+### Added
+
+- Add Github CLI and [gh-token](https://github.com/Link-/gh-token) to Circle CI executor container image
+
 ## [1.2.10] - 2025-10-28
 
 ### Changed
@@ -228,7 +234,8 @@ Initial release
     -   config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 -   testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v1.2.10...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/giantswarm/app-build-suite/compare/v1.2.10...v1.3.0
 [1.2.10]: https://github.com/giantswarm/app-build-suite/compare/v1.2.9...v1.2.10
 [1.2.9]: https://github.com/giantswarm/app-build-suite/compare/v1.2.0...v1.2.9
 [1.2.0]: https://github.com/giantswarm/app-build-suite/compare/v1.1.4...v1.2.0
