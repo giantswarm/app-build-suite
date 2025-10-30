@@ -4,7 +4,9 @@ FROM gsoci.azurecr.io/giantswarm/app-build-suite:1.2.10
 
 COPY --from=conftest /usr/local/bin/conftest /usr/local/bin/conftest
 
-RUN apt-get update && apt-get install -y openssh-client curl jq
+RUN apt-get update && apt-get install -y openssh-client curl jq wget
+
+RUN wget https://github.com/Link-/gh-token/releases/download/v2.0.6/linux-amd64 -O /usr/bin/gh-token && chmod 700 /usr/bin/gh-token
 
 # Setup ssh config for github.com
 RUN mkdir -p ~/.ssh &&\
