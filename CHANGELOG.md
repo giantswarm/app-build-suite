@@ -6,6 +6,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [1.3.0] - 2025-10-30
 
+- Add Github CLI and [gh-token](https://github.com/Link-/gh-token) to Circle CI executor container image
+
 ## [1.2.10] - 2025-10-28
 
 ### Changed
