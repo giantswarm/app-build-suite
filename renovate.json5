@@ -1,32 +1,41 @@
 {
-  "extends": [
-    "config:base"
+  extends: [
+    'config:recommended',
   ],
-  "labels": ["dependencies"],
-  "assigneesFromCodeOwners": true,
-  "packageRules": [
+  labels: [
+    'dependencies',
+  ],
+  assigneesFromCodeOwners: true,
+  packageRules: [
     {
-      "matchUpdateTypes": ["patch", "pin", "digest"],
-      "automerge": true
-    }
-  ],
-  "dependencyDashboard": true,
-  "ignorePaths": [
-    ".github/workflows/zz_generated.*",
-    ".github/workflows/codeql-analysis.yml"
-  ],
-  "ignoreDeps": [
-    "architect",
-    "zricethezav/gitleaks-action",
-    "actions/setup-go"
-  ],
-  "regexManagers": [
-    {
-      "fileMatch": ["^Dockerfile$"],
-      "matchStrings": [
-        "datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\sARG .+_VER=(?<currentValue>.*)\\s"
+      matchUpdateTypes: [
+        'patch',
+        'pin',
+        'digest',
       ],
-      "versioningTemplate": "{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}"
-    }
-  ]
+      automerge: true,
+    },
+  ],
+  dependencyDashboard: true,
+  ignorePaths: [
+    '.github/workflows/zz_generated.*',
+    '.github/workflows/codeql-analysis.yml',
+  ],
+  ignoreDeps: [
+    'architect',
+    'zricethezav/gitleaks-action',
+    'actions/setup-go',
+  ],
+  customManagers: [
+    {
+      customType: 'regex',
+      managerFilePatterns: [
+        '/^Dockerfile$/',
+      ],
+      matchStrings: [
+        'datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\sARG .+_VER=(?<currentValue>.*)\\s',
+      ],
+      versioningTemplate: '{{#if versioning}}{{{versioning}}}{{else}}semver{{/if}}',
+    },
+  ],
 }
