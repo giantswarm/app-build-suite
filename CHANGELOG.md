@@ -4,6 +4,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following [Se
 
 ## [Unreleased]
 
+### Changed
+
+- Update architect-orb in CircleCI config to v6.8.0
+
 ## [1.3.0] - 2025-10-30
 
 ### Added
