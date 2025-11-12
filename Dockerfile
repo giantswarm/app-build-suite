@@ -1,4 +1,4 @@
-FROM gsoci.azurecr.io/giantswarm/python:3.12.7-slim AS binaries
+FROM gsoci.azurecr.io/giantswarm/python:3.13.5-slim AS binaries
 
 # renovate: datasource=github-releases depName=helm/helm
 ARG HELM_VER=v3.19.2
@@ -25,7 +25,7 @@ COPY container-entrypoint.sh /binaries
 RUN chmod +x /binaries/*
 
 
-FROM gsoci.azurecr.io/giantswarm/python:3.12.7-slim AS base
+FROM gsoci.azurecr.io/giantswarm/python:3.13.5-slim AS base
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
