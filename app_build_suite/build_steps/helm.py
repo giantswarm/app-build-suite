@@ -696,6 +696,14 @@ class HelmChartMetadataBuilder(BuildStep):
                 chart_yaml[self._key_annotations][f"{self._key_annotation_restrictions_prefix}/{key}"] = chart_yaml[
                     self._key_restrictions
                 ][key]
+        if self._key_upstream_chart_url in chart_yaml:
+            chart_yaml[self._key_annotations][f"{self._key_annotation_prefix}/{self._key_upstream_chart_url}"] = (
+                chart_yaml[self._key_upstream_chart_url]
+            )
+        if self._key_upstream_chart_version in chart_yaml:
+            chart_yaml[self._key_annotations][f"{self._key_annotation_prefix}/{self._key_upstream_chart_version}"] = (
+                chart_yaml[self._key_upstream_chart_version]
+            )
         # save Chart.yaml
         if (
             not context.get(context_key_changes_made, False)
