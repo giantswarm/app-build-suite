@@ -45,6 +45,10 @@ Helm build pipeline executes in sequence the following set of steps:
    - config options:
      - `--generate-metadata`: enable generation of the metadata file for Giant Swarm App Platform.
      - `--catalog-base-url`: Base URL of the catalog in which the app package will be stored in. Should end with a /.
+   When metadata generation is enabled, the annotations for `application.giantswarm.io/readme` and
+   `application.giantswarm.io/values-schema` are automatically rewritten to point directly to the
+   files in the chart's GitHub repository using the chart version tag so that published annotations
+   always reference the exact release content.
 
 6. HelmChartBuilder: this step does the actual chart build using Helm.
    - config options:
