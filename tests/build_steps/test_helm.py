@@ -69,11 +69,19 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
 
         def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
             annotation_base_url = f"{config.catalog_base_url}hello-world-app-{git_version}.tgz-meta/"
-            assert data["annotations"]["application.giantswarm.io/metadata"] == f"{annotation_base_url}main.yaml"
-            assert data["annotations"]["application.giantswarm.io/values-schema"] == expected_github_url(
-                "./values.schema.json"
+            annotations = data["annotations"]
+            assert annotations["application.giantswarm.io/metadata"] == f"{annotation_base_url}main.yaml"
+            assert annotations["application.giantswarm.io/values-schema"] == expected_github_url("./values.schema.json")
+            assert annotations["application.giantswarm.io/readme"] == expected_github_url("../../README.md")
+
+            restrictions = chart_yaml_data["restrictions"]
+            for key, value in restrictions.items():
+                assert annotations[f"application.giantswarm.io/restrictions/{key}"] == value
+
+            assert annotations["application.giantswarm.io/upstreamChartURL"] == chart_yaml_data["upstreamChartURL"]
+            assert (
+                annotations["application.giantswarm.io/upstreamChartVersion"] == chart_yaml_data["upstreamChartVersion"]
             )
-            assert data["annotations"]["application.giantswarm.io/readme"] == expected_github_url("../../README.md")
 
         monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: True)
         monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: True)
