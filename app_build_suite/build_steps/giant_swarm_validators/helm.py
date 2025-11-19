@@ -83,6 +83,6 @@ class HasTeamLabel(UseChartYaml):
             helpers_file_path = os.path.join(config.chart_dir, TEMPLATES_DIR, HELPERS_TPL)
             if not os.path.exists(helpers_file_path):
                 raise GiantSwarmValidatorError(
-                    f"Template file '{HELPERS_YAML}' or '{HELPERS_TPL}' not found in " f"'{TEMPLATES_DIR}' directory."
+                    f"Template file '{HELPERS_YAML}' or '{HELPERS_TPL}' not found in '{TEMPLATES_DIR}' directory."
                 )
         return helpers_file_path

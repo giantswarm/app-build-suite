@@ -12,7 +12,7 @@ from step_exec_lib.errors import ValidationError
 import app_build_suite
 from app_build_suite.build_steps.helm import (
     HelmChartMetadataFinalizer,
-    HelmChartMetadataPreparer,
+    HelmChartMetadataBuilder,
     context_key_chart_file_name,
     context_key_chart_full_path,
     context_key_meta_dir_path,
@@ -25,7 +25,7 @@ from tests.build_steps.helpers import init_config_for_step
 
 def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     input_chart_path = os.path.join(os.path.dirname(__file__), "res_test_helm/Chart.yaml")
-    step = HelmChartMetadataPreparer()
+    step = HelmChartMetadataBuilder()
     config = init_config_for_step(step)
     config.generate_metadata = True
     config.catalog_base_url = "https://some-bogus-catalog/"
@@ -34,6 +34,7 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
 
     with open(input_chart_path) as f:
         input_chart_yaml = f.read()
+    chart_yaml_data = yaml.safe_load(input_chart_yaml)
 
     # run pre_run
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
@@ -54,18 +55,38 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
             context_key_changes_made: True,
         }
 
+        repo_root = step._find_git_repo_root(config.chart_dir)
+        assert repo_root is not None
+        github_repo = step._discover_github_repo(chart_yaml_data)
+        assert github_repo is not None
+        version_tag = step._normalize_version_tag(chart_yaml_data["version"])
+        assert version_tag is not None
+
+        def expected_github_url(additional_path: str) -> str:
+            source_file_path = os.path.join(os.path.abspath(config.chart_dir), additional_path)
+            relative_to_root = os.path.relpath(source_file_path, repo_root).replace(os.sep, "/")
+            return f"{step._github_raw_host}/{github_repo}/refs/tags/{version_tag}/{relative_to_root}"
+
         def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
             annotation_base_url = f"{config.catalog_base_url}hello-world-app-{git_version}.tgz-meta/"
-            assert data["annotations"]["application.giantswarm.io/metadata"] == f"{annotation_base_url}main.yaml"
+            annotations = data["annotations"]
+            assert annotations["application.giantswarm.io/metadata"] == f"{annotation_base_url}main.yaml"
+            assert annotations["application.giantswarm.io/values-schema"] == expected_github_url("./values.schema.json")
+            assert annotations["application.giantswarm.io/readme"] == expected_github_url("../../README.md")
+
+            restrictions = chart_yaml_data["restrictions"]
+            for key, value in restrictions.items():
+                assert annotations[f"application.giantswarm.io/restrictions/{key}"] == value
+
+            assert annotations["application.giantswarm.io/upstreamChartURL"] == chart_yaml_data["upstreamChartURL"]
             assert (
-                data["annotations"]["application.giantswarm.io/values-schema"]
-                == f"{annotation_base_url}values.schema.json"
+                annotations["application.giantswarm.io/upstreamChartVersion"] == chart_yaml_data["upstreamChartVersion"]
             )
 
         monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: True)
         monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: True)
         monkeypatch.setattr(
-            app_build_suite.build_steps.helm.HelmChartMetadataPreparer, "write_chart_yaml", monkey_write_chart_yaml
+            app_build_suite.build_steps.helm.HelmChartMetadataBuilder, "write_chart_yaml", monkey_write_chart_yaml
         )
 
         step.run(config, context)

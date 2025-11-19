@@ -486,9 +486,9 @@ class HelmChartBuilder(BuildStep):
             raise BuildError(self.name, "Chart build failed")
 
 
-class HelmChartMetadataPreparer(BuildStep):
+class HelmChartMetadataBuilder(BuildStep):
     """
-    HelmChartMetadataPreparer prepares metadata generation based on additional info in Chart.yaml file.
+    HelmChartMetadataBuilder builds metadata generation based on additional info in Chart.yaml file.
     Should run before HelmChartBuilder
     """
 
@@ -500,12 +500,16 @@ class HelmChartMetadataPreparer(BuildStep):
     _key_gpu_instances = "gpuInstances"
     _key_fixed_namespace = "fixedNamespace"
     _key_annotations = "annotations"
-    _key_annotation_metadata_url = "application.giantswarm.io/metadata"
+    _key_annotation_prefix = "application.giantswarm.io"
+    _key_annotation_metadata_url = f"{_key_annotation_prefix}/metadata"
+    _key_annotation_restrictions_prefix = f"{_key_annotation_prefix}/restrictions"
 
     _annotation_files_map = {
-        "./values.schema.json": "application.giantswarm.io/values-schema",
-        "../../README.md": "application.giantswarm.io/readme",
+        "./values.schema.json": f"{_key_annotation_prefix}/values-schema",
+        "../../README.md": f"{_key_annotation_prefix}/readme",
     }
+    _github_host = "github.com"
+    _github_raw_host = "https://raw.githubusercontent.com"
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -560,8 +564,78 @@ class HelmChartMetadataPreparer(BuildStep):
         with open(chart_yaml_file_name, "w") as f:
             yaml.dump(data, f, default_flow_style=False)
 
+    def _normalize_version_tag(self, chart_version: str) -> str:
+        if not chart_version:
+            raise ValidationError(self.name, "Chart version is not set")
+        if chart_version.startswith("v"):
+            return chart_version
+        return f"v{chart_version}"
+
+    def _find_git_repo_root(self, chart_dir: str) -> Optional[str]:
+        current = os.path.abspath(chart_dir)
+        while True:
+            if os.path.isdir(os.path.join(current, ".git")):
+                return current
+            parent = os.path.dirname(current)
+            if parent == current:
+                return None
+            current = parent
+
+    def _extract_github_repo_from_url(self, url: Optional[str]) -> Optional[str]:
+        if not url:
+            return None
+        parsed = urlsplit(url)
+        netloc = parsed.netloc.lower()
+        path_parts = [part for part in parsed.path.strip("/").split("/") if part]
+        if netloc.endswith(self._github_host) and len(path_parts) >= 2:
+            owner = path_parts[0]
+            repo = path_parts[1]
+            if repo.endswith(".git"):
+                repo = repo[:-4]
+            return f"{owner}/{repo}"
+        if netloc == "raw.githubusercontent.com" and len(path_parts) >= 2:
+            return f"{path_parts[0]}/{path_parts[1]}"
+        return None
+
+    def _discover_github_repo(self, chart_yaml: Context) -> Optional[str]:
+        candidates: List[str] = []
+        home = chart_yaml.get("home")
+        if isinstance(home, str):
+            candidates.append(home)
+        sources = chart_yaml.get("sources", [])
+        if isinstance(sources, list):
+            candidates.extend([src for src in sources if isinstance(src, str)])
+        for candidate in candidates:
+            repo = self._extract_github_repo_from_url(candidate)
+            if repo:
+                return repo
+        return None
+
+    def _build_github_annotation_url(
+        self, github_repo: Optional[str], repo_root: Optional[str], source_file_path: str, version_tag: Optional[str]
+    ) -> Optional[str]:
+        if not github_repo or not repo_root or not version_tag:
+            return None
+        abs_repo_root = os.path.abspath(repo_root)
+        abs_file = os.path.abspath(source_file_path)
+        try:
+            relative_path = os.path.relpath(abs_file, abs_repo_root)
+        except ValueError:
+            return None
+        if relative_path.startswith(".."):
+            return None
+        normalized_relative_path = relative_path.replace(os.sep, "/")
+        return urlsplit(
+            f"{self._github_raw_host}/{github_repo}/refs/tags/{version_tag}/{normalized_relative_path}"
+        ).geturl()
+
     def build_file_annotations(
-        self, catalog_base_url: str, chart_file_name: str, chart_dir: str, meta_dir_path: str
+        self,
+        chart_yaml: Context,
+        catalog_base_url: str,
+        chart_file_name: str,
+        chart_dir: str,
+        meta_dir_path: str,
     ) -> Context:
         """
         Based upon the _annotations_files_map:
@@ -571,10 +645,17 @@ class HelmChartMetadataPreparer(BuildStep):
         """
         catalog_url = f"{catalog_base_url}{chart_file_name}-meta/"
         annotations = {self._key_annotation_metadata_url: urlsplit(f"{catalog_url}main.yaml").geturl()}
+        github_repo = self._discover_github_repo(chart_yaml)
+        version_tag = self._normalize_version_tag(chart_yaml.get("version"))
+        repo_root = self._find_git_repo_root(chart_dir)
         for additional_file, annotation_key in self._annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
-                annotations[annotation_key] = urlsplit(f"{catalog_url}{os.path.basename(additional_file)}").geturl()
+                github_url = self._build_github_annotation_url(github_repo, repo_root, source_file_path, version_tag)
+                if github_url:
+                    annotations[annotation_key] = github_url
+                else:
+                    annotations[annotation_key] = urlsplit(f"{catalog_url}{os.path.basename(additional_file)}").geturl()
                 target_file_path = os.path.join(meta_dir_path, os.path.basename(additional_file))
                 shutil.copy2(source_file_path, target_file_path)
 
@@ -603,12 +684,26 @@ class HelmChartMetadataPreparer(BuildStep):
         chart_yaml[self._key_annotations] = {
             **chart_yaml.get(self._key_annotations, {}),
             **self.build_file_annotations(
+                chart_yaml,
                 config.catalog_base_url,
                 context[context_key_chart_file_name],
                 config.chart_dir,
                 context[context_key_meta_dir_path],
             ),
         }
+        if self._key_restrictions in chart_yaml:
+            for key in chart_yaml[self._key_restrictions]:
+                chart_yaml[self._key_annotations][f"{self._key_annotation_restrictions_prefix}/{key}"] = chart_yaml[
+                    self._key_restrictions
+                ][key]
+        if self._key_upstream_chart_url in chart_yaml:
+            chart_yaml[self._key_annotations][f"{self._key_annotation_prefix}/{self._key_upstream_chart_url}"] = (
+                chart_yaml[self._key_upstream_chart_url]
+            )
+        if self._key_upstream_chart_version in chart_yaml:
+            chart_yaml[self._key_annotations][f"{self._key_annotation_prefix}/{self._key_upstream_chart_version}"] = (
+                chart_yaml[self._key_upstream_chart_version]
+            )
         # save Chart.yaml
         if (
             not context.get(context_key_changes_made, False)
@@ -857,7 +952,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
                 HelmRequirementsUpdater(),
                 HelmChartToolLinter(),
                 KubeLinter(),
-                HelmChartMetadataPreparer(),
+                HelmChartMetadataBuilder(),
                 HelmChartBuilder(),
                 HelmChartMetadataFinalizer(),
                 HelmChartYAMLRestorer(),
