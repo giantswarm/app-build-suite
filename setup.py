@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="app_build_suite",
-    version="v1.2.8",
+    version="v1.4.0",
     author="Łukasz Piątkowski",
     author_email="lukasz@giantswarm.io",
     description="An app build suite for GiantSwarm app platform",
