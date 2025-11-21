@@ -7,6 +7,11 @@ orbs:
 workflows:
     test:
         jobs:
+            - check-variable-is-set:
+                  name: check-variable-is-set
+                  filters:
+                      tags:
+                          only: /^v.*/
             - run-tests:
                   name: run-tests
                   filters:
@@ -62,6 +67,16 @@ workflows:
                           only: /^v.*/
 
 jobs:
+    check-variable-is-set:
+        machine:
+            image: default
+        steps:
+            - checkout
+            - run:
+                  name: Check variable
+                  command: |
+                      [[ -n "${ARCHITECT_GITHUB_TOKEN}" ]] && echo "Variable is set!" || echo "Variable not set! :("
+
     augment-circleci-dockerfile:
         executor: "architect/architect"
         steps:
