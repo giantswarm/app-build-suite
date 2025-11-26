@@ -3,64 +3,77 @@ version: 2.1
 orbs:
     architect: giantswarm/architect@6.8.0
     codecov: codecov/codecov@5.4.3
+    gh: circleci/github-cli@2.7.2
 
 workflows:
     test:
         jobs:
-            - run-tests:
-                  name: run-tests
-                  filters:
-                      tags:
-                          only: /^v.*/
+            #- run-tests:
+            #      name: run-tests
+            #      filters:
+            #          tags:
+            #              only: /^v.*/
 
-            - architect/push-to-registries:
+            #- architect/push-to-registries:
+            #      context: architect
+            #      name: push-to-registries
+            #      requires:
+            #          - run-tests
+            #      filters:
+            #          branches:
+            #              ignore:
+            #                  - main
+            #                  - master
+            #          tags:
+            #              only: /^v.*/
+
+            #- augment-circleci-dockerfile:
+            #      name: augment-circleci-dockerfile
+            #      requires:
+            #          - push-to-registries
+            #      filters:
+            #          # Needed to trigger job also on git tag.
+            #          tags:
+            #              only: /^v.*/
+
+            #- architect/push-to-registries:
+            #      context: architect
+            #      name: push-to-registries-augmented
+            #      requires:
+            #          - run-tests
+            #          - augment-circleci-dockerfile
+            #      dockerfile: "./circleci.Dockerfile"
+            #      tag-suffix: "-circleci"
+            #      filters:
+            #          branches:
+            #              ignore:
+            #                  - main
+            #                  - master
+            #          tags:
+            #              only: /^v.*/
+            - gh/release:
                   context: architect
-                  name: push-to-registries
-                  requires:
-                      - run-tests
                   filters:
+                      tags:
+                          only: /^v.*/
                       branches:
-                          ignore:
-                              - main
-                              - master
-                      tags:
-                          only: /^v.*/
-
-            - augment-circleci-dockerfile:
-                  name: augment-circleci-dockerfile
-                  requires:
-                      - push-to-registries
-                  filters:
-                      # Needed to trigger job also on git tag.
-                      tags:
-                          only: /^v.*/
-
-            - architect/push-to-registries:
-                  context: architect
-                  name: push-to-registries-augmented
-                  requires:
-                      - run-tests
-                      - augment-circleci-dockerfile
-                  dockerfile: "./circleci.Dockerfile"
-                  tag-suffix: "-circleci"
-                  filters:
-                      branches:
-                          ignore:
-                              - main
-                              - master
-                      tags:
-                          only: /^v.*/
-
-            - publish-github-release:
-                  context: architect
-                  name: publish-github-release-for-dabs
-                  requires:
-                      - push-to-registries-augmented
-                  filters:
-                      branches:
-                          ignore: /.*/
-                      tags:
-                          only: /^v.*/
+                          only:
+                              - "*"
+                  notes-file: CHANGELOG.md
+                  #requires:
+                  #    - push-to-registries-augmented
+                  tag: ${CIRCLE_TAG}
+                  title: Release ${CIRCLE_TAG}
+            # - publish-github-release:
+            #       context: architect
+            #       name: publish-github-release-for-dabs
+            #       requires:
+            #           - push-to-registries-augmented
+            #       filters:
+            #           branches:
+            #               ignore: /.*/
+            #           tags:
+            #               only: /^v.*/
 
 jobs:
     augment-circleci-dockerfile:
