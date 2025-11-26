@@ -114,6 +114,7 @@ jobs:
         steps:
             - gh/setup:
                   token: ARCHITECT_GITHUB_TOKEN
+            - gh/clone
             - run:
                   command: |
                       gh release create $CIRCLE_TAG --notes-file CHANGELOG.md --title "Release $CIRCLE_TAG" \
