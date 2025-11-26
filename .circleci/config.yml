@@ -50,7 +50,8 @@ workflows:
             #                  - main
             #                  - master
             #          tags:
-            #              only: /^v.*/
+            #              only: /^v.*/lh
+            -
             - gh/release:
                   context: architect
                   filters:
@@ -62,8 +63,8 @@ workflows:
                   notes-file: CHANGELOG.md
                   #requires:
                   #    - push-to-registries-augmented
-                  tag: "${CIRCLE_TAG}"
-                  title: Release ${CIRCLE_TAG}
+                  tag: $CIRCLE_TAG
+                  title: Release $CIRCLE_TAG
                   token: ARCHITECT_GITHUB_TOKEN
             # - publish-github-release:
             #       context: architect
