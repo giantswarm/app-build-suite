@@ -112,10 +112,11 @@ jobs:
         docker:
             - image: cimg/base:stable
         steps:
-            - gh/setup
+            - gh/setup:
+                  token: ARCHITECT_GITHUB_TOKEN
             - run:
                   command: |
-                      gh release create $CIRCLE_TAG --notes-file CHANGELOG.md --title Release '$CIRCLE_TAG' \
+                      gh release create $CIRCLE_TAG --notes-file CHANGELOG.md --title "Release $CIRCLE_TAG" \
                           --repo git@github.com:giantswarm/app-build-suite.git
                   name: Create Release
     # publish-github-release:
