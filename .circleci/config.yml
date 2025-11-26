@@ -64,6 +64,7 @@ workflows:
                   #    - push-to-registries-augmented
                   tag: ${CIRCLE_TAG}
                   title: Release ${CIRCLE_TAG}
+                  token: ARCHITECT_GITHUB_TOKEN
             # - publish-github-release:
             #       context: architect
             #       name: publish-github-release-for-dabs
