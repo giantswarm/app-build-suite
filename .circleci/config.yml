@@ -51,7 +51,6 @@ workflows:
             #                  - master
             #          tags:
             #              only: /^v.*/lh
-            -
             - gh/release:
                   context: architect
                   filters:
