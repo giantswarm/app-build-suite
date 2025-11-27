@@ -3,12 +3,13 @@
 import argparse
 import inspect
 import logging
+import re
 import os
 import pathlib
 import shutil
 from datetime import datetime, timezone
 from os import listdir
-from typing import List, Optional, Set, Protocol, Tuple, Type, runtime_checkable
+from typing import Any, List, Optional, Set, Protocol, Tuple, Type, runtime_checkable
 from urllib.parse import urlsplit
 from importlib import import_module
 
@@ -571,6 +572,20 @@ class HelmChartMetadataBuilder(BuildStep):
             return chart_version
         return f"v{chart_version}"
 
+    def _camel_to_kebab(self, value: str) -> str:
+        stripped = value.strip()
+        if not stripped:
+            return stripped
+        normalized = stripped.replace("_", "-").replace(" ", "-")
+        kebab = re.sub(r"([a-z0-9])([A-Z])", r"\1-\2", normalized)
+        kebab = re.sub("-{2,}", "-", kebab)
+        return kebab.lower()
+
+    def _format_restriction_value(self, value: Any) -> Any:
+        if isinstance(value, list):
+            return ",".join(str(v) for v in value)
+        return value
+
     def _find_git_repo_root(self, chart_dir: str) -> Optional[str]:
         current = os.path.abspath(chart_dir)
         while True:
@@ -692,18 +707,20 @@ class HelmChartMetadataBuilder(BuildStep):
             ),
         }
         if self._key_restrictions in chart_yaml:
-            for key in chart_yaml[self._key_restrictions]:
-                chart_yaml[self._key_annotations][f"{self._key_annotation_restrictions_prefix}/{key}"] = chart_yaml[
-                    self._key_restrictions
-                ][key]
+            restrictions = chart_yaml[self._key_restrictions]
+            if isinstance(restrictions, dict):
+                for key, value in restrictions.items():
+                    kebab_key = self._camel_to_kebab(key)
+                    formatted_value = self._format_restriction_value(value)
+                    chart_yaml[self._key_annotations][f"{self._key_annotation_restrictions_prefix}/{kebab_key}"] = (
+                        formatted_value
+                    )
         if self._key_upstream_chart_url in chart_yaml:
-            chart_yaml[self._key_annotations][f"{self._key_annotation_prefix}/{self._key_upstream_chart_url}"] = (
-                chart_yaml[self._key_upstream_chart_url]
-            )
+            annotation_key = f"{self._key_annotation_prefix}/{self._camel_to_kebab(self._key_upstream_chart_url)}"
+            chart_yaml[self._key_annotations][annotation_key] = chart_yaml[self._key_upstream_chart_url]
         if self._key_upstream_chart_version in chart_yaml:
-            chart_yaml[self._key_annotations][f"{self._key_annotation_prefix}/{self._key_upstream_chart_version}"] = (
-                chart_yaml[self._key_upstream_chart_version]
-            )
+            annotation_key = f"{self._key_annotation_prefix}/{self._camel_to_kebab(self._key_upstream_chart_version)}"
+            chart_yaml[self._key_annotations][annotation_key] = chart_yaml[self._key_upstream_chart_version]
         # save Chart.yaml
         if (
             not context.get(context_key_changes_made, False)

@@ -76,11 +76,14 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
 
             restrictions = chart_yaml_data["restrictions"]
             for key, value in restrictions.items():
-                assert annotations[f"application.giantswarm.io/restrictions/{key}"] == value
+                kebab_key = step._camel_to_kebab(key)  # type: ignore[attr-defined]
+                expected_value = step._format_restriction_value(value)  # type: ignore[attr-defined]
+                assert annotations[f"application.giantswarm.io/restrictions/{kebab_key}"] == expected_value
 
-            assert annotations["application.giantswarm.io/upstreamChartURL"] == chart_yaml_data["upstreamChartURL"]
+            assert annotations["application.giantswarm.io/upstream-chart-url"] == chart_yaml_data["upstreamChartURL"]
             assert (
-                annotations["application.giantswarm.io/upstreamChartVersion"] == chart_yaml_data["upstreamChartVersion"]
+                annotations["application.giantswarm.io/upstream-chart-version"]
+                == chart_yaml_data["upstreamChartVersion"]
             )
 
         monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: True)
