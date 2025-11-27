@@ -113,7 +113,7 @@ jobs:
             - image: cimg/base:stable
         steps:
             - gh/setup:
-                  token: TAYLORBOT_RELEASE_TOKEN
+                  token: TAYLORBOT_CIRCLECI_RELEASE_TOKEN
             - gh/clone
             - run:
                   command: |
