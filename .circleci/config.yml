@@ -102,4 +102,4 @@ jobs:
             - run:
                   name: Publish Release on GitHub
                   command: |
-                      ghr -t ${ARCHITECT_GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./dabs.sh
+                      ghr -t ${TAYLORBOT_CIRCLECI_RELEASE_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./dabs.sh
