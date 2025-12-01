@@ -486,6 +486,13 @@ class HelmChartBuilder(BuildStep):
             raise BuildError(self.name, "Chart build failed")
 
 
+_key_oci_annotation_prefix = "io.giantswarm.application"
+_annotation_files_map = {
+    "./values.schema.json": f"{_key_oci_annotation_prefix}.values-schema",
+    "../../README.md": f"{_key_oci_annotation_prefix}.readme",
+}
+
+
 class HelmChartMetadataBuilder(BuildStep):
     """
     HelmChartMetadataBuilder builds metadata generation based on additional info in Chart.yaml file.
@@ -498,12 +505,12 @@ class HelmChartMetadataBuilder(BuildStep):
     _key_cluster_singleton = "clusterSingleton"
     _key_namespace_singleton = "namespaceSingleton"
     _key_gpu_instances = "gpuInstances"
+    _key_compatible_providers = "compatibleProviders"
     _key_fixed_namespace = "fixedNamespace"
     _key_annotations = "annotations"
     _key_annotation_prefix = "application.giantswarm.io"
     _key_annotation_metadata_url = f"{_key_annotation_prefix}/metadata"
     _key_annotation_restrictions_prefix = f"{_key_annotation_prefix}/restrictions"
-    _key_oci_annotation_prefix = "io.giantswarm.application"
     _key_oci_annotation_metadata_url = f"{_key_oci_annotation_prefix}.metadata"
     _key_oci_annotation_restrictions_prefix = f"{_key_oci_annotation_prefix}.restrictions"
     _oci_translated_keys = {
@@ -513,12 +520,9 @@ class HelmChartMetadataBuilder(BuildStep):
         _key_namespace_singleton: "namespace-singleton",
         _key_gpu_instances: "gpu-instances",
         _key_fixed_namespace: "fixed-namespace",
+        _key_compatible_providers: "compatible-providers",
     }
 
-    _annotation_files_map = {
-        "./values.schema.json": f"{_key_oci_annotation_prefix}.values-schema",
-        "../../README.md": f"{_key_oci_annotation_prefix}.readme",
-    }
     _github_host = "github.com"
     _github_raw_host = "https://raw.githubusercontent.com"
 
@@ -663,7 +667,7 @@ class HelmChartMetadataBuilder(BuildStep):
         github_repo = self._discover_github_repo(chart_yaml)
         version_tag = self._normalize_version_tag(chart_yaml.get("version"))
         repo_root = self._find_git_repo_root(chart_dir)
-        for additional_file, annotation_key in self._annotation_files_map.items():
+        for additional_file, annotation_key in _annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
                 github_url = self._build_github_annotation_url(github_repo, repo_root, source_file_path, version_tag)
@@ -678,13 +682,11 @@ class HelmChartMetadataBuilder(BuildStep):
                         formatted_value
                     )
         if self._key_upstream_chart_url in chart_yaml:
-            annotation_key = (
-                f"{self._key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_url]}"
-            )
+            annotation_key = f"{_key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_url]}"
             chart_yaml[self._key_annotations][annotation_key] = chart_yaml[self._key_upstream_chart_url]
         if self._key_upstream_chart_version in chart_yaml:
             annotation_key = (
-                f"{self._key_oci_annotation_prefix}/{self._oci_translated_keys[self._key_upstream_chart_version]}"
+                f"{_key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_version]}"
             )
             chart_yaml[self._key_annotations][annotation_key] = chart_yaml[self._key_upstream_chart_version]
 
@@ -806,7 +808,7 @@ class HelmChartMetadataFinalizer(BuildStep):
         logger.info(f"Metadata file saved to '{meta_file_name}'")
         # copy additional files to metadata directory
         chart_dir = config.chart_dir
-        for additional_file in self._annotation_files_map.keys():
+        for additional_file in _annotation_files_map.keys():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
                 target_file_path = os.path.join(meta_dir_path, os.path.basename(additional_file))

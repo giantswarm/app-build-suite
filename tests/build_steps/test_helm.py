@@ -70,19 +70,19 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
         def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
             annotation_base_url = f"{config.catalog_base_url}hello-world-app-{git_version}.tgz-meta/"
             annotations = data["annotations"]
-            assert annotations["application.giantswarm.io/metadata"] == f"{annotation_base_url}main.yaml"
-            assert annotations["application.giantswarm.io/values-schema"] == expected_github_url("./values.schema.json")
-            assert annotations["application.giantswarm.io/readme"] == expected_github_url("../../README.md")
+            assert annotations["io.giantswarm.application.metadata"] == f"{annotation_base_url}main.yaml"
+            assert annotations["io.giantswarm.application.values-schema"] == expected_github_url("./values.schema.json")
+            assert annotations["io.giantswarm.application.readme"] == expected_github_url("../../README.md")
 
             restrictions = chart_yaml_data["restrictions"]
             for key, value in restrictions.items():
-                kebab_key = step._camel_to_kebab(key)  # type: ignore[attr-defined]
+                kebab_key = step._oci_translated_keys[key]
                 expected_value = step._format_restriction_value(value)  # type: ignore[attr-defined]
-                assert annotations[f"application.giantswarm.io/restrictions/{kebab_key}"] == expected_value
+                assert annotations[f"io.giantswarm.application.restrictions.{kebab_key}"] == expected_value
 
-            assert annotations["application.giantswarm.io/upstream-chart-url"] == chart_yaml_data["upstreamChartURL"]
+            assert annotations["io.giantswarm.application.upstream-chart-url"] == chart_yaml_data["upstreamChartURL"]
             assert (
-                annotations["application.giantswarm.io/upstream-chart-version"]
+                annotations["io.giantswarm.application.upstream-chart-version"]
                 == chart_yaml_data["upstreamChartVersion"]
             )
 
