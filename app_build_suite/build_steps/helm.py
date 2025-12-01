@@ -796,9 +796,6 @@ class HelmChartMetadataFinalizer(BuildStep):
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
         meta = {}
-        # chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
-        # with open(chart_yaml_path, "r") as file:
-        # chart_yaml = yaml.safe_load(file)
         # mandatory metadata
         meta[self._key_chart_file] = context[context_key_chart_file_name]
         meta[self._key_digest] = get_file_sha256(context[context_key_chart_full_path])
@@ -808,13 +805,29 @@ class HelmChartMetadataFinalizer(BuildStep):
         for key in [
             self._key_upstream_chart_url,
             self._key_upstream_chart_version,
-            self._key_annotations,
             self._key_restrictions,
             self._key_icon,
             self._key_home,
         ]:
             if key in context[context_key_original_chart_yaml]:
                 meta[key] = context[context_key_original_chart_yaml][key]
+        # convert existing annotations in the format io.giantswarm.application...to application.giantswarm.io/...
+        old_style_annotations = copy.deepcopy(context[context_key_original_chart_yaml][self._key_annotations])
+        to_remove = []
+        to_add = {}
+        slashed_oci_annotation_prefix = _key_oci_annotation_prefix.replace(".", "/")
+        for key, value in old_style_annotations.items():
+            if key.startswith(_key_oci_annotation_prefix):
+                # leave application.giantswarm.io/... as is but replace all following dots with slashes
+                new_key = key.replace(".", "/")
+                new_key = new_key.replace(slashed_oci_annotation_prefix, self._key_annotation_prefix)
+                to_remove.append(key)
+                to_add[new_key] = value
+        for key in to_remove:
+            old_style_annotations.pop(key)
+        for key, value in to_add.items():
+            old_style_annotations[key] = value
+        meta[self._key_annotations] = old_style_annotations
         # create metadata directory
         context[context_key_meta_dir_path] = f"{context[context_key_chart_full_path]}-meta"
         pathlib.Path(context[context_key_meta_dir_path]).mkdir(parents=True, exist_ok=True)
