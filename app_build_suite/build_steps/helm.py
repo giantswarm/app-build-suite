@@ -1,6 +1,7 @@
 """Build steps implementing helm3 based builds."""
 
 import argparse
+import copy
 import inspect
 import logging
 import os
@@ -41,6 +42,7 @@ context_key_git_version: str = "git_version"
 context_key_changes_made: str = "changes_made"
 context_key_meta_dir_path: str = "meta_dir_path"
 context_key_chart_lock_files_to_restore: str = "chart_lock_files_to_restore"
+context_key_original_chart_yaml: str = "original_chart_yaml"
 
 
 class HelmBuilderValidator(BuildStep):
@@ -701,6 +703,8 @@ class HelmChartMetadataBuilder(BuildStep):
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
         original_annotations = chart_yaml.get(self._key_annotations, None)
+        # save original chart yaml to context for backward compatibility
+        context[context_key_original_chart_yaml] = copy.deepcopy(chart_yaml)
         # try to guess the package file name. we need it for url generation in annotations
         chart_name = chart_yaml["name"]
         chart_version = chart_yaml["version"]
@@ -708,6 +712,19 @@ class HelmChartMetadataBuilder(BuildStep):
         context[context_key_chart_full_path] = os.path.abspath(
             os.path.join(config.destination, context[context_key_chart_file_name])
         )
+        # convert existing annotations in the format application.giantswarm.io/... to io.giantswarm.application....
+        to_remove = []
+        to_add = {}
+        for key, value in chart_yaml[self._key_annotations].items():
+            if key.startswith(self._key_annotation_prefix):
+                new_key = key.replace(self._key_annotation_prefix, _key_oci_annotation_prefix)
+                new_key = new_key.replace("/", ".")
+                to_remove.append(key)
+                to_add[new_key] = value
+        for key in to_remove:
+            chart_yaml[self._key_annotations].pop(key)
+        for key, value in to_add.items():
+            chart_yaml[self._key_annotations][key] = value
         # put in generated annotations
         annotations = self.build_chart_yaml_annotations(
             chart_yaml,
@@ -779,25 +796,25 @@ class HelmChartMetadataFinalizer(BuildStep):
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
         meta = {}
-        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
-        with open(chart_yaml_path, "r") as file:
-            chart_yaml = yaml.safe_load(file)
+        # chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
+        # with open(chart_yaml_path, "r") as file:
+        # chart_yaml = yaml.safe_load(file)
         # mandatory metadata
         meta[self._key_chart_file] = context[context_key_chart_file_name]
         meta[self._key_digest] = get_file_sha256(context[context_key_chart_full_path])
         meta[self._key_date_created] = self.get_build_timestamp()
-        meta[self._key_chart_api_version] = chart_yaml[self._key_api_version]
+        meta[self._key_chart_api_version] = context[context_key_original_chart_yaml][self._key_api_version]
         # optional metadata
         for key in [
             self._key_upstream_chart_url,
             self._key_upstream_chart_version,
-            self._key_restrictions,
             self._key_annotations,
+            self._key_restrictions,
             self._key_icon,
             self._key_home,
         ]:
-            if key in chart_yaml:
-                meta[key] = chart_yaml[key]
+            if key in context[context_key_original_chart_yaml]:
+                meta[key] = context[context_key_original_chart_yaml][key]
         # create metadata directory
         context[context_key_meta_dir_path] = f"{context[context_key_chart_full_path]}-meta"
         pathlib.Path(context[context_key_meta_dir_path]).mkdir(parents=True, exist_ok=True)
