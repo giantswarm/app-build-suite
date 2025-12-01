@@ -791,6 +791,14 @@ class HelmChartMetadataFinalizer(BuildStep):
         with open(meta_file_name, "w") as f:
             yaml.dump(meta, f, default_flow_style=False)
 
+    @staticmethod
+    def _kebab_to_camel(kebab_str: str) -> str:
+        """Convert kebab-case string to camelCase."""
+        parts = kebab_str.split("-")
+        if not parts:
+            return kebab_str
+        return parts[0] + "".join(word.capitalize() for word in parts[1:])
+
     def run(self, config: argparse.Namespace, context: Context) -> None:
         if not config.generate_metadata:
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
@@ -822,6 +830,17 @@ class HelmChartMetadataFinalizer(BuildStep):
                 new_key = key.replace(".", "/")
                 new_key = new_key.replace(slashed_oci_annotation_prefix, self._key_annotation_prefix)
                 to_remove.append(key)
+                # if the key part after the prefix is in kebab case, convert it into camel case
+                key_parts = new_key.split("/")
+                # The first part is the prefix (application.giantswarm.io), convert parts after it
+                if len(key_parts) > 1:
+                    converted_parts = [key_parts[0]]  # Keep the prefix as-is
+                    for part in key_parts[1:]:
+                        if "-" in part:
+                            converted_parts.append(self._kebab_to_camel(part))
+                        else:
+                            converted_parts.append(part)
+                    new_key = "/".join(converted_parts)
                 to_add[new_key] = value
         for key in to_remove:
             old_style_annotations.pop(key)
