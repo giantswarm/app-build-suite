@@ -493,6 +493,7 @@ _annotation_files_map = {
     "./values.schema.json": f"{_key_oci_annotation_prefix}.values-schema",
     "../../README.md": f"{_key_oci_annotation_prefix}.readme",
 }
+_key_annotation_prefix = "application.giantswarm.io"
 
 
 class HelmChartMetadataBuilder(BuildStep):
@@ -510,7 +511,6 @@ class HelmChartMetadataBuilder(BuildStep):
     _key_compatible_providers = "compatibleProviders"
     _key_fixed_namespace = "fixedNamespace"
     _key_annotations = "annotations"
-    _key_annotation_prefix = "application.giantswarm.io"
     _key_annotation_metadata_url = f"{_key_annotation_prefix}/metadata"
     _key_annotation_restrictions_prefix = f"{_key_annotation_prefix}/restrictions"
     _key_oci_annotation_metadata_url = f"{_key_oci_annotation_prefix}.metadata"
@@ -716,8 +716,8 @@ class HelmChartMetadataBuilder(BuildStep):
         to_remove = []
         to_add = {}
         for key, value in chart_yaml[self._key_annotations].items():
-            if key.startswith(self._key_annotation_prefix):
-                new_key = key.replace(self._key_annotation_prefix, _key_oci_annotation_prefix)
+            if key.startswith(_key_annotation_prefix):
+                new_key = key.replace(_key_annotation_prefix, _key_oci_annotation_prefix)
                 new_key = new_key.replace("/", ".")
                 to_remove.append(key)
                 to_add[new_key] = value
@@ -791,14 +791,19 @@ class HelmChartMetadataFinalizer(BuildStep):
         with open(meta_file_name, "w") as f:
             yaml.dump(meta, f, default_flow_style=False)
 
+    @staticmethod
+    def _kebab_to_camel(kebab_str: str) -> str:
+        """Convert kebab-case string to camelCase."""
+        parts = kebab_str.split("-")
+        if not parts:
+            return kebab_str
+        return parts[0] + "".join(word.capitalize() for word in parts[1:])
+
     def run(self, config: argparse.Namespace, context: Context) -> None:
         if not config.generate_metadata:
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
         meta = {}
-        # chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
-        # with open(chart_yaml_path, "r") as file:
-        # chart_yaml = yaml.safe_load(file)
         # mandatory metadata
         meta[self._key_chart_file] = context[context_key_chart_file_name]
         meta[self._key_digest] = get_file_sha256(context[context_key_chart_full_path])
@@ -808,13 +813,40 @@ class HelmChartMetadataFinalizer(BuildStep):
         for key in [
             self._key_upstream_chart_url,
             self._key_upstream_chart_version,
-            self._key_annotations,
             self._key_restrictions,
             self._key_icon,
             self._key_home,
         ]:
             if key in context[context_key_original_chart_yaml]:
                 meta[key] = context[context_key_original_chart_yaml][key]
+        # convert existing annotations in the format io.giantswarm.application...to application.giantswarm.io/...
+        new_style_annotations = copy.deepcopy(context[context_key_original_chart_yaml][self._key_annotations])
+        to_remove = []
+        to_add = {}
+        slashed_oci_annotation_prefix = _key_oci_annotation_prefix.replace(".", "/")
+        for key, value in new_style_annotations.items():
+            if key.startswith(_key_oci_annotation_prefix):
+                # leave application.giantswarm.io/... as is but replace all following dots with slashes
+                new_key = key.replace(".", "/")
+                new_key = new_key.replace(slashed_oci_annotation_prefix, _key_annotation_prefix)
+                to_remove.append(key)
+                # if the key part after the prefix is in kebab case, convert it into camel case
+                key_parts = new_key.split("/")
+                # The first part is the prefix (application.giantswarm.io), convert parts after it
+                if len(key_parts) > 1:
+                    converted_parts = [key_parts[0]]  # Keep the prefix as-is
+                    for part in key_parts[1:]:
+                        if "-" in part:
+                            converted_parts.append(self._kebab_to_camel(part))
+                        else:
+                            converted_parts.append(part)
+                    new_key = "/".join(converted_parts)
+                to_add[new_key] = value
+        for key in to_remove:
+            new_style_annotations.pop(key)
+        for key, value in to_add.items():
+            new_style_annotations[key] = value
+        meta[self._key_annotations] = new_style_annotations
         # create metadata directory
         context[context_key_meta_dir_path] = f"{context[context_key_chart_full_path]}-meta"
         pathlib.Path(context[context_key_meta_dir_path]).mkdir(parents=True, exist_ok=True)

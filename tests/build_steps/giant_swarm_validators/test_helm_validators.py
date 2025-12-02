@@ -88,6 +88,32 @@ annotations:
             """bogus line""",
             False,
         ),
+        # case: OCI format annotation, validation should pass
+        (
+            # Chart.yaml
+            """
+annotations:
+  io.giantswarm.application.team: 'honeybadger'""",
+            # _helpers.yaml
+            """
+   {{- define "hello-world-app.labels" -}}
+   application.giantswarm.io/team: {{ index .Chart.Annotations "io.giantswarm.application.team" | quote }}
+   {{- end }}""",
+            True,
+        ),
+        # case: OCI format annotation in helpers, validation should pass
+        (
+            # Chart.yaml
+            """
+annotations:
+  io.giantswarm.application.team: 'honeybadger'""",
+            # _helpers.yaml
+            """
+   {{- define "hello-world-app.labels" -}}
+   io.giantswarm.application.team: {{ index .Chart.Annotations "io.giantswarm.application.team" | quote }}
+   {{- end }}""",
+            True,
+        ),
     ],
     ids=[
         "both valid",
@@ -95,6 +121,8 @@ annotations:
         "team label value missing",
         "team label name typo",
         "not used in _templates.yaml",
+        "OCI format annotation with new format in helpers",
+        "OCI format annotation with OCI format in helpers",
     ],
 )
 def test_has_team_label_validator(
