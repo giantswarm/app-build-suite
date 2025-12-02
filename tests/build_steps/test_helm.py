@@ -223,3 +223,191 @@ def test_giant_swarm_validator(
         assert failed_regex.group(1) in expected_to_fail
 
     assert all(v.validate_called for v in validators)
+
+
+def test_annotation_conversion_new_to_oci_format(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that annotations in new format are converted to OCI format."""
+    step = HelmChartMetadataBuilder()
+    config = init_config_for_step(step)
+    config.generate_metadata = True
+    config.catalog_base_url = "https://some-bogus-catalog/"
+    config.chart_dir = "."
+    config.destination = "."
+
+    chart_yaml_data = {
+        "name": "test-app",
+        "version": "v1.0.0",
+        "annotations": {
+            "application.giantswarm.io/values-schema": "https://example.com/schema.json",
+            "application.giantswarm.io/readme": "https://example.com/readme.md",
+        },
+    }
+    chart_yaml_str = yaml.dump(chart_yaml_data)
+
+    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
+        context = {
+            context_key_chart_file_name: "test-app-v1.0.0.tgz",
+            context_key_chart_full_path: "./test-app-v1.0.0.tgz",
+            context_key_changes_made: False,
+        }
+
+        def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+            annotations = data["annotations"]
+            # Verify conversion from new format to OCI format
+            assert "io.giantswarm.application.values-schema" in annotations
+            assert annotations["io.giantswarm.application.values-schema"] == "https://example.com/schema.json"
+            assert "io.giantswarm.application.readme" in annotations
+            assert annotations["io.giantswarm.application.readme"] == "https://example.com/readme.md"
+            # Metadata annotation is automatically generated, so verify it exists with generated value
+            assert "io.giantswarm.application.metadata" in annotations
+            assert (
+                annotations["io.giantswarm.application.metadata"]
+                == "https://some-bogus-catalog/test-app-v1.0.0.tgz-meta/main.yaml"
+            )
+            # Verify old format keys are removed
+            assert "application.giantswarm.io/values-schema" not in annotations
+            assert "application.giantswarm.io/readme" not in annotations
+
+        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr(
+            app_build_suite.build_steps.helm.HelmChartMetadataBuilder, "write_chart_yaml", monkey_write_chart_yaml
+        )
+
+        step.run(config, context)
+
+
+def test_annotation_conversion_with_restrictions(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that restriction annotations are converted correctly."""
+    step = HelmChartMetadataBuilder()
+    config = init_config_for_step(step)
+    config.generate_metadata = True
+    config.catalog_base_url = "https://some-bogus-catalog/"
+    config.chart_dir = "."
+    config.destination = "."
+
+    chart_yaml_data = {
+        "name": "test-app",
+        "version": "v1.0.0",
+        "annotations": {
+            "application.giantswarm.io/restrictions/cluster-singleton": "false",
+            "application.giantswarm.io/restrictions/namespace-singleton": "true",
+            "application.giantswarm.io/restrictions/fixed-namespace": "test-namespace",
+        },
+    }
+    chart_yaml_str = yaml.dump(chart_yaml_data)
+
+    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
+        context = {
+            context_key_chart_file_name: "test-app-v1.0.0.tgz",
+            context_key_chart_full_path: "./test-app-v1.0.0.tgz",
+            context_key_changes_made: False,
+        }
+
+        def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+            annotations = data["annotations"]
+            # Verify restriction annotations are converted
+            assert "io.giantswarm.application.restrictions.cluster-singleton" in annotations
+            assert annotations["io.giantswarm.application.restrictions.cluster-singleton"] == "false"
+            assert "io.giantswarm.application.restrictions.namespace-singleton" in annotations
+            assert annotations["io.giantswarm.application.restrictions.namespace-singleton"] == "true"
+            assert "io.giantswarm.application.restrictions.fixed-namespace" in annotations
+            assert annotations["io.giantswarm.application.restrictions.fixed-namespace"] == "test-namespace"
+
+        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr(
+            app_build_suite.build_steps.helm.HelmChartMetadataBuilder, "write_chart_yaml", monkey_write_chart_yaml
+        )
+
+        step.run(config, context)
+
+
+def test_annotation_conversion_mixed_formats(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test conversion when annotations are in mixed formats."""
+    step = HelmChartMetadataBuilder()
+    config = init_config_for_step(step)
+    config.generate_metadata = True
+    config.catalog_base_url = "https://some-bogus-catalog/"
+    config.chart_dir = "."
+    config.destination = "."
+
+    chart_yaml_data = {
+        "name": "test-app",
+        "version": "v1.0.0",
+        "annotations": {
+            # New format annotations (should be converted)
+            "application.giantswarm.io/values-schema": "https://example.com/schema.json",
+            "application.giantswarm.io/readme": "https://example.com/readme.md",
+            # OCI format annotations (should remain unchanged)
+            "io.giantswarm.application.some-other-key": "some-value",
+            # Non-prefixed annotations (should remain unchanged)
+            "other.annotation/key": "other-value",
+        },
+    }
+    chart_yaml_str = yaml.dump(chart_yaml_data)
+
+    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
+        context = {
+            context_key_chart_file_name: "test-app-v1.0.0.tgz",
+            context_key_chart_full_path: "./test-app-v1.0.0.tgz",
+            context_key_changes_made: False,
+        }
+
+        def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+            annotations = data["annotations"]
+            # Verify new format annotations are converted
+            assert "io.giantswarm.application.values-schema" in annotations
+            assert "io.giantswarm.application.readme" in annotations
+            assert "application.giantswarm.io/values-schema" not in annotations
+            assert "application.giantswarm.io/readme" not in annotations
+            # Verify OCI format annotations remain unchanged
+            assert "io.giantswarm.application.some-other-key" in annotations
+            assert annotations["io.giantswarm.application.some-other-key"] == "some-value"
+            # Verify non-prefixed annotations remain unchanged
+            assert "other.annotation/key" in annotations
+            assert annotations["other.annotation/key"] == "other-value"
+
+        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr(
+            app_build_suite.build_steps.helm.HelmChartMetadataBuilder, "write_chart_yaml", monkey_write_chart_yaml
+        )
+
+        step.run(config, context)
+
+
+def test_annotation_conversion_preserves_values(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that annotation values are preserved during conversion."""
+    step = HelmChartMetadataBuilder()
+    config = init_config_for_step(step)
+    config.generate_metadata = True
+    config.catalog_base_url = "https://some-bogus-catalog/"
+    config.chart_dir = "."
+    config.destination = "."
+
+    test_value = "https://raw.githubusercontent.com/owner/repo/v1.0.0/path/to/file.json"
+    chart_yaml_data = {
+        "name": "test-app",
+        "version": "v1.0.0",
+        "annotations": {
+            "application.giantswarm.io/values-schema": test_value,
+        },
+    }
+    chart_yaml_str = yaml.dump(chart_yaml_data)
+
+    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
+        context = {
+            context_key_chart_file_name: "test-app-v1.0.0.tgz",
+            context_key_chart_full_path: "./test-app-v1.0.0.tgz",
+            context_key_changes_made: False,
+        }
+
+        def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+            annotations = data["annotations"]
+            # Verify the value is preserved exactly
+            assert annotations["io.giantswarm.application.values-schema"] == test_value
+
+        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr(
+            app_build_suite.build_steps.helm.HelmChartMetadataBuilder, "write_chart_yaml", monkey_write_chart_yaml
+        )
+
+        step.run(config, context)
