@@ -27,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 ANNOTATIONS_KEY = "annotations"
 GS_TEAM_LABEL_KEY = "application.giantswarm.io/team"
+GS_TEAM_LABEL_KEY_OCI = "io.giantswarm.application.team"
 
 
 class HasValuesSchema:
@@ -53,13 +54,23 @@ class HasTeamLabel(UseChartYaml):
     def validate(self, config: argparse.Namespace) -> bool:
         chart_yaml = self.get_chart_yaml(config)
 
-        if ANNOTATIONS_KEY not in chart_yaml or GS_TEAM_LABEL_KEY not in chart_yaml[ANNOTATIONS_KEY]:
-            logger.info(f"'{GS_TEAM_LABEL_KEY}' annotation not found in '{CHART_YAML}'.")
+        if ANNOTATIONS_KEY not in chart_yaml or (
+            GS_TEAM_LABEL_KEY not in chart_yaml[ANNOTATIONS_KEY]
+            and GS_TEAM_LABEL_KEY_OCI not in chart_yaml[ANNOTATIONS_KEY]
+        ):
+            logger.info(f"'{GS_TEAM_LABEL_KEY}' or '{GS_TEAM_LABEL_KEY_OCI}' annotation not found in '{CHART_YAML}'.")
             return False
 
+        team_label = (
+            chart_yaml[ANNOTATIONS_KEY][GS_TEAM_LABEL_KEY]
+            if GS_TEAM_LABEL_KEY in chart_yaml[ANNOTATIONS_KEY]
+            else chart_yaml[ANNOTATIONS_KEY][GS_TEAM_LABEL_KEY_OCI]
+        )
         # check if team label is not empty
-        if chart_yaml[ANNOTATIONS_KEY][GS_TEAM_LABEL_KEY] is None:
-            logger.info(f"'{GS_TEAM_LABEL_KEY}' is present in '{CHART_YAML}', but it's empty.")
+        if team_label is None:
+            logger.info(
+                f"'{GS_TEAM_LABEL_KEY}' or '{GS_TEAM_LABEL_KEY_OCI}' is present in '{CHART_YAML}', but it's empty."
+            )
             return False
 
         # Check if _helpers.yaml or _helpers.tpl exists and uses team label

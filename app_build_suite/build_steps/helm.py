@@ -493,6 +493,7 @@ _annotation_files_map = {
     "./values.schema.json": f"{_key_oci_annotation_prefix}.values-schema",
     "../../README.md": f"{_key_oci_annotation_prefix}.readme",
 }
+_key_annotation_prefix = "application.giantswarm.io"
 
 
 class HelmChartMetadataBuilder(BuildStep):
@@ -510,7 +511,6 @@ class HelmChartMetadataBuilder(BuildStep):
     _key_compatible_providers = "compatibleProviders"
     _key_fixed_namespace = "fixedNamespace"
     _key_annotations = "annotations"
-    _key_annotation_prefix = "application.giantswarm.io"
     _key_annotation_metadata_url = f"{_key_annotation_prefix}/metadata"
     _key_annotation_restrictions_prefix = f"{_key_annotation_prefix}/restrictions"
     _key_oci_annotation_metadata_url = f"{_key_oci_annotation_prefix}.metadata"
@@ -716,8 +716,8 @@ class HelmChartMetadataBuilder(BuildStep):
         to_remove = []
         to_add = {}
         for key, value in chart_yaml[self._key_annotations].items():
-            if key.startswith(self._key_annotation_prefix):
-                new_key = key.replace(self._key_annotation_prefix, _key_oci_annotation_prefix)
+            if key.startswith(_key_annotation_prefix):
+                new_key = key.replace(_key_annotation_prefix, _key_oci_annotation_prefix)
                 new_key = new_key.replace("/", ".")
                 to_remove.append(key)
                 to_add[new_key] = value
@@ -828,7 +828,7 @@ class HelmChartMetadataFinalizer(BuildStep):
             if key.startswith(_key_oci_annotation_prefix):
                 # leave application.giantswarm.io/... as is but replace all following dots with slashes
                 new_key = key.replace(".", "/")
-                new_key = new_key.replace(slashed_oci_annotation_prefix, self._key_annotation_prefix)
+                new_key = new_key.replace(slashed_oci_annotation_prefix, _key_annotation_prefix)
                 to_remove.append(key)
                 # if the key part after the prefix is in kebab case, convert it into camel case
                 key_parts = new_key.split("/")
