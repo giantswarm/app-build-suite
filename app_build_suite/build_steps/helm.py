@@ -820,11 +820,11 @@ class HelmChartMetadataFinalizer(BuildStep):
             if key in context[context_key_original_chart_yaml]:
                 meta[key] = context[context_key_original_chart_yaml][key]
         # convert existing annotations in the format io.giantswarm.application...to application.giantswarm.io/...
-        old_style_annotations = copy.deepcopy(context[context_key_original_chart_yaml][self._key_annotations])
+        new_style_annotations = copy.deepcopy(context[context_key_original_chart_yaml][self._key_annotations])
         to_remove = []
         to_add = {}
         slashed_oci_annotation_prefix = _key_oci_annotation_prefix.replace(".", "/")
-        for key, value in old_style_annotations.items():
+        for key, value in new_style_annotations.items():
             if key.startswith(_key_oci_annotation_prefix):
                 # leave application.giantswarm.io/... as is but replace all following dots with slashes
                 new_key = key.replace(".", "/")
@@ -843,10 +843,10 @@ class HelmChartMetadataFinalizer(BuildStep):
                     new_key = "/".join(converted_parts)
                 to_add[new_key] = value
         for key in to_remove:
-            old_style_annotations.pop(key)
+            new_style_annotations.pop(key)
         for key, value in to_add.items():
-            old_style_annotations[key] = value
-        meta[self._key_annotations] = old_style_annotations
+            new_style_annotations[key] = value
+        meta[self._key_annotations] = new_style_annotations
         # create metadata directory
         context[context_key_meta_dir_path] = f"{context[context_key_chart_full_path]}-meta"
         pathlib.Path(context[context_key_meta_dir_path]).mkdir(parents=True, exist_ok=True)
