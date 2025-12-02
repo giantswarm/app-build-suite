@@ -40,11 +40,20 @@ class HasValuesSchema:
 
 class HasTeamLabel(UseChartYaml):
     escaped_label = re.escape(GS_TEAM_LABEL_KEY)
+    escaped_label_oci = re.escape(GS_TEAM_LABEL_KEY_OCI)
     _label_regexp = (
         r"[ \t]*"
+        + r"("
         + escaped_label
+        + r"|"
+        + escaped_label_oci
+        + r")"
         + r':[ \t]+{{[ \t]*index[ \t]+\.Chart\.Annotations[ \t]+"'
+        + r"("
         + escaped_label
+        + r"|"
+        + escaped_label_oci
+        + r")"
         + r'"[ \t]*(\|[ \t]*default[ \t]+\"[a-zA-Z0-9]+\"[ \t]+){0,1}\|[ \t]*quote[ \t]*}}[ \t]*'
     )
 
