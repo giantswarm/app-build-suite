@@ -21,12 +21,12 @@ all: docker-build
 
 release: docker-test release_ver_to_code
 	git add --force app_build_suite/version.py
-	git add dabs.sh setup.py
+	git add dabs.sh setup.py circleci.Dockerfile
 	git commit -m "Release ${TAG}" --no-verify
 	git tag ${TAG}
 	docker build . -t ${IMG}:latest -t ${IMG}:${TAG}
 	mv dabs.sh.back dabs.sh
-	export NEXT=$(shell pipenv run pysemver bump patch ${TAG}) && echo "build_ver = \"$${NEXT}-dev\"" > app_build_suite/version.py
+	export NEXT=$(shell pipenv run pysemver bump patch $${TAG#v}) && echo "build_ver = \"v$${NEXT}-dev\"" > app_build_suite/version.py
 	git add dabs.sh
 	git add --force app_build_suite/version.py
 	git commit -m "Post-release version set for ${TAG}" --no-verify
