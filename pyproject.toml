@@ -1,26 +1,37 @@
-[tool.black]
-line-length = 120
-target-version = ['py312']
-include = '\.pyi?$'
-exclude = '''
+[project]
+name = "app_build_suite"
+version = "1.4.3"
+requires-python = ">=3.12"
+description = "An app build suite for GiantSwarm app platform"
+readme = "README.md"
+dependencies = [
+    "pyyaml>=5.4",
+    "configargparse>=1.5",
+    "validators>=0.18",
+    "pytest-helm-charts>=0.5",
+    "step-exec-lib>=0.4.1",
+    "gitpython>=3.1.41",
+    "pillow>=9.4.0",
+    "cairosvg>=2.5.2",
+    "semver",
+]
 
-(
-  /(
-      \.eggs         # exclude a few common directories in the
-    | \.git          # root of the project
-    | \.hg
-    | \.mypy_cache
-    | \.tox
-    | \.venv
-    | _build
-    | buck-out
-    | build
-    | dist
-  )/
-  | foo.py           # also separately exclude a file named foo.py in
-                     # the root of the project
-)
-'''
+[dependency-groups]
+dev = [
+    "pre-commit>=2.13",
+    "pytest>=6.2.4",
+    "pytest-cov>=2.12",
+    "pytest-mock>=3.6",
+    "yamale",
+]
+
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pypi"
+url = "https://pypi.org/simple"
+
 [tool.ruff]
 # Exclude a variety of commonly ignored directories.
 exclude = [
@@ -51,13 +62,9 @@ exclude = [
     "site-packages",
     "venv",
 ]
-
 # Same as Black.
 line-length = 120
 indent-width = 4
-
-# Assume Python 3.12
-target-version = "py312"
 
 [tool.ruff.lint]
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`) codes by default.

@@ -26,7 +26,7 @@ release: docker-test release_ver_to_code
 	git tag ${TAG}
 	docker build . -t ${IMG}:latest -t ${IMG}:${TAG}
 	mv dabs.sh.back dabs.sh
-	export NEXT=$(shell pipenv run pysemver bump patch $${TAG#v}) && echo "build_ver = \"v$${NEXT}-dev\"" > app_build_suite/version.py
+	export NEXT=$(shell uv run pysemver bump patch $${TAG#v}) && echo "build_ver = \"v$${NEXT}-dev\"" > app_build_suite/version.py
 	git add dabs.sh
 	git add --force app_build_suite/version.py
 	git commit -m "Post-release version set for ${TAG}" --no-verify
@@ -61,10 +61,10 @@ test-docker-args = run -it --rm -v ${PWD}/.coverage/:/abs/.coverage/
 test-docker-run = docker $(test-docker-args) ${IMG}-test:latest
 
 test:
-	pipenv run python -m pytest $(test-command)
+	uv run python -m pytest $(test-command)
 
 test-ci:
-	pipenv run python -m pytest $(test-command-ci)
+	uv run python -m pytest $(test-command-ci)
 
 docker-test: docker-build-test
 	$(test-docker-run) $(test-command)
