@@ -16,10 +16,10 @@ configargparse = ">=1.5"
 validators = ">=0.18"
 pytest-helm-charts = ">=0.5"
 step-exec-lib = ">=0.4.1"
-semver = ">=2.13"
 gitpython = ">=3.1.41"
 pillow = ">=9.4.0"
 cairosvg = ">=2.5.2"
+semver = "*"
 
 [requires]
 python_version = "3.12"

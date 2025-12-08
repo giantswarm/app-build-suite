@@ -26,7 +26,7 @@ release: docker-test release_ver_to_code
 	git tag ${TAG}
 	docker build . -t ${IMG}:latest -t ${IMG}:${TAG}
 	mv dabs.sh.back dabs.sh
-	echo "build_ver = \"${TAG}-dev\"" > app_build_suite/version.py
+	export NEXT=$(shell pipenv run pysemver bump patch ${TAG}) && echo "build_ver = \"$${NEXT}-dev\"" > app_build_suite/version.py
 	git add dabs.sh
 	git add --force app_build_suite/version.py
 	git commit -m "Post-release version set for ${TAG}" --no-verify
