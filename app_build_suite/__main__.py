@@ -168,6 +168,7 @@ def main() -> None:
     if global_only_config.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    logger.info(f"app_build_suite {get_version()}\n")
     steps = get_pipeline()
     config = get_config(steps)
     runner = Runner(config, steps)

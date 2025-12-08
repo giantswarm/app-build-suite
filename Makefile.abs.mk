@@ -38,6 +38,7 @@ release_ver_to_code:
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
 	sed -i "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh
+	sed -i "3s/:.*/:$${TAG#v}/" circleci.Dockerfile
 
 # Build the docker image from locally built binary
 docker-build-no-version:
