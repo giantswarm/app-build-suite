@@ -162,6 +162,7 @@ def main() -> None:
     log_format = "%(message)s"
     logging.basicConfig(format=log_format)
     logging.getLogger().setLevel(logging.INFO)
+    logger.info(f"app_build_suite {get_version()}\n")
 
     global_only_config_parser = get_global_config_parser(add_help=False)
     global_only_config = global_only_config_parser.parse_known_args()[0]

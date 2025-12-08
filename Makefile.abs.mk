@@ -26,7 +26,7 @@ release: docker-test release_ver_to_code
 	git tag ${TAG}
 	docker build . -t ${IMG}:latest -t ${IMG}:${TAG}
 	mv dabs.sh.back dabs.sh
-	echo "build_ver = \"${TAG}-dev\"" > app_build_suite/version.py
+	export NEXT=$(shell pipenv run pysemver bump patch ${TAG}) && echo "build_ver = \"$${NEXT}-dev\"" > app_build_suite/version.py
 	git add dabs.sh
 	git add --force app_build_suite/version.py
 	git commit -m "Post-release version set for ${TAG}" --no-verify
@@ -38,6 +38,7 @@ release_ver_to_code:
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
 	sed -i "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh
+	sed -i "3s/:.*/:$${TAG#v}/" circleci.Dockerfile
 
 # Build the docker image from locally built binary
 docker-build-no-version:
