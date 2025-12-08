@@ -27,14 +27,15 @@ RUN chmod +x /binaries/*
 
 FROM gsoci.azurecr.io/giantswarm/python:3.12.7-slim AS base
 
+# Install uv from official image
+COPY --from=ghcr.io/astral-sh/uv:0.9.16 /uv /bin/uv
+ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
+
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONFAULTHANDLER=1 \
-    ABS_DIR="/abs" \
-    PIPENV_VER="2024.1.0"
-
-RUN pip install --no-cache-dir pipenv==${PIPENV_VER}
+    ABS_DIR="/abs"
 
 WORKDIR $ABS_DIR
 
@@ -46,9 +47,10 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y gcc && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-COPY Pipfile Pipfile.lock ./
+COPY pyproject.toml uv.lock ./
 
-RUN PIPENV_VENV_IN_PROJECT=1 pipenv install --deploy --clear
+RUN uv venv
+RUN uv sync --frozen --no-install-project
 
 
 FROM base
