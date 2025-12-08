@@ -8,7 +8,7 @@ export DATE ?= $(shell date '+%FT%T%:z')
 
 IMG_VER ?= ${VER}-${COMMIT}
 
-.PHONY: all release release_ver_to_code docker-build docker-build-no-version docker-push docker-build-test test docker-test docker-test-ci
+.PHONY: all release release_ver_to_code docker-build docker-push docker-build-test test docker-test docker-test-ci
 
 check_defined = \
     $(strip $(foreach 1,$1, \
@@ -40,12 +40,7 @@ release_ver_to_code:
 	sed -i "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh
 	sed -i "3s/:.*/:$${TAG#v}/" circleci.Dockerfile
 
-# Build the docker image from locally built binary
-docker-build-no-version:
-	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
-
 docker-build:
-	echo "build_ver = \"${VER}-${COMMIT}\"" > app_build_suite/version.py
 	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
 
 # Push the docker image
