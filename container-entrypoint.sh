@@ -3,8 +3,7 @@
 if [ $# -eq 1 ] && [ "$1" == "versions" ]; then
     echo "-> python env:"
     python --version
-    pip --version
-    pipenv --version
+    uv --version
     echo
     echo "-> kubectl:"
     kubectl version --client

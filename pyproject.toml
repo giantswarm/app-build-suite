@@ -25,8 +25,16 @@ dev = [
     "yamale",
 ]
 
-[tool.uv]
-package = false
+[project.scripts]
+abs = "app_build_suite:__main__.main"
+
+[build-system]
+requires = ["uv_build>=0.9.16,<0.10.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "app_build_suite"
+module-root = ""
 
 [[tool.uv.index]]
 name = "pypi"
