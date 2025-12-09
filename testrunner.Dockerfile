@@ -10,14 +10,17 @@ COPY .coveragerc .
 COPY .flake8 .
 COPY .mypy.ini .
 COPY .pre-commit-config.yaml .
+COPY .markdownlint* .
 COPY pyproject.toml .
 COPY run-tests-in-docker.sh .
 COPY uv.lock .
+COPY README.md .
 COPY tests/ tests/
 COPY examples/ examples/
 COPY .git/ ./.git/
 RUN uv sync --frozen --no-install-project --dev
 RUN git config --global --add safe.directory /abs
-RUN uv run pre-commit run -a
+RUN uv tool install pre-commit
+RUN pre-commit run -a
 ENTRYPOINT ["./run-tests-in-docker.sh"]
 CMD ["--cov", "app_build_suite", "--log-cli-level", "info", "tests/"]
