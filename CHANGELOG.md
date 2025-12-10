@@ -5,11 +5,16 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
-- switch project from pipenv to uv
+## [1.5.0] - 2025-12-10
 
 ### Changed
 
 - Update architect-orb in CircleCI config to v6.8.0
+- switch project from pipenv to uv
+
+### Fixed
+
+- A case where there are no annotations in Chart.yaml is now correctly handled
 
 ## [1.3.0] - 2025-10-30
 
