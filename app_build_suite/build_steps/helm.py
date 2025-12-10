@@ -712,6 +712,9 @@ class HelmChartMetadataBuilder(BuildStep):
         context[context_key_chart_full_path] = os.path.abspath(
             os.path.join(config.destination, context[context_key_chart_file_name])
         )
+        # Initialize annotations if they don't exist
+        if self._key_annotations not in chart_yaml:
+            chart_yaml[self._key_annotations] = {}
         # convert existing annotations in the format application.giantswarm.io/... to io.giantswarm.application....
         to_remove = []
         to_add = {}
@@ -820,7 +823,9 @@ class HelmChartMetadataFinalizer(BuildStep):
             if key in context[context_key_original_chart_yaml]:
                 meta[key] = context[context_key_original_chart_yaml][key]
         # convert existing annotations in the format io.giantswarm.application...to application.giantswarm.io/...
-        new_style_annotations = copy.deepcopy(context[context_key_original_chart_yaml][self._key_annotations])
+        # Handle case where annotations don't exist
+        original_annotations = context[context_key_original_chart_yaml].get(self._key_annotations, {})
+        new_style_annotations = copy.deepcopy(original_annotations)
         to_remove = []
         to_add = {}
         slashed_oci_annotation_prefix = _key_oci_annotation_prefix.replace(".", "/")

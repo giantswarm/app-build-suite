@@ -411,3 +411,134 @@ def test_annotation_conversion_preserves_values(monkeypatch: pytest.MonkeyPatch)
         )
 
         step.run(config, context)
+
+
+def test_annotation_conversion_no_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that the code handles charts with no annotations gracefully."""
+    step = HelmChartMetadataBuilder()
+    config = init_config_for_step(step)
+    config.generate_metadata = True
+    config.catalog_base_url = "https://some-bogus-catalog/"
+    config.chart_dir = "."
+    config.destination = "."
+
+    chart_yaml_data = {
+        "name": "test-app",
+        "version": "v1.0.0",
+        # No annotations key
+    }
+    chart_yaml_str = yaml.dump(chart_yaml_data)
+
+    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
+        context = {
+            context_key_chart_file_name: "test-app-v1.0.0.tgz",
+            context_key_chart_full_path: "./test-app-v1.0.0.tgz",
+            context_key_changes_made: False,
+        }
+
+        def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+            # Verify annotations are created
+            assert "annotations" in data
+            annotations = data["annotations"]
+            # Verify metadata annotation is generated
+            assert "io.giantswarm.application.metadata" in annotations
+            assert (
+                annotations["io.giantswarm.application.metadata"]
+                == "https://some-bogus-catalog/test-app-v1.0.0.tgz-meta/main.yaml"
+            )
+
+        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: None)
+        monkeypatch.setattr(
+            app_build_suite.build_steps.helm.HelmChartMetadataBuilder, "write_chart_yaml", monkey_write_chart_yaml
+        )
+
+        step.run(config, context)
+
+
+def test_annotation_conversion_empty_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that the code handles charts with empty annotations gracefully."""
+    step = HelmChartMetadataBuilder()
+    config = init_config_for_step(step)
+    config.generate_metadata = True
+    config.catalog_base_url = "https://some-bogus-catalog/"
+    config.chart_dir = "."
+    config.destination = "."
+
+    chart_yaml_data = {
+        "name": "test-app",
+        "version": "v1.0.0",
+        "annotations": {},
+    }
+    chart_yaml_str = yaml.dump(chart_yaml_data)
+
+    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
+        context = {
+            context_key_chart_file_name: "test-app-v1.0.0.tgz",
+            context_key_chart_full_path: "./test-app-v1.0.0.tgz",
+            context_key_changes_made: False,
+        }
+
+        def monkey_write_chart_yaml(_: str, chart_yaml_file_name: str, data: Dict[str, Any]) -> None:
+            # Verify annotations exist
+            assert "annotations" in data
+            annotations = data["annotations"]
+            # Verify metadata annotation is generated
+            assert "io.giantswarm.application.metadata" in annotations
+
+        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr(
+            app_build_suite.build_steps.helm.HelmChartMetadataBuilder, "write_chart_yaml", monkey_write_chart_yaml
+        )
+
+        step.run(config, context)
+
+
+def test_metadata_finalizer_no_annotations(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Test that HelmChartMetadataFinalizer handles charts with no annotations gracefully."""
+    step = HelmChartMetadataFinalizer()
+    config = init_config_for_step(step)
+    config.generate_metadata = True
+    config.chart_dir = "."
+
+    chart_yaml_data = {
+        "name": "test-app",
+        "version": "v1.0.0",
+        "apiVersion": "v1",
+        # No annotations key
+    }
+
+    chart_file_name = "test-app-v1.0.0.tgz"
+    chart_full_path = f"./{chart_file_name}"
+    meta_dir_path = f"{chart_full_path}-meta"
+    context = {
+        context_key_chart_file_name: chart_file_name,
+        context_key_chart_full_path: chart_full_path,
+        context_key_meta_dir_path: meta_dir_path,
+        context_key_original_chart_yaml: chart_yaml_data,
+    }
+
+    def monkey_sha256(path: str) -> str:
+        assert path == chart_full_path
+        return "123"
+
+    def monkey_meta_write(_: str, meta_file_name: str, meta: Dict[str, Any]) -> None:
+        assert meta_file_name == os.path.join(f"{chart_full_path}-meta", "main.yaml")
+        # Verify annotations key exists in metadata
+        assert "annotations" in meta
+        # Verify annotations is an empty dict
+        assert meta["annotations"] == {}
+
+    monkeypatch.setattr("app_build_suite.build_steps.helm.get_file_sha256", monkey_sha256)
+    monkeypatch.setattr(
+        app_build_suite.build_steps.helm.HelmChartMetadataFinalizer, "write_meta_file", monkey_meta_write
+    )
+    monkeypatch.setattr(
+        app_build_suite.build_steps.helm.HelmChartMetadataFinalizer,
+        "get_build_timestamp",
+        lambda _: "1020-10-20T10:20:10.000000",
+    )
+    monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+    monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: None)
+
+    step.run(config, context)
