@@ -669,6 +669,9 @@ class HelmChartMetadataBuilder(BuildStep):
         github_repo = self._discover_github_repo(chart_yaml)
         version_tag = self._normalize_version_tag(chart_yaml.get("version"))
         repo_root = self._find_git_repo_root(chart_dir)
+        # Initialize annotations if they don't exist
+        if self._key_annotations not in chart_yaml:
+            chart_yaml[self._key_annotations] = {}
         for additional_file, annotation_key in _annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
@@ -677,8 +680,6 @@ class HelmChartMetadataBuilder(BuildStep):
         if self._key_restrictions in chart_yaml:
             restrictions = chart_yaml[self._key_restrictions]
             if isinstance(restrictions, dict):
-                if self._key_annotations not in chart_yaml:
-                    chart_yaml[self._key_annotations] = {}
                 for key, value in restrictions.items():
                     kebab_key = self._oci_translated_keys[key]
                     formatted_value = self._format_restriction_value(value)
@@ -686,13 +687,9 @@ class HelmChartMetadataBuilder(BuildStep):
                         formatted_value
                     )
         if self._key_upstream_chart_url in chart_yaml:
-            if self._key_annotations not in chart_yaml:
-                chart_yaml[self._key_annotations] = {}
             annotation_key = f"{_key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_url]}"
             chart_yaml[self._key_annotations][annotation_key] = chart_yaml[self._key_upstream_chart_url]
         if self._key_upstream_chart_version in chart_yaml:
-            if self._key_annotations not in chart_yaml:
-                chart_yaml[self._key_annotations] = {}
             annotation_key = (
                 f"{_key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_version]}"
             )
