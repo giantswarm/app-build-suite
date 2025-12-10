@@ -669,9 +669,6 @@ class HelmChartMetadataBuilder(BuildStep):
         github_repo = self._discover_github_repo(chart_yaml)
         version_tag = self._normalize_version_tag(chart_yaml.get("version"))
         repo_root = self._find_git_repo_root(chart_dir)
-        # Initialize annotations if they don't exist
-        if self._key_annotations not in chart_yaml:
-            chart_yaml[self._key_annotations] = {}
         for additional_file, annotation_key in _annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
@@ -715,10 +712,10 @@ class HelmChartMetadataBuilder(BuildStep):
         context[context_key_chart_full_path] = os.path.abspath(
             os.path.join(config.destination, context[context_key_chart_file_name])
         )
-        # convert existing annotations in the format application.giantswarm.io/... to io.giantswarm.application....
         # Initialize annotations if they don't exist
         if self._key_annotations not in chart_yaml:
             chart_yaml[self._key_annotations] = {}
+        # convert existing annotations in the format application.giantswarm.io/... to io.giantswarm.application....
         to_remove = []
         to_add = {}
         for key, value in chart_yaml[self._key_annotations].items():
