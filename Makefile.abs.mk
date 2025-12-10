@@ -33,7 +33,7 @@ release: docker-test release_ver_to_code
 
 release_ver_to_code:
 	$(call check_defined, TAG)
-	sed -i 's/version\=".*"/version\="'${TAG}'"/' pyproject.toml
+	sed -i 's/version = ".*"/version = "'${TAG}'"/' pyproject.toml
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
