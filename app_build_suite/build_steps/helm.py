@@ -677,6 +677,8 @@ class HelmChartMetadataBuilder(BuildStep):
         if self._key_restrictions in chart_yaml:
             restrictions = chart_yaml[self._key_restrictions]
             if isinstance(restrictions, dict):
+                if self._key_annotations not in chart_yaml:
+                    chart_yaml[self._key_annotations] = {}
                 for key, value in restrictions.items():
                     kebab_key = self._oci_translated_keys[key]
                     formatted_value = self._format_restriction_value(value)
@@ -684,9 +686,13 @@ class HelmChartMetadataBuilder(BuildStep):
                         formatted_value
                     )
         if self._key_upstream_chart_url in chart_yaml:
+            if self._key_annotations not in chart_yaml:
+                chart_yaml[self._key_annotations] = {}
             annotation_key = f"{_key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_url]}"
             chart_yaml[self._key_annotations][annotation_key] = chart_yaml[self._key_upstream_chart_url]
         if self._key_upstream_chart_version in chart_yaml:
+            if self._key_annotations not in chart_yaml:
+                chart_yaml[self._key_annotations] = {}
             annotation_key = (
                 f"{_key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_version]}"
             )
@@ -713,6 +719,9 @@ class HelmChartMetadataBuilder(BuildStep):
             os.path.join(config.destination, context[context_key_chart_file_name])
         )
         # convert existing annotations in the format application.giantswarm.io/... to io.giantswarm.application....
+        # Initialize annotations if they don't exist
+        if self._key_annotations not in chart_yaml:
+            chart_yaml[self._key_annotations] = {}
         to_remove = []
         to_add = {}
         for key, value in chart_yaml[self._key_annotations].items():
@@ -820,7 +829,9 @@ class HelmChartMetadataFinalizer(BuildStep):
             if key in context[context_key_original_chart_yaml]:
                 meta[key] = context[context_key_original_chart_yaml][key]
         # convert existing annotations in the format io.giantswarm.application...to application.giantswarm.io/...
-        new_style_annotations = copy.deepcopy(context[context_key_original_chart_yaml][self._key_annotations])
+        # Handle case where annotations don't exist
+        original_annotations = context[context_key_original_chart_yaml].get(self._key_annotations, {})
+        new_style_annotations = copy.deepcopy(original_annotations)
         to_remove = []
         to_add = {}
         slashed_oci_annotation_prefix = _key_oci_annotation_prefix.replace(".", "/")
