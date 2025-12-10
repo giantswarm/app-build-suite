@@ -8,7 +8,7 @@ export DATE ?= $(shell date '+%FT%T%:z')
 
 IMG_VER ?= ${VER}-${COMMIT}
 
-.PHONY: all release release_ver_to_code docker-build docker-build-no-version docker-push docker-build-test test docker-test docker-test-ci
+.PHONY: all release release_ver_to_code docker-build docker-push docker-build-test test docker-test docker-test-ci
 
 check_defined = \
     $(strip $(foreach 1,$1, \
@@ -21,31 +21,26 @@ all: docker-build
 
 release: docker-test release_ver_to_code
 	git add --force app_build_suite/version.py
-	git add dabs.sh setup.py circleci.Dockerfile
+	git add dabs.sh pyproject.toml circleci.Dockerfile
 	git commit -m "Release ${TAG}" --no-verify
 	git tag ${TAG}
 	docker build . -t ${IMG}:latest -t ${IMG}:${TAG}
 	mv dabs.sh.back dabs.sh
-	export NEXT=$(shell pipenv run pysemver bump patch $${TAG#v}) && echo "build_ver = \"v$${NEXT}-dev\"" > app_build_suite/version.py
+	export NEXT=$(shell uv version --dry-run --short --bump patch) && echo "build_ver = \"v$${NEXT}-dev\"" > app_build_suite/version.py
 	git add dabs.sh
 	git add --force app_build_suite/version.py
 	git commit -m "Post-release version set for ${TAG}" --no-verify
 
 release_ver_to_code:
 	$(call check_defined, TAG)
-	sed -i 's/version\=".*"/version\="'${TAG}'"/' setup.py
+	sed -i 's/version = ".*"/version = "'${TAG}'"/' pyproject.toml
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
 	sed -i "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh
 	sed -i "3s/:.*/:$${TAG#v}/" circleci.Dockerfile
 
-# Build the docker image from locally built binary
-docker-build-no-version:
-	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
-
 docker-build:
-	echo "build_ver = \"${VER}-${COMMIT}\"" > app_build_suite/version.py
 	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
 
 # Push the docker image
@@ -61,10 +56,10 @@ test-docker-args = run -it --rm -v ${PWD}/.coverage/:/abs/.coverage/
 test-docker-run = docker $(test-docker-args) ${IMG}-test:latest
 
 test:
-	pipenv run python -m pytest $(test-command)
+	uv run python -m pytest $(test-command)
 
 test-ci:
-	pipenv run python -m pytest $(test-command-ci)
+	uv run python -m pytest $(test-command-ci)
 
 docker-test: docker-build-test
 	$(test-docker-run) $(test-command)

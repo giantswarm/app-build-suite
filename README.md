@@ -46,14 +46,19 @@ for running dynamic (run-time) tests on charts built.
 
 > IMPORTANT NOTE: we are planning to sunset `dabs.sh`, we recommend running locally as pure python.
 >
-> First, you need [pipenv](https://pipenv.pypa.io/en/latest/) to manage the virtual environment for ABS.
+> First, you need [uv](https://github.com/astral-sh/uv) to manage the virtual environment for ABS.
+Please refer to the [uv installation documentation](https://astral.sh/docs/uv/install) for instructions on how to
+install it.
 >
 > ```shell
-> # Set up the virtual environment based on `Pipfile.lock`
-> pipenv install
+> # Set up the virtual environment
+> uv venv
 >
 > # Activate the virtual environment for the current shell
-> pipenv shell
+> source .venv/bin/activate
+>
+> # Install dependencies
+> uv sync
 >
 > # Then simply run ABS commands with:
 > python -m app_build_suite --help

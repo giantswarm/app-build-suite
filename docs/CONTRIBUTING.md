@@ -1,6 +1,6 @@
 # App build suite contribution guidelines
 
-`app-build-suite` is built using Python >= 3.8 and pipenv.
+`app-build-suite` is built using Python >= 3.8 and uv.
 
 ## Development setup
 
@@ -9,15 +9,19 @@
 This setup is recommended for IDE and running interactively with debuggers. Check below for a version
 that runs inside a docker container.
 
-A good method of handling Python installations is to use [pyenv](https://github.com/pyenv/pyenv).
+A good method of handling Python installations is to use [uv](https://github.com/astral-sh/uv).
+Please refer to the [uv installation documentation](https://astral.sh/docs/uv/install) for instructions on how to
+install it.
 
 ```bash
-# Install pipenv
-pip install pipenv
 # to create venv
-pipenv install --dev
+uv venv
+# activate the venv
+source .venv/bin/activate
+# install dependencies
+uv sync
 # to configure quality check triggers
-pipenv run pre-commit install
+pre-commit install
 ```
 
 Directory `examples/apps/hello-world-app` contains an example app to run `app-build-suite` against.

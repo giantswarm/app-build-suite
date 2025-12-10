@@ -1,4 +1,4 @@
 #!/bin/bash -e
 
-pipenv run pre-commit run --all-files
-pipenv run pytest "$@"
+uv run pre-commit run --all-files
+uv run pytest "$@"

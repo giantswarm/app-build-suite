@@ -9,12 +9,10 @@ To be able to complete this tutorial, you need a few tools:
 - for the building part
   - [docker](https://docs.docker.com/get-docker/)
 - for the testing part
-  - a working python environment that you can use to install [pipenv](https://pypi.org/project/pipenv/)
-    - if you already have python, it should be enough to run `pip install -U pipenv`
+  - a working python environment that you can use [uv](https://github.com/astral-sh/uv). Please refer to the
+  [uv installation documentation](https://astral.sh/docs/uv/install) for instructions on how to install it.
   - to be able to use the shortest path, you also need a working python 3.8 environment
-    - to avoid problems like missing the specific python version, we highly recommend
-      [`pyenv`](https://github.com/pyenv/pyenv#installation) for managing python environments; once `pyenv` is
-      installed, it's enough to run `pyenv install 3.8.6` to get the python environment you need
+    - `uv` can automatically download and use a specific python version if it's not installed.
 
 ## Building your app
 

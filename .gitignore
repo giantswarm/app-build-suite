@@ -1,3 +1,6 @@
+.vscode/
+hello-world-app-*.tar.gz
+hello-world-app-*/
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
