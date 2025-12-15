@@ -21,7 +21,7 @@ all: docker-build
 
 release: docker-test release_ver_to_code
 	git add --force app_build_suite/version.py
-	git add dabs.sh pyproject.toml circleci.Dockerfile
+	git add dabs.sh pyproject.toml circleci.Dockerfile uv.lock
 	git commit -m "Release ${TAG}" --no-verify
 	git tag ${TAG}
 	docker build . -t ${IMG}:latest -t ${IMG}:${TAG}
@@ -34,6 +34,7 @@ release: docker-test release_ver_to_code
 release_ver_to_code:
 	$(call check_defined, TAG)
 	sed -i 's/version = ".*"/version = "'${TAG}'"/' pyproject.toml
+	uv lock
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
