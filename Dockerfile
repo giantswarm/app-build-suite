@@ -82,7 +82,6 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y libpangocairo-1.0-0 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ENV XDG_BIN_HOME=/usr/local/bin/
 # dependencies for ct
 RUN uv pip install --system yamllint==${CT_YAMLLINT_VER} yamale==${CT_YAMALE_VER}
 
