@@ -50,21 +50,38 @@ Helm build pipeline executes in sequence the following set of steps:
    files in the chart's GitHub repository using the chart version tag so that published annotations
    always reference the exact release content.
 
-6. HelmChartBuilder: this step does the actual chart build using Helm.
+6. HelmSchemaGenerator: this step generates JSON schema for `values.yaml` using the
+   [helm-values-schema-json](https://github.com/losisin/helm-values-schema-json) Helm plugin.
+   This step is disabled by default and must be explicitly enabled. The tool uses its own `.schema.yaml`
+   config file in the chart directory if present, otherwise uses default settings.
+   - config options:
+     - `--enable-helm-schema`: enable generation of JSON schema for values.yaml (disabled by default).
+   - requirements:
+     - Helm must be installed and available in PATH.
+     - The `helm-values-schema-json` plugin must be installed:
+       `helm plugin install https://github.com/losisin/helm-values-schema-json.git`
+   - behavior:
+     - If disabled (default), the step is skipped entirely.
+     - If enabled but `helm schema` command is not available, the build fails with an error.
+     - Executes `helm schema` in the chart directory without additional command-line arguments.
+     - The tool reads configuration from `.schema.yaml` in the chart directory if present.
+
+7. HelmChartBuilder: this step does the actual chart build using Helm.
    - config options:
      - `--destination`: path of a directory to store the packaged Helm chart tgz.
-7. HelmChartMetadataFinalizer: completes and writes the data gather partially by HelmChartMetadataPreparer.
+8. HelmChartMetadataFinalizer: completes and writes the data gather partially by HelmChartMetadataPreparer.
    - config options: none
-8. HelmChartYAMLRestorer: restores chart files, which were changed as part of the build process (ie. by
+9. HelmChartYAMLRestorer: restores chart files, which were changed as part of the build process (ie. by
    HelmGitVersionSetter).
    - config options:
      - `--keep-chart-changes` should the changes made in Chart.yaml be kept
-9. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we want
+10. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we want
    to enforce as company policy.
    Currently, supports the following checks
    ([have a look at the code for details](../app_build_suite/build_steps/giant_swarm_validators/helm.py):
-   - `HasValuesSchema` - checks if the `values.schema.json` file is present,
-   - `HasTeamLabel` - a bit naive check if the team annotation is present (it only checks for the correct definition
+
+    - `HasValuesSchema` - checks if the `values.schema.json` file is present,
+    - `HasTeamLabel` - a bit naive check if the team annotation is present (it only checks for the correct definition
      in `Chart.yaml` and then if the `_templates.yaml` is present and the recommended label is there) or is not empty. Check
      [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
 

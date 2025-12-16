@@ -13,6 +13,7 @@ import app_build_suite
 from app_build_suite.build_steps.helm import (
     HelmChartMetadataFinalizer,
     HelmChartMetadataBuilder,
+    HelmSchemaGenerator,
     context_key_chart_file_name,
     context_key_chart_full_path,
     context_key_meta_dir_path,
@@ -542,3 +543,176 @@ def test_metadata_finalizer_no_annotations(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: None)
 
     step.run(config, context)
+
+
+def test_helm_schema_generator_disabled_by_default() -> None:
+    """Test that schema generation is disabled by default."""
+    step = HelmSchemaGenerator()
+    config = init_config_for_step(step)
+    # enable_helm_schema should default to False
+    assert not config.enable_helm_schema
+
+    # pre_run should return early without checking for binary
+    step.pre_run(config)
+
+    # run should return early without execution
+    step.run(config, {})
+
+
+def test_helm_schema_generator_enabled_binary_present(mocker: MockerFixture) -> None:
+    """Test that schema generation works when enabled and binary is present."""
+    step = HelmSchemaGenerator()
+    config = init_config_for_step(step)
+    config.enable_helm_schema = True
+
+    # Mock binary checks
+    mock_assert_binary = mocker.patch.object(step, "_assert_binary_present_in_path")
+    mock_run_and_log = mocker.patch("app_build_suite.build_steps.helm.run_and_log")
+
+    # Mock helm schema --version check (success)
+    from step_exec_lib.utils.processes import ProcessResult
+
+    version_result = ProcessResult(
+        returncode=0,
+        stdout="helm schema version 2.3.1\n",
+        stderr="",
+    )
+    mock_run_and_log.return_value = version_result
+
+    # pre_run should succeed
+    step.pre_run(config)
+    mock_assert_binary.assert_called_once_with("helm")
+    assert mock_run_and_log.call_count == 1
+    assert mock_run_and_log.call_args[0][0] == ["helm", "schema", "--version"]
+
+    # Mock helm schema execution (success)
+    schema_result = ProcessResult(
+        returncode=0,
+        stdout="Schema generated successfully\n",
+        stderr="",
+    )
+    mock_run_and_log.return_value = schema_result
+
+    # run should succeed
+    step.run(config, {})
+    assert mock_run_and_log.call_count == 2
+    # Check that helm schema was called with correct args and cwd
+    assert mock_run_and_log.call_args[0][0] == ["helm", "schema"]
+    assert mock_run_and_log.call_args[1]["cwd"] == config.chart_dir
+
+
+def test_helm_schema_generator_enabled_helm_missing(mocker: MockerFixture) -> None:
+    """Test that schema generation fails when enabled but helm binary is missing."""
+    step = HelmSchemaGenerator()
+    config = init_config_for_step(step)
+    config.enable_helm_schema = True
+
+    # Mock binary check to raise ValidationError
+    mock_assert_binary = mocker.patch.object(
+        step, "_assert_binary_present_in_path", side_effect=ValidationError(step.name, "helm binary not found")
+    )
+
+    # pre_run should raise ValidationError
+    with pytest.raises(ValidationError) as exc_info:
+        step.pre_run(config)
+    assert "helm binary not found" in str(exc_info.value)
+    mock_assert_binary.assert_called_once_with("helm")
+
+
+def test_helm_schema_generator_enabled_plugin_missing(mocker: MockerFixture) -> None:
+    """Test that schema generation fails when enabled but helm schema plugin is missing."""
+    step = HelmSchemaGenerator()
+    config = init_config_for_step(step)
+    config.enable_helm_schema = True
+
+    # Mock helm binary check to succeed
+    mocker.patch.object(step, "_assert_binary_present_in_path")
+
+    # Mock helm schema --version to fail (plugin not installed)
+    mock_run_and_log = mocker.patch("app_build_suite.build_steps.helm.run_and_log")
+    from step_exec_lib.utils.processes import ProcessResult
+
+    version_result = ProcessResult(
+        returncode=1,
+        stdout="",
+        stderr='Error: unknown command "schema" for "helm"\n',
+    )
+    mock_run_and_log.return_value = version_result
+
+    # pre_run should raise ValidationError
+    with pytest.raises(ValidationError) as exc_info:
+        step.pre_run(config)
+    assert "helm schema plugin is not installed" in str(exc_info.value)
+    assert "helm plugin install" in str(exc_info.value)
+
+
+def test_helm_schema_generator_execution_failure(mocker: MockerFixture) -> None:
+    """Test that schema generation fails when helm schema execution fails."""
+    step = HelmSchemaGenerator()
+    config = init_config_for_step(step)
+    config.enable_helm_schema = True
+
+    # Mock all pre_run validations to succeed
+    mocker.patch.object(step, "_assert_binary_present_in_path")
+    mock_run_and_log = mocker.patch("app_build_suite.build_steps.helm.run_and_log")
+    from step_exec_lib.utils.processes import ProcessResult
+
+    # Mock helm schema --version check (success)
+    version_result = ProcessResult(
+        returncode=0,
+        stdout="helm schema version 2.3.1\n",
+        stderr="",
+    )
+    # Mock helm schema execution (failure)
+    schema_result = ProcessResult(
+        returncode=1,
+        stdout="",
+        stderr="Error: failed to generate schema\n",
+    )
+    mock_run_and_log.side_effect = [version_result, schema_result]
+
+    # pre_run should succeed
+    step.pre_run(config)
+
+    # run should raise BuildError
+    from app_build_suite.errors import BuildError
+
+    with pytest.raises(BuildError) as exc_info:
+        step.run(config, {})
+    assert "Helm schema generation failed" in str(exc_info.value)
+
+
+def test_helm_schema_generator_execution_success(mocker: MockerFixture) -> None:
+    """Test that schema generation succeeds when enabled and execution succeeds."""
+    step = HelmSchemaGenerator()
+    config = init_config_for_step(step)
+    config.enable_helm_schema = True
+
+    # Mock all pre_run validations to succeed
+    mocker.patch.object(step, "_assert_binary_present_in_path")
+    mock_run_and_log = mocker.patch("app_build_suite.build_steps.helm.run_and_log")
+    from step_exec_lib.utils.processes import ProcessResult
+
+    # Mock helm schema --version check (success)
+    version_result = ProcessResult(
+        returncode=0,
+        stdout="helm schema version 2.3.1\n",
+        stderr="",
+    )
+    # Mock helm schema execution (success)
+    schema_result = ProcessResult(
+        returncode=0,
+        stdout="Schema generated successfully\nvalues.schema.json created\n",
+        stderr="",
+    )
+    mock_run_and_log.side_effect = [version_result, schema_result]
+
+    # pre_run should succeed
+    step.pre_run(config)
+
+    # run should succeed
+    step.run(config, {})
+    # Verify helm schema was called
+    assert mock_run_and_log.call_count == 2
+    assert mock_run_and_log.call_args[0][0] == ["helm", "schema"]
+    assert mock_run_and_log.call_args[1]["cwd"] == config.chart_dir

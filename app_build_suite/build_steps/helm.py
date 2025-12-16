@@ -488,6 +488,74 @@ class HelmChartBuilder(BuildStep):
             raise BuildError(self.name, "Chart build failed")
 
 
+class HelmSchemaGenerator(BuildStep):
+    """
+    Generates JSON schema for values.yaml using helm-values-schema-json plugin.
+    """
+
+    _helm_bin = "helm"
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_BUILD}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--enable-helm-schema",
+            required=False,
+            default=False,
+            action="store_true",
+            help="Enable generation of JSON schema for values.yaml using helm-values-schema-json plugin.",
+        )
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """
+        Verifies if helm schema generation is enabled and if helm schema plugin is available.
+        :param config: the config object
+        :return: None
+        """
+        if not config.enable_helm_schema:
+            logger.debug("Helm schema generation is disabled.")
+            return
+
+        # Check helm binary
+        self._assert_binary_present_in_path(self._helm_bin)
+
+        # Check helm schema plugin
+        run_res = run_and_log([self._helm_bin, "schema", "--version"], capture_output=True)  # nosec
+        if run_res.returncode != 0:
+            raise ValidationError(
+                self.name,
+                "helm schema plugin is not installed. "
+                "Install it with: helm plugin install https://github.com/losisin/helm-values-schema-json.git",
+            )
+
+    def run(self, config: argparse.Namespace, _: Context) -> None:
+        """
+        Runs 'helm schema' to generate JSON schema for values.yaml.
+        :param config: the config object
+        :param context: the context object
+        :return: None
+        """
+        if not config.enable_helm_schema:
+            logger.debug("Helm schema generation is disabled, skipping execution.")
+            return
+
+        args = [
+            self._helm_bin,
+            "schema",
+        ]
+        logger.info("Generating JSON schema with 'helm schema'")
+        run_res = run_and_log(args, cwd=config.chart_dir, capture_output=True)  # nosec, input params checked above in pre_run
+        for line in run_res.stdout.splitlines():
+            logger.info(line)
+        if run_res.returncode != 0:
+            logger.error(f"{self._helm_bin} schema run failed with exit code {run_res.returncode}")
+            for line in run_res.stderr.splitlines():
+                logger.error(line)
+            raise BuildError(self.name, "Helm schema generation failed")
+
+
 _key_oci_annotation_prefix = "io.giantswarm.application"
 _annotation_files_map = {
     "./values.schema.json": f"{_key_oci_annotation_prefix}.values-schema",
@@ -1029,6 +1097,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
                 HelmChartToolLinter(),
                 KubeLinter(),
                 HelmChartMetadataBuilder(),
+                HelmSchemaGenerator(),
                 HelmChartBuilder(),
                 HelmChartMetadataFinalizer(),
                 HelmChartYAMLRestorer(),
