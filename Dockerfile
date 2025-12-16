@@ -33,8 +33,6 @@ ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONFAULTHANDLER=1 \
     ABS_DIR="/abs"
 
 WORKDIR $ABS_DIR
@@ -42,16 +40,30 @@ WORKDIR $ABS_DIR
 
 FROM base AS builder
 
-# pip prerequesties
-RUN apt-get update && \
-    apt-get install --no-install-recommends -y gcc && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
-COPY pyproject.toml uv.lock ./
+# Omit development dependencies
+ENV UV_NO_DEV=1
 
-RUN uv venv
-RUN uv sync --frozen --no-install-project
+# Disable Python downloads, because we want to use the system interpreter
+# across both images. If using a managed Python version, it needs to be
+# copied from the build image into the final image; see `standalone.Dockerfile`
+# for an example.
+ENV UV_PYTHON_DOWNLOADS=0
 
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked --no-install-project
+
+COPY README.md ${ABS_DIR}/
+COPY resources/ ${ABS_DIR}/resources/
+COPY app_build_suite/ ${ABS_DIR}/app_build_suite/
+
+RUN --mount=type=cache,target=/root/.cache/uv \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    uv sync --locked
 
 FROM base
 
@@ -60,7 +72,7 @@ ARG CT_YAMLLINT_VER="1.26.3"
 
 ENV USE_UID=0 \
     USE_GID=0 \
-    PATH="${ABS_DIR}/.venv/bin:$PATH" \
+    PATH="${ABS_DIR}/.venv/bin:/usr/local/bin:$PATH" \
     PYTHONPATH=$ABS_DIR
 
 # install dependencies
@@ -70,22 +82,17 @@ RUN apt-get update && \
     apt-get install --no-install-recommends -y libpangocairo-1.0-0 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# pip dependencies for ct
-RUN pip install yamllint==${CT_YAMLLINT_VER} yamale==${CT_YAMALE_VER}
-
-COPY --from=builder ${ABS_DIR}/.venv ${ABS_DIR}/.venv
+# dependencies for ct
+RUN uv pip install --system yamllint==${CT_YAMLLINT_VER} yamale==${CT_YAMALE_VER}
 
 COPY --from=binaries /binaries/* /usr/local/bin/
 COPY --from=binaries /etc/ct /etc/ct
 
-COPY resources/ ${ABS_DIR}/resources/
-COPY app_build_suite/ ${ABS_DIR}/app_build_suite/
-
-WORKDIR $ABS_DIR/workdir
-
 # we assume the user will be using UID==1000 and GID=1000; if that's not true, we'll run `chown`
 # in the container's startup script
-RUN chown -R 1000:1000 $ABS_DIR
+COPY --from=builder --chown=1000:1000 $ABS_DIR $ABS_DIR
+
+WORKDIR $ABS_DIR/workdir
 
 ENTRYPOINT ["container-entrypoint.sh"]
 
