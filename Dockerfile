@@ -28,7 +28,7 @@ RUN chmod +x /binaries/*
 FROM gsoci.azurecr.io/giantswarm/python:3.13.5-slim AS base
 
 # Install uv from official image
-COPY --from=ghcr.io/astral-sh/uv:0.9.17 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.9.18 /uv /bin/uv
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 
 ENV LANG=C.UTF-8 \
