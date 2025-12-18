@@ -5,6 +5,12 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## [1.5.1] - 2025-12-18
+
+### Changed
+
+- update helm to 3.19.4
+
 ## [1.5.0] - 2025-12-10
 
 ### Changed
