@@ -10,7 +10,9 @@ import argparse
 import logging
 import os
 import re
-from app_build_suite.build_steps.giant_swarm_validators.errors import GiantSwarmValidatorError
+from app_build_suite.build_steps.giant_swarm_validators.errors import (
+    GiantSwarmValidatorError,
+)
 
 from app_build_suite.build_steps.giant_swarm_validators.mixins import UseChartYaml
 
@@ -67,7 +69,9 @@ class HasTeamLabel(UseChartYaml):
             GS_TEAM_LABEL_KEY not in chart_yaml[ANNOTATIONS_KEY]
             and GS_TEAM_LABEL_KEY_OCI not in chart_yaml[ANNOTATIONS_KEY]
         ):
-            logger.info(f"'{GS_TEAM_LABEL_KEY}' or '{GS_TEAM_LABEL_KEY_OCI}' annotation not found in '{CHART_YAML}'.")
+            logger.info(
+                f"'{GS_TEAM_LABEL_KEY}' or '{GS_TEAM_LABEL_KEY_OCI}' annotation not found in '{CHART_YAML}'."
+            )
             return False
 
         team_label = (
@@ -88,19 +92,25 @@ class HasTeamLabel(UseChartYaml):
             try:
                 helpers_yaml_lines = stream.readlines()
             except OSError as exc:
-                logger.warning(f"Error reading file '{helpers_file_path}'. Error: {exc}.")
+                logger.warning(
+                    f"Error reading file '{helpers_file_path}'. Error: {exc}."
+                )
                 return False
         label_regexp = re.compile(self._label_regexp)
         if any(label_regexp.match(line) for line in helpers_yaml_lines):
             return True
         logger.info(f"The expected team label not found in '{helpers_file_path}'.")
-        logger.info(f"'{helpers_file_path}' must contain a line that matches the regexp '{label_regexp}'.")
+        logger.info(
+            f"'{helpers_file_path}' must contain a line that matches the regexp '{label_regexp}'."
+        )
         return False
 
     def get_helpers_file_path(self, config: argparse.Namespace) -> str:
         helpers_file_path = os.path.join(config.chart_dir, TEMPLATES_DIR, HELPERS_YAML)
         if not os.path.exists(helpers_file_path):
-            helpers_file_path = os.path.join(config.chart_dir, TEMPLATES_DIR, HELPERS_TPL)
+            helpers_file_path = os.path.join(
+                config.chart_dir, TEMPLATES_DIR, HELPERS_TPL
+            )
             if not os.path.exists(helpers_file_path):
                 raise GiantSwarmValidatorError(
                     f"Template file '{HELPERS_YAML}' or '{HELPERS_TPL}' not found in '{TEMPLATES_DIR}' directory."

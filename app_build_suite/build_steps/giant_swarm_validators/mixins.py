@@ -2,7 +2,9 @@ import argparse
 import os
 
 import yaml
-from app_build_suite.build_steps.giant_swarm_validators.errors import GiantSwarmValidatorError
+from app_build_suite.build_steps.giant_swarm_validators.errors import (
+    GiantSwarmValidatorError,
+)
 
 from app_build_suite.build_steps.helm_consts import CHART_YAML
 
@@ -17,5 +19,7 @@ class UseChartYaml:
             try:
                 chart_yaml = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                raise GiantSwarmValidatorError(f"Error parsing YAML file '{chart_yaml_path}'. Error: {exc}.")
+                raise GiantSwarmValidatorError(
+                    f"Error parsing YAML file '{chart_yaml_path}'. Error: {exc}."
+                )
         return chart_yaml
