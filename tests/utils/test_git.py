@@ -25,7 +25,10 @@ from app_build_suite.utils.git import GitRepoVersionInfo
     ],
 )
 def test_git_version(
-    tags: List[Dict[str, str]], last_commit_hash: str, expected_version_string: str, mocker: MockFixture
+    tags: List[Dict[str, str]],
+    last_commit_hash: str,
+    expected_version_string: str,
+    mocker: MockFixture,
 ) -> None:
     path = "bogus/path"
     mocker.patch("git.Repo")
@@ -35,9 +38,11 @@ def test_git_version(
         return_value=(
             ""
             if not tags
-            else tags[0]["name"]
-            if tags[0]["sha"] == last_commit_hash
-            else f"{tags[0]['name']}-1-{last_commit_hash}"
+            else (
+                tags[0]["name"]
+                if tags[0]["sha"] == last_commit_hash
+                else f"{tags[0]['name']}-1-{last_commit_hash}"
+            )
         )
     )
     repo_mock.git = git_obj
