@@ -38,6 +38,7 @@ for running dynamic (run-time) tests on charts built.
 - [Tuning app-build-suite execution and running parts of the build process](#tuning-app-build-suite-execution-and-running-parts-of-the-build-process)
   - [Configuring app-build-suite](#configuring-app-build-suite)
 - [Execution steps details and configuration](#execution-steps-details-and-configuration)
+- [Documentation](#documentation)
 - [How to contribute](#how-to-contribute)
 
 ## How to use app-build-suite
@@ -189,6 +190,18 @@ Please check below for available steps and their config options.
 Currently, only one build pipeline is supported. It is based on `helm`. Please check
 [this doc](docs/helm-build-pipeline.md) for
 detailed description of steps and available config options.
+
+## Documentation
+
+For detailed documentation, see the following guides:
+
+- **[Tutorial](docs/tutorial.md)** - Step-by-step guide to building your first chart
+- **[Helm Build Pipeline](docs/helm-build-pipeline.md)** - Details about each build step
+- **[Configuration Reference](docs/configuration-reference.md)** - Complete list of all configuration options
+- **[Giant Swarm Validators](docs/validators.md)** - Validation checks for Giant Swarm standards
+- **[Metadata Generation](docs/metadata-generation.md)** - How to generate App Platform metadata
+- **[CI/CD Integration](docs/ci-cd-integration.md)** - GitHub Actions and CircleCI setup
+- **[Migration Guide](docs/migration-guide.md)** - Migrate existing projects to ABS
 
 ## How to contribute
 
