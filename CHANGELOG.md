@@ -5,6 +5,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## 1.5.2 - 2026-01-19
+
+- fix: create correct GitHub URLs for non-tagged builds
+
 ## [1.5.1] - 2025-12-18
 
 ### Changed
