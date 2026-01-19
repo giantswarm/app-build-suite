@@ -38,11 +38,7 @@ def test_git_version(
         return_value=(
             ""
             if not tags
-            else (
-                tags[0]["name"]
-                if tags[0]["sha"] == last_commit_hash
-                else f"{tags[0]['name']}-1-{last_commit_hash}"
-            )
+            else (tags[0]["name"] if tags[0]["sha"] == last_commit_hash else f"{tags[0]['name']}-1-{last_commit_hash}")
         )
     )
     repo_mock.git = git_obj

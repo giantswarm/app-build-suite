@@ -70,13 +70,11 @@ class HelmBuilderValidator(BuildStep):
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """Validates if basic chart files are present in the configured directory."""
-        if os.path.exists(
-            os.path.join(config.chart_dir, CHART_YAML)
-        ) and os.path.exists(os.path.join(config.chart_dir, VALUES_YAML)):
+        if os.path.exists(os.path.join(config.chart_dir, CHART_YAML)) and os.path.exists(
+            os.path.join(config.chart_dir, VALUES_YAML)
+        ):
             return
-        raise ValidationError(
-            self.name, f"Can't find '{CHART_YAML}' or '{VALUES_YAML}' files."
-        )
+        raise ValidationError(self.name, f"Can't find '{CHART_YAML}' or '{VALUES_YAML}' files.")
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         pass
@@ -109,9 +107,7 @@ class HelmGitVersionSetter(BuildStep):
 
     # noinspection PyMethodMayBeStatic
     def _is_enabled(self, config: argparse.Namespace) -> bool:
-        return (
-            config.replace_chart_version_with_git or config.replace_app_version_with_git
-        )
+        return config.replace_chart_version_with_git or config.replace_app_version_with_git
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """
@@ -124,9 +120,7 @@ class HelmGitVersionSetter(BuildStep):
             return
         self.repo_info = GitRepoVersionInfo(config.chart_dir)
         if not self.repo_info.is_git_repo:
-            raise ValidationError(
-                self.name, f"Can't find valid git repository in {config.chart_dir}"
-            )
+            raise ValidationError(self.name, f"Can't find valid git repository in {config.chart_dir}")
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         """
@@ -143,9 +137,7 @@ class HelmGitVersionSetter(BuildStep):
         if self.repo_info is not None:
             git_version = self.repo_info.get_git_version()
         else:
-            raise ValidationError(
-                self.name, f"Can't find valid git repository in {config.chart_dir}"
-            )
+            raise ValidationError(self.name, f"Can't find valid git repository in {config.chart_dir}")
         # add the version info to context, so other BuildSteps can use it
         context[context_key_git_version] = git_version
 
@@ -155,16 +147,10 @@ class HelmGitVersionSetter(BuildStep):
             lines = file.readlines()
             for line in lines:
                 fields = line.split(":")
-                if (
-                    config.replace_chart_version_with_git
-                    and fields[0] == CHART_YAML_CHART_VERSION_KEY
-                ) or (
-                    config.replace_app_version_with_git
-                    and fields[0] == CHART_YAML_APP_VERSION_KEY
+                if (config.replace_chart_version_with_git and fields[0] == CHART_YAML_CHART_VERSION_KEY) or (
+                    config.replace_app_version_with_git and fields[0] == CHART_YAML_APP_VERSION_KEY
                 ):
-                    logger.info(
-                        f"Replacing '{fields[0]}' with git version '{git_version}' in {CHART_YAML}."
-                    )
+                    logger.info(f"Replacing '{fields[0]}' with git version '{git_version}' in {CHART_YAML}.")
                     context[context_key_changes_made] = True
                     new_lines.append(f"{fields[0]}: {git_version}\n")
                 else:
@@ -215,9 +201,7 @@ class HelmChartToolLinter(BuildStep):
         run_res = run_and_log([self._ct_bin, "version"], capture_output=True)  # nosec
         version_line = run_res.stdout.splitlines()[0]
         version = version_line.split(":")[1].strip()
-        self._assert_version_in_range(
-            self._ct_bin, version, self._min_ct_version, self._max_ct_version
-        )
+        self._assert_version_in_range(self._ct_bin, version, self._min_ct_version, self._max_ct_version)
         # validate config options
         if config.ct_config is not None and not os.path.isabs(config.ct_config):
             config.ct_config = os.path.join(os.getcwd(), config.ct_config)
@@ -264,15 +248,11 @@ class HelmChartToolLinter(BuildStep):
         if config.ct_schema is not None:
             args.append(f"--chart-yaml-schema={config.ct_schema}")
         logger.info("Running chart tool linting")
-        run_res = run_and_log(
-            args, capture_output=True
-        )  # nosec, input params checked above in pre_run
+        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
         for line in run_res.stdout.splitlines():
             logger.info(line)
         if run_res.returncode != 0:
-            logger.error(
-                f"{self._ct_bin} run failed with exit code {run_res.returncode}"
-            )
+            logger.error(f"{self._ct_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Linting failed")
 
 
@@ -307,9 +287,7 @@ class KubeLinter(BuildStep):
         # verify if binary present
         self._assert_binary_present_in_path(self._kubelinter_bin)
         # verify version
-        run_res = run_and_log(
-            [self._kubelinter_bin, "version"], capture_output=True
-        )  # nosec
+        run_res = run_and_log([self._kubelinter_bin, "version"], capture_output=True)  # nosec
         version = run_res.stdout.splitlines()[0]
         self._assert_version_in_range(
             self._kubelinter_bin,
@@ -318,22 +296,14 @@ class KubeLinter(BuildStep):
             self._max_kubelinter_version,
         )
         # validate config options
-        if config.kubelinter_config is not None and not os.path.isabs(
-            config.kubelinter_config
-        ):
-            config.kubelinter_config = os.path.join(
-                os.getcwd(), config.kubelinter_config
-            )
-        if config.kubelinter_config is not None and not os.path.isfile(
-            config.kubelinter_config
-        ):
+        if config.kubelinter_config is not None and not os.path.isabs(config.kubelinter_config):
+            config.kubelinter_config = os.path.join(os.getcwd(), config.kubelinter_config)
+        if config.kubelinter_config is not None and not os.path.isfile(config.kubelinter_config):
             raise ValidationError(
                 self.name,
                 f"Kube-linter config file {config.kubelinter_config} doesn't exist.",
             )
-        _default_cfg_path = os.path.join(
-            config.chart_dir, self._default_kubelinter_cfg_file
-        )
+        _default_cfg_path = os.path.join(config.chart_dir, self._default_kubelinter_cfg_file)
         if not config.kubelinter_config and os.path.isfile(_default_cfg_path):
             config.kubelinter_config = _default_cfg_path
 
@@ -351,15 +321,11 @@ class KubeLinter(BuildStep):
         if config.kubelinter_config is not None:
             args.append(f"--config={config.kubelinter_config}")
         logger.info("Running kube-linter tool")
-        run_res = run_and_log(
-            args, capture_output=True
-        )  # nosec, input params checked above in pre_run
+        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
         for line in run_res.stdout.splitlines():
             logger.info(line)
         if run_res.returncode != 0:
-            logger.error(
-                f"{self._kubelinter_bin} run failed with exit code {run_res.returncode}"
-            )
+            logger.error(f"{self._kubelinter_bin} run failed with exit code {run_res.returncode}")
             for line in run_res.stderr.splitlines():
                 logger.error(line)
             raise BuildError(self.name, "kube-linter failed")
@@ -398,14 +364,10 @@ class HelmRequirementsUpdater(BuildStep):
         :return: None
         """
         if not self._should_run(config):
-            logger.debug(
-                "No chart version override requested, skipping dependency update."
-            )
+            logger.debug("No chart version override requested, skipping dependency update.")
             return
         if len(self._detect_chart_lock_files(config)) == 0:
-            logger.debug(
-                f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update."
-            )
+            logger.debug(f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update.")
             return
         self._assert_binary_present_in_path(self._helm_bin)
         run_res = run_and_log([self._helm_bin, "version"], capture_output=True)  # nosec
@@ -414,14 +376,10 @@ class HelmRequirementsUpdater(BuildStep):
         if version_line.startswith(prefix):
             version_line = version_line[len(prefix) :].strip("{}")
         else:
-            raise ValidationError(
-                self.name, f"Can't parse '{self._helm_bin}' version number."
-            )
+            raise ValidationError(self.name, f"Can't parse '{self._helm_bin}' version number.")
         version_entries = version_line.split(",")[0]
         version = version_entries.split(":")[1].strip('"')
-        self._assert_version_in_range(
-            self._helm_bin, version, self._min_helm_version, self._max_helm_version
-        )
+        self._assert_version_in_range(self._helm_bin, version, self._min_helm_version, self._max_helm_version)
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         """
@@ -433,14 +391,10 @@ class HelmRequirementsUpdater(BuildStep):
         context[context_key_chart_lock_files_to_restore] = []
         present_lock_files = self._detect_chart_lock_files(config)
         if not self._should_run(config):
-            logger.debug(
-                "No chart version override requested. Dependency update not required, ending step."
-            )
+            logger.debug("No chart version override requested. Dependency update not required, ending step.")
             return
         if len(present_lock_files) == 0:
-            logger.debug(
-                f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update."
-            )
+            logger.debug(f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update.")
             return
         args = []
         for lock_file in present_lock_files:
@@ -454,16 +408,10 @@ class HelmRequirementsUpdater(BuildStep):
                 config.chart_dir,
             ]
             context[context_key_chart_lock_files_to_restore].append(lock_file)
-        logger.info(
-            f"Updating lockfile(s) with 'helm dependencies update {config.chart_dir}'"
-        )
-        run_res = run_and_log(
-            args, capture_output=True
-        )  # nosec, input params checked above in pre_run
+        logger.info(f"Updating lockfile(s) with 'helm dependencies update {config.chart_dir}'")
+        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
         if run_res.returncode != 0:
-            logger.error(
-                f"{self._helm_bin} run failed with exit code {run_res.returncode}"
-            )
+            logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart dependency update failed")
 
 
@@ -501,14 +449,10 @@ class HelmChartBuilder(BuildStep):
         if version_line.startswith(prefix):
             version_line = version_line[len(prefix) :].strip("{}")
         else:
-            raise ValidationError(
-                self.name, f"Can't parse '{self._helm_bin}' version number."
-            )
+            raise ValidationError(self.name, f"Can't parse '{self._helm_bin}' version number.")
         version_entries = version_line.split(",")[0]
         version = version_entries.split(":")[1].strip('"')
-        self._assert_version_in_range(
-            self._helm_bin, version, self._min_helm_version, self._max_helm_version
-        )
+        self._assert_version_in_range(self._helm_bin, version, self._min_helm_version, self._max_helm_version)
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         """
@@ -525,9 +469,7 @@ class HelmChartBuilder(BuildStep):
             config.destination,
         ]
         logger.info("Building chart with 'helm package'")
-        run_res = run_and_log(
-            args, capture_output=True
-        )  # nosec, input params checked above in pre_run
+        run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run
         for line in run_res.stdout.splitlines():
             logger.info(line)
             if line.startswith("Successfully packaged chart and saved it to"):
@@ -543,19 +485,14 @@ class HelmChartBuilder(BuildStep):
                         self.name,
                         f"unexpected chart path '{helm_chart_file_name}' != '{context[context_key_chart_file_name]}'",
                     )
-                if (
-                    context_key_chart_full_path in context
-                    and full_chart_path != context[context_key_chart_full_path]
-                ):
+                if context_key_chart_full_path in context and full_chart_path != context[context_key_chart_full_path]:
                     raise BuildError(
                         self.name,
                         f"unexpected helm build result: path reported in output '{full_chart_path}' "
                         f"is not equal to '{context[context_key_chart_full_path]}'",
                     )
         if run_res.returncode != 0:
-            logger.error(
-                f"{self._helm_bin} run failed with exit code {run_res.returncode}"
-            )
+            logger.error(f"{self._helm_bin} run failed with exit code {run_res.returncode}")
             raise BuildError(self.name, "Chart build failed")
 
 
@@ -585,9 +522,7 @@ class HelmChartMetadataBuilder(BuildStep):
     _key_annotation_metadata_url = f"{_key_annotation_prefix}/metadata"
     _key_annotation_restrictions_prefix = f"{_key_annotation_prefix}/restrictions"
     _key_oci_annotation_metadata_url = f"{_key_oci_annotation_prefix}.metadata"
-    _key_oci_annotation_restrictions_prefix = (
-        f"{_key_oci_annotation_prefix}.restrictions"
-    )
+    _key_oci_annotation_restrictions_prefix = f"{_key_oci_annotation_prefix}.restrictions"
     _oci_translated_keys = {
         _key_upstream_chart_url: "upstream-chart-url",
         _key_upstream_chart_version: "upstream-chart-version",
@@ -620,9 +555,7 @@ class HelmChartMetadataBuilder(BuildStep):
 
     def pre_run(self, config: argparse.Namespace) -> None:
         if not config.generate_metadata:
-            logger.info(
-                "Metadata generation is disabled using 'generate-metadata' option."
-            )
+            logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
         if config.generate_metadata and not config.catalog_base_url:
             raise ValidationError(
@@ -630,16 +563,12 @@ class HelmChartMetadataBuilder(BuildStep):
                 "config option --generate-metadata requires non-empty option --catalog-base-url",
             )
         if not config.catalog_base_url.endswith("/"):
-            raise ValidationError(
-                self.name, "config option --catalog-base-url value should end with a /"
-            )
+            raise ValidationError(self.name, "config option --catalog-base-url value should end with a /")
         # first step of validation should be done already by 'ct' with correct schema (unless explicitly disabled)
         chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
-        if self._key_upstream_chart_url in chart_yaml and not validators.url(
-            chart_yaml[self._key_upstream_chart_url]
-        ):
+        if self._key_upstream_chart_url in chart_yaml and not validators.url(chart_yaml[self._key_upstream_chart_url]):
             raise ValidationError(
                 self.name,
                 f"Config option '{self._key_upstream_chart_url}' is not a correct URL.",
@@ -654,9 +583,7 @@ class HelmChartMetadataBuilder(BuildStep):
                     option in chart_yaml[self._key_restrictions]
                     and type(chart_yaml[self._key_restrictions][option]) is not bool
                 ):
-                    raise ValidationError(
-                        self.name, f"Value of '{option}' is not a correct boolean."
-                    )
+                    raise ValidationError(self.name, f"Value of '{option}' is not a correct boolean.")
 
     @staticmethod
     def write_chart_yaml(chart_yaml_file_name: str, data: Context) -> None:
@@ -740,7 +667,12 @@ class HelmChartMetadataBuilder(BuildStep):
         return None
 
     def _build_github_annotation_url(
-        self, github_repo: Optional[str], repo_root: Optional[str], source_file_path: str, version: Optional[str]) -> str:
+        self,
+        github_repo: Optional[str],
+        repo_root: Optional[str],
+        source_file_path: str,
+        version: Optional[str],
+    ) -> str:
         if not github_repo or not repo_root or not version:
             return "unknown"
         abs_repo_root = os.path.abspath(repo_root)
@@ -778,26 +710,14 @@ class HelmChartMetadataBuilder(BuildStep):
           - copy it into the metadata directory
         """
         catalog_url = f"{catalog_base_url}{chart_file_name}-meta/"
-        annotations = {
-            self._key_oci_annotation_metadata_url: urlsplit(
-                f"{catalog_url}main.yaml"
-            ).geturl()
-        }
+        annotations = {self._key_oci_annotation_metadata_url: urlsplit(f"{catalog_url}main.yaml").geturl()}
         github_repo = self._discover_github_repo(chart_yaml)
         chart_version = chart_yaml.get("version")
         repo_root = self._find_git_repo_root(chart_dir)
         for additional_file, annotation_key in _annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
-<<<<<<< HEAD
-                github_url = self._build_github_annotation_url(
-                    github_repo, repo_root, source_file_path, version_tag
-                )
-||||||| parent of e5e65e8 (fix: set correct GitHub URLs when building a snapshot, not a tagged release)
-                github_url = self._build_github_annotation_url(github_repo, repo_root, source_file_path, version_tag)
-=======
                 github_url = self._build_github_annotation_url(github_repo, repo_root, source_file_path, chart_version)
->>>>>>> e5e65e8 (fix: set correct GitHub URLs when building a snapshot, not a tagged release)
                 annotations[annotation_key] = github_url
         if self._key_restrictions in chart_yaml:
             restrictions = chart_yaml[self._key_restrictions]
@@ -805,30 +725,23 @@ class HelmChartMetadataBuilder(BuildStep):
                 for key, value in restrictions.items():
                     kebab_key = self._oci_translated_keys[key]
                     formatted_value = self._format_restriction_value(value)
-                    chart_yaml[self._key_annotations][
-                        f"{self._key_oci_annotation_restrictions_prefix}.{kebab_key}"
-                    ] = formatted_value
+                    chart_yaml[self._key_annotations][f"{self._key_oci_annotation_restrictions_prefix}.{kebab_key}"] = (
+                        formatted_value
+                    )
         if self._key_upstream_chart_url in chart_yaml:
             annotation_key = f"{_key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_url]}"
-            chart_yaml[self._key_annotations][annotation_key] = chart_yaml[
-                self._key_upstream_chart_url
-            ]
+            chart_yaml[self._key_annotations][annotation_key] = chart_yaml[self._key_upstream_chart_url]
         if self._key_upstream_chart_version in chart_yaml:
             annotation_key = (
-                f"{_key_oci_annotation_prefix}."
-                f"{self._oci_translated_keys[self._key_upstream_chart_version]}"
+                f"{_key_oci_annotation_prefix}.{self._oci_translated_keys[self._key_upstream_chart_version]}"
             )
-            chart_yaml[self._key_annotations][annotation_key] = chart_yaml[
-                self._key_upstream_chart_version
-            ]
+            chart_yaml[self._key_annotations][annotation_key] = chart_yaml[self._key_upstream_chart_version]
 
         return annotations
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         if not config.generate_metadata:
-            logger.info(
-                "Metadata generation is disabled using 'generate-metadata' option."
-            )
+            logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
         # read current Chart.yaml
         chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
@@ -852,9 +765,7 @@ class HelmChartMetadataBuilder(BuildStep):
         to_add = {}
         for key, value in chart_yaml[self._key_annotations].items():
             if key.startswith(_key_annotation_prefix):
-                new_key = key.replace(
-                    _key_annotation_prefix, _key_oci_annotation_prefix
-                )
+                new_key = key.replace(_key_annotation_prefix, _key_oci_annotation_prefix)
                 new_key = new_key.replace("/", ".")
                 to_remove.append(key)
                 to_add[new_key] = value
@@ -911,10 +822,7 @@ class HelmChartMetadataFinalizer(BuildStep):
         chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
         with open(chart_yaml_path, "r") as file:
             chart_yaml = yaml.safe_load(file)
-        if (
-            self._key_upstream_chart_url in chart_yaml
-            and self._key_upstream_chart_version not in chart_yaml
-        ):
+        if self._key_upstream_chart_url in chart_yaml and self._key_upstream_chart_version not in chart_yaml:
             raise ValidationError(
                 self.name,
                 f"'{self._key_upstream_chart_url}' is found in Chart.yaml, but"
@@ -924,10 +832,7 @@ class HelmChartMetadataFinalizer(BuildStep):
 
     @staticmethod
     def get_build_timestamp() -> str:
-        return (
-            datetime.now(timezone.utc).isoformat(timespec="microseconds").split("+")[0]
-            + "Z"
-        )
+        return datetime.now(timezone.utc).isoformat(timespec="microseconds").split("+")[0] + "Z"
 
     @staticmethod
     def write_meta_file(meta_file_name: str, meta: Context) -> None:
@@ -942,9 +847,7 @@ class HelmChartMetadataFinalizer(BuildStep):
             return kebab_str
         return parts[0] + "".join(word.capitalize() for word in parts[1:])
 
-    def _convert_annotations(
-        self, original_annotations: dict[str, Any]
-    ) -> dict[str, Any]:
+    def _convert_annotations(self, original_annotations: dict[str, Any]) -> dict[str, Any]:
         """Convert annotations from old format to new format."""
         new_style_annotations = copy.deepcopy(original_annotations)
         to_remove = []
@@ -955,9 +858,7 @@ class HelmChartMetadataFinalizer(BuildStep):
             if key.startswith(_key_oci_annotation_prefix):
                 # leave application.giantswarm.io/... as is but replace dots with slashes
                 new_key = key.replace(".", "/")
-                new_key = new_key.replace(
-                    slashed_oci_annotation_prefix, _key_annotation_prefix
-                )
+                new_key = new_key.replace(slashed_oci_annotation_prefix, _key_annotation_prefix)
                 to_remove.append(key)
                 # if key part after prefix is kebab case, convert to camel case
                 key_parts = new_key.split("/")
@@ -980,18 +881,14 @@ class HelmChartMetadataFinalizer(BuildStep):
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         if not config.generate_metadata:
-            logger.info(
-                "Metadata generation is disabled using 'generate-metadata' option."
-            )
+            logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
         meta = {}
         # mandatory metadata
         meta[self._key_chart_file] = context[context_key_chart_file_name]
         meta[self._key_digest] = get_file_sha256(context[context_key_chart_full_path])
         meta[self._key_date_created] = self.get_build_timestamp()
-        meta[self._key_chart_api_version] = context[context_key_original_chart_yaml][
-            self._key_api_version
-        ]
+        meta[self._key_chart_api_version] = context[context_key_original_chart_yaml][self._key_api_version]
         # optional metadata
         for key in [
             self._key_upstream_chart_url,
@@ -1004,17 +901,11 @@ class HelmChartMetadataFinalizer(BuildStep):
                 meta[key] = context[context_key_original_chart_yaml][key]
         # convert existing annotations in the format io.giantswarm.application...to application.giantswarm.io/...
         # Handle case where annotations don't exist
-        original_annotations = context[context_key_original_chart_yaml].get(
-            self._key_annotations, {}
-        )
+        original_annotations = context[context_key_original_chart_yaml].get(self._key_annotations, {})
         meta[self._key_annotations] = self._convert_annotations(original_annotations)
         # create metadata directory
-        context[context_key_meta_dir_path] = (
-            f"{context[context_key_chart_full_path]}-meta"
-        )
-        pathlib.Path(context[context_key_meta_dir_path]).mkdir(
-            parents=True, exist_ok=True
-        )
+        context[context_key_meta_dir_path] = f"{context[context_key_chart_full_path]}-meta"
+        pathlib.Path(context[context_key_meta_dir_path]).mkdir(parents=True, exist_ok=True)
         # save metadata file
         meta_dir_path = context[context_key_meta_dir_path]
         meta_file_name = os.path.join(context[context_key_meta_dir_path], "main.yaml")
@@ -1025,9 +916,7 @@ class HelmChartMetadataFinalizer(BuildStep):
         for additional_file in _annotation_files_map.keys():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
-                target_file_path = os.path.join(
-                    meta_dir_path, os.path.basename(additional_file)
-                )
+                target_file_path = os.path.join(meta_dir_path, os.path.basename(additional_file))
                 shutil.copy2(source_file_path, target_file_path)
 
 
@@ -1061,10 +950,7 @@ class HelmChartYAMLRestorer(BuildStep):
             logger.info(f"Restoring backup {CHART_YAML}.back to {CHART_YAML}")
             chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
             shutil.move(chart_yaml_path + ".back", chart_yaml_path)
-        if (
-            context_key_chart_lock_files_to_restore in context
-            and context[context_key_chart_lock_files_to_restore]
-        ):
+        if context_key_chart_lock_files_to_restore in context and context[context_key_chart_lock_files_to_restore]:
             for file_name in context[context_key_chart_lock_files_to_restore]:
                 logger.info(f"Restoring backup {file_name}.back to {file_name}")
                 lock_file_path = os.path.join(config.chart_dir, file_name)
@@ -1123,9 +1009,7 @@ class GiantSwarmHelmValidator(BuildStep):
         gs_validators = self._load_giant_swarm_validators()
 
         ignore_list: List[str] = []
-        ignore_str_list: List[str] = config.giantswarm_validator_ignored_checks.split(
-            ","
-        )
+        ignore_str_list: List[str] = config.giantswarm_validator_ignored_checks.split(",")
         for name in ignore_str_list:
             n = name.strip()
             if n:
@@ -1133,19 +1017,12 @@ class GiantSwarmHelmValidator(BuildStep):
 
         for validator in gs_validators:
             validator_name = type(validator).__name__
-            logger.info(
-                f"Running Giant Swarm validator '{validator.get_check_code()}: {validator_name}'."
-            )
+            logger.info(f"Running Giant Swarm validator '{validator.get_check_code()}: {validator_name}'.")
             if validator.validate(config):
-                logger.debug(
-                    f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' is OK."
-                )
+                logger.debug(f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' is OK.")
             else:
                 msg = f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' failed its checks."
-                if (
-                    not config.disable_strict_giantswarm_validator
-                    and validator.get_check_code() not in ignore_list
-                ):
+                if not config.disable_strict_giantswarm_validator and validator.get_check_code() not in ignore_list:
                     raise ValidationError(self.name, msg)
                 else:
                     logger.warning(msg)
@@ -1154,17 +1031,13 @@ class GiantSwarmHelmValidator(BuildStep):
         gs_validators: List[GiantSwarmValidator] = []
         current_frame = inspect.currentframe()
         if current_frame is None:
-            raise ValidationError(
-                self.name, "Can't check current frame and detect current module's path."
-            )
+            raise ValidationError(self.name, "Can't check current frame and detect current module's path.")
 
         cur_mod_path = os.path.dirname(os.path.abspath(inspect.getfile(current_frame)))
         validators_mod_path = os.path.join(cur_mod_path, "giant_swarm_validators")
 
         cur_mod_name = __name__
-        validators_mod_name_prefix = cur_mod_name.replace(
-            "helm", "giant_swarm_validators."
-        )
+        validators_mod_name_prefix = cur_mod_name.replace("helm", "giant_swarm_validators.")
 
         name_class_tuples: List[Tuple[str, Type]] = []
 
@@ -1173,16 +1046,12 @@ class GiantSwarmHelmValidator(BuildStep):
                 continue
 
             pkg = import_module(validators_mod_name_prefix + modname[:-3])
-            name_class_tuples = name_class_tuples + inspect.getmembers(
-                pkg, inspect.isclass
-            )
+            name_class_tuples = name_class_tuples + inspect.getmembers(pkg, inspect.isclass)
 
         for _, cls in name_class_tuples:
             if isinstance(cls, type) and issubclass(cls, GiantSwarmValidator):
                 new_validator = cls()
-                if new_validator.get_check_code() in (
-                    c.get_check_code() for c in gs_validators
-                ):
+                if new_validator.get_check_code() in (c.get_check_code() for c in gs_validators):
                     raise ValidationError(
                         self.name,
                         f"Found more than 1 Giant Swarm validator with check code "

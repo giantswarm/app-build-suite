@@ -19,7 +19,5 @@ class UseChartYaml:
             try:
                 chart_yaml = yaml.safe_load(stream)
             except yaml.YAMLError as exc:
-                raise GiantSwarmValidatorError(
-                    f"Error parsing YAML file '{chart_yaml_path}'. Error: {exc}."
-                )
+                raise GiantSwarmValidatorError(f"Error parsing YAML file '{chart_yaml_path}'. Error: {exc}.")
         return chart_yaml
