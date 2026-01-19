@@ -670,6 +670,30 @@ class HelmChartMetadataBuilder(BuildStep):
             return chart_version
         return f"v{chart_version}"
 
+    def _extract_commit_hash_from_version(self, version: str) -> Optional[str]:
+        """
+        Extracts commit hash from version string if it's in commit-based format.
+        Commit-based format: {tag}-{commit_hash} where commit_hash is 7-40 hex characters.
+        :param version: Version string (e.g., "1.0.1-e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae")
+        :return: Commit hash if found, None otherwise
+        """
+        if not version:
+            return None
+        # Split on last dash to separate tag from potential commit hash
+        parts = version.rsplit("-", 1)
+        if len(parts) != 2:
+            return None
+        potential_hash = parts[1]
+        # Commit hash should be 7-40 hex characters
+        if len(potential_hash) >= 7 and len(potential_hash) <= 40:
+            try:
+                # Validate it's hexadecimal
+                int(potential_hash, 16)
+                return potential_hash
+            except ValueError:
+                return None
+        return None
+
     def _format_restriction_value(self, value: Any) -> Any:
         if isinstance(value, list):
             return ",".join(str(v) for v in value)
@@ -716,13 +740,8 @@ class HelmChartMetadataBuilder(BuildStep):
         return None
 
     def _build_github_annotation_url(
-        self,
-        github_repo: Optional[str],
-        repo_root: Optional[str],
-        source_file_path: str,
-        version_tag: Optional[str],
-    ) -> str:
-        if not github_repo or not repo_root or not version_tag:
+        self, github_repo: Optional[str], repo_root: Optional[str], source_file_path: str, version: Optional[str]) -> str:
+        if not github_repo or not repo_root or not version:
             return "unknown"
         abs_repo_root = os.path.abspath(repo_root)
         abs_file = os.path.abspath(source_file_path)
@@ -733,9 +752,17 @@ class HelmChartMetadataBuilder(BuildStep):
         if relative_path.startswith(".."):
             return "unknown"
         normalized_relative_path = relative_path.replace(os.sep, "/")
-        return urlsplit(
-            f"{self._github_raw_host}/{github_repo}/refs/tags/{version_tag}/{normalized_relative_path}"
-        ).geturl()
+        # Check if version contains a commit hash
+        commit_hash = self._extract_commit_hash_from_version(version)
+        if commit_hash:
+            # Use commit hash directly for commit-based versions
+            return urlsplit(f"{self._github_raw_host}/{github_repo}/{commit_hash}/{normalized_relative_path}").geturl()
+        else:
+            # Use tag format for tag-based versions
+            normalized_tag = self._normalize_version_tag(version)
+            return urlsplit(
+                f"{self._github_raw_host}/{github_repo}/refs/tags/{normalized_tag}/{normalized_relative_path}"
+            ).geturl()
 
     def build_chart_yaml_annotations(
         self,
@@ -757,14 +784,20 @@ class HelmChartMetadataBuilder(BuildStep):
             ).geturl()
         }
         github_repo = self._discover_github_repo(chart_yaml)
-        version_tag = self._normalize_version_tag(chart_yaml.get("version"))
+        chart_version = chart_yaml.get("version")
         repo_root = self._find_git_repo_root(chart_dir)
         for additional_file, annotation_key in _annotation_files_map.items():
             source_file_path = os.path.join(os.path.abspath(chart_dir), additional_file)
             if os.path.isfile(source_file_path):
+<<<<<<< HEAD
                 github_url = self._build_github_annotation_url(
                     github_repo, repo_root, source_file_path, version_tag
                 )
+||||||| parent of e5e65e8 (fix: set correct GitHub URLs when building a snapshot, not a tagged release)
+                github_url = self._build_github_annotation_url(github_repo, repo_root, source_file_path, version_tag)
+=======
+                github_url = self._build_github_annotation_url(github_repo, repo_root, source_file_path, chart_version)
+>>>>>>> e5e65e8 (fix: set correct GitHub URLs when building a snapshot, not a tagged release)
                 annotations[annotation_key] = github_url
         if self._key_restrictions in chart_yaml:
             restrictions = chart_yaml[self._key_restrictions]
