@@ -1,6 +1,6 @@
 [project]
 name = "app_build_suite"
-version = "v1.5.1"
+version = "v1.5.2"
 requires-python = ">=3.13"
 description = "An app build suite for GiantSwarm app platform"
 readme = "README.md"
