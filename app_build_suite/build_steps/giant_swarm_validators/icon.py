@@ -100,9 +100,7 @@ class IconIsAlmostSquare(UseChartYaml):
         try:
             return urllib.request.urlretrieve(icon_path, tmp_file_path)[0]  # nosec
         except urllib.error.URLError as exc:
-            raise GiantSwarmValidatorError(
-                f"Error fetching icon from '{icon_path}'. Error: {exc}."
-            )
+            raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
         img = Image.open(path)
