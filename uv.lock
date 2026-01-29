@@ -4,7 +4,7 @@ requires-python = ">=3.13"
 
 [[package]]
 name = "app-build-suite"
-version = "1.5.2"
+version = "1.6.0"
 source = { editable = "." }
 dependencies = [
     { name = "cairosvg" },
