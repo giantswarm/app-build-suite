@@ -11,6 +11,7 @@ from step_exec_lib.errors import ValidationError
 
 import app_build_suite
 from app_build_suite.build_steps.helm import (
+    HelmBuilderValidator,
     HelmChartMetadataFinalizer,
     HelmChartMetadataBuilder,
     context_key_chart_file_name,
@@ -773,3 +774,123 @@ def test_prepare_metadata_with_commit_version(monkeypatch: pytest.MonkeyPatch) -
 
         step.run(config, context)
         m.assert_called_once_with(input_chart_path, "r")
+
+
+@pytest.mark.parametrize(
+    "chart_name,should_pass",
+    [
+        # Valid names
+        ("my-chart", True),
+        ("chart123", True),
+        ("a", True),
+        ("123", True),
+        ("a-b-c-d-e", True),
+        ("a" * 63, True),  # Max length
+        # Too long (64 characters)
+        ("a" * 64, False),
+        # Invalid start character
+        ("-my-chart", False),
+        ("_my-chart", False),
+        # Invalid end character
+        ("my-chart-", False),
+        ("my-chart_", False),
+        # Uppercase characters
+        ("My-Chart", False),
+        ("MY-CHART", False),
+        ("myChart", False),
+        # Invalid characters
+        ("my_chart", False),
+        ("my.chart", False),
+        ("my chart", False),
+        ("my@chart", False),
+        # Multiple violations
+        ("-My_Chart-", False),
+        # Unicode hyphen look-alikes (homoglyphs)
+        ("my\u2010chart", False),  # U+2010 HYPHEN
+        ("my\u2011chart", False),  # U+2011 NON-BREAKING HYPHEN
+        ("my\u2013chart", False),  # U+2013 EN DASH
+        ("my\u2014chart", False),  # U+2014 EM DASH
+        ("my\u2212chart", False),  # U+2212 MINUS SIGN
+        ("my\uff0dchart", False),  # U+FF0D FULLWIDTH HYPHEN-MINUS
+    ],
+    ids=[
+        "valid lowercase with hyphen",
+        "valid alphanumeric",
+        "valid single character",
+        "valid numeric only",
+        "valid multiple hyphens",
+        "valid max length 63",
+        "too long (64 chars)",
+        "starts with hyphen",
+        "starts with underscore",
+        "ends with hyphen",
+        "ends with underscore",
+        "uppercase at start",
+        "all uppercase",
+        "camelCase",
+        "contains underscore",
+        "contains dot",
+        "contains space",
+        "contains special character",
+        "multiple violations",
+        "unicode hyphen U+2010",
+        "unicode non-breaking hyphen U+2011",
+        "unicode en dash U+2013",
+        "unicode em dash U+2014",
+        "unicode minus sign U+2212",
+        "unicode fullwidth hyphen U+FF0D",
+    ],
+)
+def test_helm_builder_validator_rfc1123_chart_name(
+    chart_name: str,
+    should_pass: bool,
+    mocker: MockerFixture,
+) -> None:
+    """Test that HelmBuilderValidator validates chart names against RFC 1123."""
+    step = HelmBuilderValidator()
+    config = init_config_for_step(step)
+    config.chart_dir = "/fake/chart/dir"
+
+    chart_yaml_content = f"name: {chart_name}\nversion: 1.0.0"
+
+    mocker.patch("os.path.exists", return_value=True)
+    mocker.patch("builtins.open", mock_open(read_data=chart_yaml_content))
+
+    if should_pass:
+        step.pre_run(config)  # Should not raise
+    else:
+        with pytest.raises(ValidationError) as exc_info:
+            step.pre_run(config)
+        assert "RFC 1123" in exc_info.value.msg
+
+
+def test_helm_builder_validator_missing_name(mocker: MockerFixture) -> None:
+    """Test that HelmBuilderValidator raises error when name is missing."""
+    step = HelmBuilderValidator()
+    config = init_config_for_step(step)
+    config.chart_dir = "/fake/chart/dir"
+
+    chart_yaml_content = "version: 1.0.0"
+
+    mocker.patch("os.path.exists", return_value=True)
+    mocker.patch("builtins.open", mock_open(read_data=chart_yaml_content))
+
+    with pytest.raises(ValidationError) as exc_info:
+        step.pre_run(config)
+    assert "missing required field 'name'" in exc_info.value.msg
+
+
+def test_helm_builder_validator_empty_name(mocker: MockerFixture) -> None:
+    """Test that HelmBuilderValidator raises error when name is empty."""
+    step = HelmBuilderValidator()
+    config = init_config_for_step(step)
+    config.chart_dir = "/fake/chart/dir"
+
+    chart_yaml_content = "name: \nversion: 1.0.0"
+
+    mocker.patch("os.path.exists", return_value=True)
+    mocker.patch("builtins.open", mock_open(read_data=chart_yaml_content))
+
+    with pytest.raises(ValidationError) as exc_info:
+        step.pre_run(config)
+    assert "field 'name' is empty" in exc_info.value.msg

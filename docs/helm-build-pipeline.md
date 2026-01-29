@@ -2,7 +2,20 @@
 
 Helm build pipeline executes in sequence the following set of steps:
 
-1. HelmBuilderValidator: a simple step that checks if the build folder contains a Helm chart.
+1. HelmBuilderValidator: validates that the build folder contains a Helm chart and that the chart name
+   is valid.
+   - Checks for presence of `Chart.yaml` and `values.yaml` files
+   - Validates that the `name` field in `Chart.yaml` complies with
+     [RFC 1123](https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-label-names) DNS label rules,
+     which is required for Kubernetes compatibility. The name must:
+     - be at most 63 characters long,
+     - start with a lowercase alphanumeric character,
+     - end with a lowercase alphanumeric character,
+     - contain only lowercase alphanumeric characters and hyphens (`-`).
+
+     This validator detects Unicode look-alike characters (e.g., en-dash `–`, em-dash `—`, minus sign `−`)
+     that visually resemble ASCII hyphen but are invalid. Error messages include exact character positions
+     to help locate issues.
    - config options: none
 2. HelmGitVersionSetter: when enabled, this step will set `version` and/or `appVersion` in the `Chart.yaml`
    of your helm chart to a version value based of your last commit hash and tag in a git repo. For this
@@ -62,11 +75,13 @@ Helm build pipeline executes in sequence the following set of steps:
 9. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we want
    to enforce as company policy.
    Currently, supports the following checks
-   ([have a look at the code for details](../app_build_suite/build_steps/giant_swarm_validators/helm.py):
-   - `HasValuesSchema` - checks if the `values.schema.json` file is present,
-   - `HasTeamLabel` - a bit naive check if the team annotation is present (it only checks for the correct definition
+   ([have a look at the code for details](../app_build_suite/build_steps/giant_swarm_validators/helm.py)):
+   - `F0001` `HasValuesSchema` - checks if the `values.schema.json` file is present.
+   - `C0001` `HasTeamLabel` - a bit naive check if the team annotation is present (it only checks for the correct definition
      in `Chart.yaml` and then if the `_templates.yaml` is present and the recommended label is there) or is not empty. Check
      [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
+   - `C0002` `IconExists` - checks if the `icon` field is present in `Chart.yaml` and is not empty.
+   - `C0003` `IconIsAlmostSquare` - validates that the icon image is close to a square shape (max 33% aspect ratio deviation).
 
    Available config options:
      - `--disable-giantswarm-helm-validator` - enabled by default, can disable the whole module,
