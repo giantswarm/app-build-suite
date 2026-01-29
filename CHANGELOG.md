@@ -5,6 +5,11 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## 1.6.0 - 2026-01-29
+
+- feat: validate `.name` in `Chart.yaml` to be RFC 1123 compliant to avoid problems when using it in chart
+  templated values
+
 ## 1.5.2 - 2026-01-19
 
 - fix: create correct GitHub URLs for non-tagged builds
