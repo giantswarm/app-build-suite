@@ -49,25 +49,18 @@ class HomeUrlMatchesGitRemote(UseChartYaml):
         # Get git repository info
         repo_info = GitRepoVersionInfo(config.chart_dir)
         if not repo_info.is_git_repo:
-            logger.debug(
-                "Not a git repository. Cannot validate 'home' field against git remote."
-            )
+            logger.debug("Not a git repository. Cannot validate 'home' field against git remote.")
             return True  # Not a git repo, skip validation
 
         # Get origin remote URL
         remote_url = repo_info.get_remote_url("origin")
         if not remote_url:
-            logger.debug(
-                "No 'origin' remote found. Cannot validate 'home' field."
-            )
+            logger.debug("No 'origin' remote found. Cannot validate 'home' field.")
             return True  # No remote, skip validation
 
         # Check if it's a GitHub URL
         if not GitUrlConverter.is_github_url(remote_url):
-            logger.debug(
-                f"Remote URL '{remote_url}' is not a GitHub repository. "
-                "Skipping 'home' field validation."
-            )
+            logger.debug(f"Remote URL '{remote_url}' is not a GitHub repository. Skipping 'home' field validation.")
             return True  # Only validate GitHub repos
 
         # Normalize and compare URLs
@@ -81,8 +74,6 @@ class HomeUrlMatchesGitRemote(UseChartYaml):
 
         # URLs don't match
         logger.info(
-            f"'home' field mismatch in Chart.yaml: "
-            f"expected '{expected_url}' (from git remote), "
-            f"but found '{home_url}'."
+            f"'home' field mismatch in Chart.yaml: expected '{expected_url}' (from git remote), but found '{home_url}'."
         )
         return False

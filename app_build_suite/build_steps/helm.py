@@ -275,18 +275,12 @@ class HelmHomeUrlSetter(BuildStep):
 
         self.repo_info = GitRepoVersionInfo(config.chart_dir)
         if not self.repo_info.is_git_repo:
-            logger.debug(
-                f"Can't find valid git repository in {config.chart_dir}. "
-                "Skipping home URL auto-update."
-            )
+            logger.debug(f"Can't find valid git repository in {config.chart_dir}. Skipping home URL auto-update.")
             return
 
         remote_url = self.repo_info.get_remote_url("origin")
         if not remote_url:
-            logger.debug(
-                "No 'origin' remote found in git repository. "
-                "Skipping home URL auto-update."
-            )
+            logger.debug("No 'origin' remote found in git repository. Skipping home URL auto-update.")
             return
 
         if not GitUrlConverter.is_github_url(remote_url):
