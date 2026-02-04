@@ -5,6 +5,16 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- Automatic `home` field management in Chart.yaml from git remote URL
+  - New `HelmHomeUrlSetter` build step sets `home` to git origin URL (GitHub only)
+  - Converts SSH URLs (`git@github.com:org/repo`) to HTTPS format
+  - Enabled by default, disable with `--disable-home-url-auto-update`
+  - Adds field if missing, updates if present
+- New validator `C0004` `HomeUrlMatchesGitRemote`: checks `home` field matches git remote URL
+  - Skip validation with `--giantswarm-validator-ignored-checks=C0004`
+
 ## 1.6.0 - 2026-01-29
 
 - feat: validate `.name` in `Chart.yaml` to be RFC 1123 compliant to avoid problems when using it in chart

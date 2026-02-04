@@ -25,7 +25,33 @@ Helm build pipeline executes in sequence the following set of steps:
                         should the `appVersion` in `Chart.yaml` be replaced by a tag and hash from git
      - `--replace-chart-version-with-git`:
                         should the `version` in `Chart.yaml  be replaced by a tag and hash from git
-3. HelmChartToolLinter: this step runs the [`ct`](https://github.com/helm/chart-testing) (aka. `chart-testing`)
+3. HelmHomeUrlSetter: automatically sets the `home` field in `Chart.yaml` to the git remote URL.
+   This ensures the home URL always points to the correct GitHub repository. Enabled by default.
+   - Converts SSH URLs (e.g., `git@github.com:org/repo.git`) to HTTPS format
+   - GitHub repositories only (non-GitHub remotes are silently skipped)
+   - Uses the 'origin' remote
+   - Adds `home` field if missing, updates if present
+   - config options:
+     - `--disable-home-url-auto-update`: disable automatic setting of home URL from git remote
+4. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we want
+   to enforce as company policy.
+   Currently, supports the following checks
+   ([have a look at the code for details](../app_build_suite/build_steps/giant_swarm_validators/)):
+   - `F0001` `HasValuesSchema` - checks if the `values.schema.json` file is present.
+   - `C0001` `HasTeamLabel` - a bit naive check if the team annotation is present (it only checks for the correct definition
+     in `Chart.yaml` and then if the `_templates.yaml` is present and the recommended label is there) or is not empty. Check
+     [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
+   - `C0002` `IconExists` - checks if the `icon` field is present in `Chart.yaml` and is not empty.
+   - `C0003` `IconIsAlmostSquare` - validates that the icon image is close to a square shape (max 33% aspect ratio deviation).
+   - `C0004` `HomeUrlMatchesGitRemote` - validates that the `home` field in `Chart.yaml` matches the git remote URL.
+
+   Available config options:
+     - `--disable-giantswarm-helm-validator` - enabled by default, can disable the whole module,
+     - `--disable-strict-giantswarm-validator` - enabled by default, it means the build will fail if any validation
+     rule fails; if disabled, build won't fail even if rules will,
+     - `--giantswarm-validator-ignored-checks` - each check has its own ID which is printed during build; if you
+     want to ignore a subset of checks, put a comma separated list here.
+5. HelmChartToolLinter: this step runs the [`ct`](https://github.com/helm/chart-testing) (aka. `chart-testing`)
    This tool runs validation and linting of YAML files included in your chart. The tool is configurable on its own:
    [config reference](https://github.com/helm/chart-testing#configuration).
    - config options:
@@ -43,7 +69,7 @@ Helm build pipeline executes in sequence the following set of steps:
      - bitnami=https://charts.bitnami.com/bitnami
    ```
 
-4. KubeLinter: this step runs [kube-linter](https://docs.kubelinter.io/) static chart verification tool.
+6. KubeLinter: this step runs [kube-linter](https://docs.kubelinter.io/) static chart verification tool.
    Make sure to check [kube-linter configuration docs](https://docs.kubelinter.io/#/configuring-kubelinter)
    to learn how to tune the verification to your taste or even
    [disable it completely](https://docs.kubelinter.io/#/configuring-kubelinter?id=disable-all-default-checks).
@@ -53,7 +79,7 @@ Helm build pipeline executes in sequence the following set of steps:
    `kube-linter` will run with default configuration.
    - config options:
      - `--kubelinter-config`: path to optional 'kube-linter' config file.
-5. HelmChartMetadataPreparer: this step is required to gather some data required for chart metadata
+7. HelmChartMetadataPreparer: this step is required to gather some data required for chart metadata
    generation.
    - config options:
      - `--generate-metadata`: enable generation of the metadata file for Giant Swarm App Platform.
@@ -63,29 +89,12 @@ Helm build pipeline executes in sequence the following set of steps:
    files in the chart's GitHub repository using the chart version tag so that published annotations
    always reference the exact release content.
 
-6. HelmChartBuilder: this step does the actual chart build using Helm.
+8. HelmChartBuilder: this step does the actual chart build using Helm.
    - config options:
      - `--destination`: path of a directory to store the packaged Helm chart tgz.
-7. HelmChartMetadataFinalizer: completes and writes the data gather partially by HelmChartMetadataPreparer.
+9. HelmChartMetadataFinalizer: completes and writes the data gather partially by HelmChartMetadataPreparer.
    - config options: none
-8. HelmChartYAMLRestorer: restores chart files, which were changed as part of the build process (ie. by
-   HelmGitVersionSetter).
+10. HelmChartYAMLRestorer: restores chart files, which were changed as part of the build process (ie. by
+   HelmGitVersionSetter or HelmHomeUrlSetter).
    - config options:
      - `--keep-chart-changes` should the changes made in Chart.yaml be kept
-9. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we want
-   to enforce as company policy.
-   Currently, supports the following checks
-   ([have a look at the code for details](../app_build_suite/build_steps/giant_swarm_validators/helm.py)):
-   - `F0001` `HasValuesSchema` - checks if the `values.schema.json` file is present.
-   - `C0001` `HasTeamLabel` - a bit naive check if the team annotation is present (it only checks for the correct definition
-     in `Chart.yaml` and then if the `_templates.yaml` is present and the recommended label is there) or is not empty. Check
-     [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
-   - `C0002` `IconExists` - checks if the `icon` field is present in `Chart.yaml` and is not empty.
-   - `C0003` `IconIsAlmostSquare` - validates that the icon image is close to a square shape (max 33% aspect ratio deviation).
-
-   Available config options:
-     - `--disable-giantswarm-helm-validator` - enabled by default, can disable the whole module,
-     - `--disable-strict-giantswarm-validator` - enabled by default, it means the build will fail if any validation
-     rule fails; if disabled, build won't fail even if rules will,
-     - `--giantswarm-validator-ignored-checks` - each check has its own ID which is printed during build; if you
-     want to ignore a subset of checks, put a comma separated list here.
