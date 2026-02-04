@@ -95,6 +95,7 @@ Helm build pipeline executes in sequence the following set of steps:
 9. HelmChartMetadataFinalizer: completes and writes the data gather partially by HelmChartMetadataPreparer.
    - config options: none
 10. HelmChartYAMLRestorer: restores chart files, which were changed as part of the build process (ie. by
-   HelmGitVersionSetter or HelmHomeUrlSetter).
-   - config options:
-     - `--keep-chart-changes` should the changes made in Chart.yaml be kept
+    HelmGitVersionSetter or HelmHomeUrlSetter).
+
+    - config options:
+      - `--keep-chart-changes` should the changes made in Chart.yaml be kept

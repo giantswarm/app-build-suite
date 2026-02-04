@@ -241,14 +241,11 @@ class HelmHomeUrlSetter(BuildStep):
     Sets chart 'home' field to the git remote URL in HTTPS format.
 
     - Converts SSH URLs (git@github.com:org/repo) to HTTPS format
-    - GitHub repositories only (non-GitHub remotes are skipped with a warning)
+    - GitHub repositories only (non-GitHub remotes are skipped)
     - Uses 'origin' remote
     - Enabled by default, can be disabled with --disable-home-url-auto-update
     - Adds 'home' field if missing, updates if present
     """
-
-    repo_info: Optional[GitRepoVersionInfo] = None
-    _home_url: Optional[str] = None
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -265,80 +262,84 @@ class HelmHomeUrlSetter(BuildStep):
     def _is_enabled(self, config: argparse.Namespace) -> bool:
         return not config.disable_home_url_auto_update
 
-    def pre_run(self, config: argparse.Namespace) -> None:
+    def _get_github_home_url(self, config: argparse.Namespace) -> Optional[str]:
         """
-        Validates git repo exists and has a valid GitHub remote.
+        Get normalized GitHub HTTPS URL from git remote, or None if not available.
         """
-        if not self._is_enabled(config):
-            logger.debug("Home URL auto-update is disabled, skipping pre-run.")
-            return
-
-        self.repo_info = GitRepoVersionInfo(config.chart_dir)
-        if not self.repo_info.is_git_repo:
+        repo_info = GitRepoVersionInfo(config.chart_dir)
+        if not repo_info.is_git_repo:
             logger.debug(f"Can't find valid git repository in {config.chart_dir}. Skipping home URL auto-update.")
-            return
+            return None
 
-        remote_url = self.repo_info.get_remote_url("origin")
+        remote_url = repo_info.get_remote_url("origin")
         if not remote_url:
             logger.debug("No 'origin' remote found in git repository. Skipping home URL auto-update.")
-            return
+            return None
 
         if not GitUrlConverter.is_github_url(remote_url):
             logger.debug(
                 f"Remote URL '{remote_url}' is not a GitHub repository. "
                 "Only GitHub repositories are supported for home URL auto-update."
             )
-            return
+            return None
 
-        self._home_url = GitUrlConverter.normalize_to_https(remote_url)
+        return GitUrlConverter.normalize_to_https(remote_url)
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         """
         Gets the git remote URL and updates the 'home' field in Chart.yaml.
+        Uses line-by-line parsing to preserve formatting and comments.
         """
         if not self._is_enabled(config):
             logger.debug("Home URL auto-update is disabled, ending step.")
             return
 
-        if self._home_url is None:
-            logger.debug("No valid GitHub remote URL available, skipping home URL update.")
+        home_url = self._get_github_home_url(config)
+        if home_url is None:
             return
 
         chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
+        new_lines: List[str] = []
+        home_found = False
 
-        # Read Chart.yaml
+        # Read and process Chart.yaml line by line (preserves formatting like HelmGitVersionSetter)
         with open(chart_yaml_path, "r") as file:
-            chart_yaml = yaml.safe_load(file)
+            lines = file.readlines()
+            for line in lines:
+                if line.startswith("home:"):
+                    home_found = True
+                    current_home = line.split(":", 1)[1].strip().strip("'\"")
+                    # Check if update is needed
+                    if GitUrlConverter.urls_match(current_home, home_url):
+                        logger.debug(f"'home' field already set to '{home_url}', no changes needed.")
+                        return
+                    logger.info(f"Replacing 'home' with git remote URL '{home_url}' in {CHART_YAML}.")
+                    context[context_key_changes_made] = True
+                    new_lines.append(f"home: {home_url}\n")
+                else:
+                    new_lines.append(line)
 
-        current_home = chart_yaml.get("home")
+        # If home field doesn't exist, add it after 'name' field
+        if not home_found:
+            final_lines: List[str] = []
+            for line in new_lines:
+                final_lines.append(line)
+                if line.startswith("name:"):
+                    logger.info(f"Adding 'home' field with git remote URL '{home_url}' to {CHART_YAML}.")
+                    context[context_key_changes_made] = True
+                    final_lines.append(f"home: {home_url}\n")
+            new_lines = final_lines
 
-        # Check if update is needed (use urls_match to handle trailing slashes, .git suffix, etc.)
-        if current_home and GitUrlConverter.urls_match(current_home, self._home_url):
-            logger.debug(f"'home' field already set to '{self._home_url}', no changes needed.")
-            return
+        if context.get(context_key_changes_made, False):
+            # Create backup if not already created by another step
+            backup_path = chart_yaml_path + ".back"
+            if not os.path.exists(backup_path):
+                logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
+                shutil.copy2(chart_yaml_path, backup_path)
 
-        # Update or add home field
-        if current_home:
-            logger.info(f"Updating 'home' field from '{current_home}' to '{self._home_url}' in {CHART_YAML}.")
-        else:
-            logger.info(f"Adding 'home' field with value '{self._home_url}' to {CHART_YAML}.")
-
-        chart_yaml["home"] = self._home_url
-
-        # Create backup if not already created by another step
-        backup_path = chart_yaml_path + ".back"
-        if not os.path.exists(backup_path):
-            logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
-            shutil.copy2(chart_yaml_path, backup_path)
-
-        # Mark that changes were made (for HelmChartYAMLRestorer)
-        context[context_key_changes_made] = True
-
-        # Write updated Chart.yaml
-        with open(chart_yaml_path, "w") as file:
-            yaml.dump(chart_yaml, file, default_flow_style=False, sort_keys=False, allow_unicode=True)
-
-        logger.info(f"Saved {CHART_YAML} with home URL set from git remote.")
+            with open(chart_yaml_path, "w") as file:
+                logger.info(f"Saving {CHART_YAML} with home URL set from git remote.")
+                file.writelines(new_lines)
 
 
 class HelmChartToolLinter(BuildStep):
