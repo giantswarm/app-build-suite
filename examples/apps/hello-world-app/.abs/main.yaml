@@ -1,3 +1,6 @@
 replace-chart-version-with-git: true
 generate-metadata: true
 catalog-base-url: http://localhost/
+# C0004 validates home URL matches git remote - ignored here since this is an
+# example chart embedded in the app-build-suite repository
+giantswarm-validator-ignored-checks: C0004
