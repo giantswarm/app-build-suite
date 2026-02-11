@@ -43,7 +43,6 @@ Helm build pipeline executes in sequence the following set of steps:
      [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
    - `C0002` `IconExists` - checks if the `icon` field is present in `Chart.yaml` and is not empty.
    - `C0003` `IconIsAlmostSquare` - validates that the icon image is close to a square shape (max 33% aspect ratio deviation).
-   - `C0004` `HomeUrlMatchesGitRemote` - validates that the `home` field in `Chart.yaml` matches the git remote URL.
 
    Available config options:
      - `--disable-giantswarm-helm-validator` - enabled by default, can disable the whole module,

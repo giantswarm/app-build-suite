@@ -12,8 +12,6 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
   - Converts SSH URLs (`git@github.com:org/repo`) to HTTPS format
   - Enabled by default, disable with `--disable-home-url-auto-update`
   - Adds field if missing, updates if present
-- New validator `C0004` `HomeUrlMatchesGitRemote`: checks `home` field matches git remote URL
-  - Skip validation with `--giantswarm-validator-ignored-checks=C0004`
 
 ## 1.6.0 - 2026-01-29
 
