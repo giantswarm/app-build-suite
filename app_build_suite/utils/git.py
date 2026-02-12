@@ -1,5 +1,7 @@
 """Module with git related utilities."""
 
+from typing import Optional
+
 import git
 
 
@@ -53,3 +55,17 @@ class GitRepoVersionInfo:
         if len(latest_tag_parts) < 3:
             return latest_tag
         return f"{latest_tag_parts[0]}-{sha}"
+
+    def get_remote_url(self, remote_name: str = "origin") -> Optional[str]:
+        """
+        Get the URL of the specified git remote.
+
+        :param remote_name: Name of the remote (default: 'origin')
+        :return: Remote URL string, or None if remote doesn't exist or not a git repo
+        """
+        if not self._is_repo or self._repo is None:
+            return None
+        try:
+            return self._repo.remote(remote_name).url
+        except (ValueError, git.exc.GitCommandError):
+            return None

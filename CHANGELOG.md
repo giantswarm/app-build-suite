@@ -5,6 +5,12 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- Automatic `home` field management in Chart.yaml from git remote URL
+    - Enabled by default, disable with `--disable-home-url-auto-update`
+- Refactored the repeated `Chart.yaml` loading logic into a separate step
+
 ## 1.6.0 - 2026-01-29
 
 - feat: validate `.name` in `Chart.yaml` to be RFC 1123 compliant to avoid problems when using it in chart

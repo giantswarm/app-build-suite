@@ -38,9 +38,11 @@ from app_build_suite.build_steps.steps import (
 )
 from app_build_suite.errors import BuildError
 from app_build_suite.utils.git import GitRepoVersionInfo
+from app_build_suite.utils.git_url import GitUrlConverter
 
 logger = logging.getLogger(__name__)
 
+context_key_chart_yaml: str = "chart_yaml"
 context_key_chart_full_path: str = "chart_full_path"
 context_key_chart_file_name: str = "chart_file_name"
 context_key_git_version: str = "git_version"
@@ -48,6 +50,33 @@ context_key_changes_made: str = "changes_made"
 context_key_meta_dir_path: str = "meta_dir_path"
 context_key_chart_lock_files_to_restore: str = "chart_lock_files_to_restore"
 context_key_original_chart_yaml: str = "original_chart_yaml"
+
+
+class ChartYamlLoader(BuildStep):
+    """Loads Chart.yaml into context as a parsed dict."""
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        # Tag with both BUILD and METADATA so it runs when either is requested
+        return {STEP_BUILD, STEP_METADATA}
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        """Validates that the Chart.yaml file is readable and parseable."""
+        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
+        try:
+            with open(chart_yaml_path, "r") as f:
+                yaml.safe_load(f)
+        except (OSError, yaml.YAMLError) as e:
+            raise ValidationError(self.name, f"Cannot read/parse {CHART_YAML}: {e}")
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """Loads Chart.yaml from disk and stores it in context."""
+        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
+        with open(chart_yaml_path, "r") as f:
+            context[context_key_chart_yaml] = yaml.safe_load(f)
+        # Initialize changes_made flag (moved from HelmGitVersionSetter)
+        context[context_key_changes_made] = False
+        logger.debug(f"Loaded {CHART_YAML} into context.")
 
 
 class HelmBuilderValidator(BuildStep):
@@ -196,12 +225,11 @@ class HelmGitVersionSetter(BuildStep):
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         """
-        Gets the git-version, then replaces keys in Chart.yaml
+        Gets the git-version, then modifies version/appVersion in the context dict.
         :param config: the config object
         :param context: the context object
         :return: None
         """
-        context[context_key_changes_made] = False
         if not self._is_enabled(config):
             logger.debug("No version override options requested, ending step.")
             return
@@ -213,26 +241,124 @@ class HelmGitVersionSetter(BuildStep):
         # add the version info to context, so other BuildSteps can use it
         context[context_key_git_version] = git_version
 
-        new_lines: List[str] = []
+        # Modify context dict instead of line-by-line manipulation
+        if config.replace_chart_version_with_git:
+            logger.info(f"Replacing 'version' with git version '{git_version}' in {CHART_YAML}.")
+            context[context_key_chart_yaml][CHART_YAML_CHART_VERSION_KEY] = git_version
+            context[context_key_changes_made] = True
+
+        if config.replace_app_version_with_git:
+            logger.info(f"Replacing 'appVersion' with git version '{git_version}' in {CHART_YAML}.")
+            context[context_key_chart_yaml][CHART_YAML_APP_VERSION_KEY] = git_version
+            context[context_key_changes_made] = True
+
+
+class HelmHomeUrlSetter(BuildStep):
+    """
+    Sets chart 'home' field to the git remote URL in HTTPS format.
+
+    - Converts SSH URLs (git@github.com:org/repo) to HTTPS format
+    - GitHub repositories only (non-GitHub remotes are skipped)
+    - Uses 'origin' remote
+    - Enabled by default, can be disabled with --disable-home-url-auto-update
+    - Adds 'home' field if missing, updates if present
+    """
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        return {STEP_BUILD}
+
+    def initialize_config(self, config_parser: configargparse.ArgParser) -> None:
+        config_parser.add_argument(
+            "--disable-home-url-auto-update",
+            required=False,
+            action="store_true",
+            help="Disable automatic setting of 'home' field in Chart.yaml from git remote URL",
+        )
+
+    def _is_enabled(self, config: argparse.Namespace) -> bool:
+        return not config.disable_home_url_auto_update
+
+    def _get_github_home_url(self, config: argparse.Namespace) -> Optional[str]:
+        """
+        Get normalized GitHub HTTPS URL from git remote, or None if not available.
+        """
+        repo_info = GitRepoVersionInfo(config.chart_dir)
+        if not repo_info.is_git_repo:
+            logger.debug(f"Can't find valid git repository in {config.chart_dir}. Skipping home URL auto-update.")
+            return None
+
+        remote_url = repo_info.get_remote_url("origin")
+        if not remote_url:
+            logger.debug("No 'origin' remote found in git repository. Skipping home URL auto-update.")
+            return None
+
+        if not GitUrlConverter.is_github_url(remote_url):
+            logger.debug(
+                f"Remote URL '{remote_url}' is not a GitHub repository. "
+                "Only GitHub repositories are supported for home URL auto-update."
+            )
+            return None
+
+        return GitUrlConverter.normalize_to_https(remote_url)
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """
+        Gets the git remote URL and updates the 'home' field in Chart.yaml.
+        Uses line-by-line parsing to preserve formatting and comments.
+        """
+        if not self._is_enabled(config):
+            logger.debug("Home URL auto-update is disabled, ending step.")
+            return
+
+        home_url = self._get_github_home_url(config)
+        if home_url is None:
+            return
+
+        # Read from context dict instead of disk
+        chart_yaml = context[context_key_chart_yaml]
+        current_home = chart_yaml.get("home", "")
+
+        # Check if update is needed
+        if GitUrlConverter.urls_match(current_home, home_url):
+            logger.debug(f"'home' field already set to '{home_url}', no changes needed.")
+            return
+
+        # Modify context dict
+        if current_home:
+            logger.info(f"Replacing 'home' with git remote URL '{home_url}' in {CHART_YAML}.")
+        else:
+            logger.info(f"Adding 'home' field with git remote URL '{home_url}' to {CHART_YAML}.")
+
+        chart_yaml["home"] = home_url
+        context[context_key_changes_made] = True
+
+
+class ChartYamlWriter(BuildStep):
+    """Writes the in-context Chart.yaml dict to disk, creating a backup."""
+
+    @property
+    def steps_provided(self) -> Set[StepType]:
+        # Tag with both BUILD and METADATA so it runs when either is requested
+        return {STEP_BUILD, STEP_METADATA}
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
+        """Writes the Chart.yaml dict from context to disk if changes were made."""
+        if not context.get(context_key_changes_made, False):
+            logger.debug("No changes were made to Chart.yaml, skipping write.")
+            return
+
         chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
-        with open(chart_yaml_path, "r") as file:
-            lines = file.readlines()
-            for line in lines:
-                fields = line.split(":")
-                if (config.replace_chart_version_with_git and fields[0] == CHART_YAML_CHART_VERSION_KEY) or (
-                    config.replace_app_version_with_git and fields[0] == CHART_YAML_APP_VERSION_KEY
-                ):
-                    logger.info(f"Replacing '{fields[0]}' with git version '{git_version}' in {CHART_YAML}.")
-                    context[context_key_changes_made] = True
-                    new_lines.append(f"{fields[0]}: {git_version}\n")
-                else:
-                    new_lines.append(line)
-        if context[context_key_changes_made]:
-            logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
-            shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
-            with open(chart_yaml_path, "w") as file:
-                logger.info(f"Saving {CHART_YAML} with version set from git.")
-                file.writelines(new_lines)
+
+        # Create backup from original on-disk file
+        backup_path = chart_yaml_path + ".back"
+        logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
+        shutil.copy2(chart_yaml_path, backup_path)
+
+        # Write context dict to disk
+        with open(chart_yaml_path, "w") as f:
+            yaml.dump(context[context_key_chart_yaml], f, default_flow_style=False)
+        logger.info(f"Saved modified {CHART_YAML} to disk.")
 
 
 class HelmChartToolLinter(BuildStep):
@@ -815,12 +941,10 @@ class HelmChartMetadataBuilder(BuildStep):
         if not config.generate_metadata:
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
-        # read current Chart.yaml
-        chart_yaml_path = os.path.join(config.chart_dir, CHART_YAML)
-        with open(chart_yaml_path, "r") as file:
-            chart_yaml = yaml.safe_load(file)
+        # Read from context dict instead of disk
+        chart_yaml = context[context_key_chart_yaml]
         original_annotations = chart_yaml.get(self._key_annotations, None)
-        # save original chart yaml to context for backward compatibility
+        # Save original chart yaml BEFORE annotation modifications (preserves version/home changes)
         context[context_key_original_chart_yaml] = copy.deepcopy(chart_yaml)
         # try to guess the package file name. we need it for url generation in annotations
         chart_name = chart_yaml["name"]
@@ -853,15 +977,9 @@ class HelmChartMetadataBuilder(BuildStep):
             config.chart_dir,
         )
         chart_yaml[self._key_annotations].update(annotations)
-        # save Chart.yaml
-        if (
-            not context.get(context_key_changes_made, False)
-            and original_annotations != chart_yaml[self._key_annotations]
-        ):
-            logger.debug(f"Saving backup of {CHART_YAML} in {CHART_YAML}.back")
-            shutil.copy2(chart_yaml_path, chart_yaml_path + ".back")
+        # Track changes if annotations were modified
+        if original_annotations != chart_yaml[self._key_annotations]:
             context[context_key_changes_made] = True
-        self.write_chart_yaml(chart_yaml_path, chart_yaml)
 
 
 class HelmChartMetadataFinalizer(BuildStep):
@@ -1145,13 +1263,16 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
     def __init__(self) -> None:
         super().__init__(
             [
+                ChartYamlLoader(),
                 HelmBuilderValidator(),
-                GiantSwarmHelmValidator(),
                 HelmGitVersionSetter(),
+                HelmHomeUrlSetter(),
+                HelmChartMetadataBuilder(),
+                ChartYamlWriter(),
+                GiantSwarmHelmValidator(),
                 HelmRequirementsUpdater(),
                 HelmChartToolLinter(),
                 KubeLinter(),
-                HelmChartMetadataBuilder(),
                 HelmChartBuilder(),
                 HelmChartMetadataFinalizer(),
                 HelmChartYAMLRestorer(),
