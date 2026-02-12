@@ -14,6 +14,7 @@ from app_build_suite.build_steps.helm import (
     HelmBuilderValidator,
     HelmChartMetadataFinalizer,
     HelmChartMetadataBuilder,
+    context_key_chart_yaml,
     context_key_chart_file_name,
     context_key_chart_full_path,
     context_key_meta_dir_path,
@@ -50,6 +51,7 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     meta_dir_path = f"{chart_full_path}-meta"
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
         context = {
+            context_key_chart_yaml: chart_yaml_data,  # Add chart_yaml to context
             context_key_chart_file_name: chart_file_name,
             context_key_chart_full_path: chart_full_path,
             context_key_meta_dir_path: meta_dir_path,
@@ -97,7 +99,7 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
         )
 
         step.run(config, context)
-        m.assert_called_once_with(input_chart_path, "r")
+        # No longer calling open() since we read from context instead of disk
 
 
 def test_generate_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -256,6 +258,7 @@ def test_annotation_conversion_new_to_oci_format(
 
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
         context = {
+            context_key_chart_yaml: chart_yaml_data,  # Add chart_yaml to context
             context_key_chart_file_name: "test-app-v1.0.0.tgz",
             context_key_chart_full_path: "./test-app-v1.0.0.tgz",
             context_key_changes_made: False,
@@ -312,6 +315,7 @@ def test_annotation_conversion_with_restrictions(
 
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
         context = {
+            context_key_chart_yaml: chart_yaml_data,  # Add chart_yaml to context
             context_key_chart_file_name: "test-app-v1.0.0.tgz",
             context_key_chart_full_path: "./test-app-v1.0.0.tgz",
             context_key_changes_made: False,
@@ -363,6 +367,7 @@ def test_annotation_conversion_mixed_formats(monkeypatch: pytest.MonkeyPatch) ->
 
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
         context = {
+            context_key_chart_yaml: chart_yaml_data,  # Add chart_yaml to context
             context_key_chart_file_name: "test-app-v1.0.0.tgz",
             context_key_chart_full_path: "./test-app-v1.0.0.tgz",
             context_key_changes_made: False,
@@ -415,6 +420,7 @@ def test_annotation_conversion_preserves_values(
 
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
         context = {
+            context_key_chart_yaml: chart_yaml_data,  # Add chart_yaml to context
             context_key_chart_file_name: "test-app-v1.0.0.tgz",
             context_key_chart_full_path: "./test-app-v1.0.0.tgz",
             context_key_changes_made: False,
@@ -453,6 +459,7 @@ def test_annotation_conversion_no_annotations(monkeypatch: pytest.MonkeyPatch) -
 
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
         context = {
+            context_key_chart_yaml: chart_yaml_data,  # Add chart_yaml to context
             context_key_chart_file_name: "test-app-v1.0.0.tgz",
             context_key_chart_full_path: "./test-app-v1.0.0.tgz",
             context_key_changes_made: False,
@@ -500,6 +507,7 @@ def test_annotation_conversion_empty_annotations(
 
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)):
         context = {
+            context_key_chart_yaml: chart_yaml_data,  # Add chart_yaml to context
             context_key_chart_file_name: "test-app-v1.0.0.tgz",
             context_key_chart_full_path: "./test-app-v1.0.0.tgz",
             context_key_changes_made: False,
@@ -725,6 +733,7 @@ def test_prepare_metadata_with_commit_version(monkeypatch: pytest.MonkeyPatch) -
     meta_dir_path = f"{chart_full_path}-meta"
     with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)) as m:
         context = {
+            context_key_chart_yaml: chart_yaml_data,  # Add chart_yaml to context
             context_key_chart_file_name: chart_file_name,
             context_key_chart_full_path: chart_full_path,
             context_key_meta_dir_path: meta_dir_path,
@@ -773,7 +782,7 @@ def test_prepare_metadata_with_commit_version(monkeypatch: pytest.MonkeyPatch) -
         )
 
         step.run(config, context)
-        m.assert_called_once_with(input_chart_path, "r")
+        # No longer calling open() since we read from context instead of disk
 
 
 @pytest.mark.parametrize(
