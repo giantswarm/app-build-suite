@@ -8,10 +8,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 ### Added
 
 - Automatic `home` field management in Chart.yaml from git remote URL
-  - New `HelmHomeUrlSetter` build step sets `home` to git origin URL (GitHub only)
-  - Converts SSH URLs (`git@github.com:org/repo`) to HTTPS format
-  - Enabled by default, disable with `--disable-home-url-auto-update`
-  - Adds field if missing, updates if present
+    - Enabled by default, disable with `--disable-home-url-auto-update`
+- Refactored the repeated `Chart.yaml` loading logic into a separate step
 
 ## 1.6.0 - 2026-01-29
 
