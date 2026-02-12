@@ -1,6 +1,6 @@
 #!/bin/sh
 
-DABS_TAG=${DABS_TAG:-"1.4.2"}
+DABS_TAG=${DABS_TAG:-"1.7.0"}
 
 docker run -it --rm \
     -e USE_UID="$(id -u "${USER}")" \

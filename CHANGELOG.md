@@ -7,6 +7,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ### Added
 
+## 1.7.0 - 2026-02-12
+
 - Automatic `home` field management in Chart.yaml from git remote URL
     - Enabled by default, disable with `--disable-home-url-auto-update`
 - Refactored the repeated `Chart.yaml` loading logic into a separate step
