@@ -5,7 +5,9 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
-### Added
+### Changed
+
+- Update dependency stackrox/kube-linter to v0.8.3
 
 ## 1.7.0 - 2026-02-12
 
