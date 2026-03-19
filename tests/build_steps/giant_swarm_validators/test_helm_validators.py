@@ -13,7 +13,7 @@ from app_build_suite.build_steps.giant_swarm_validators.icon import (
     IconExists,
     IconIsAlmostSquare,
 )
-from app_build_suite.build_steps.helm import GiantSwarmHelmValidator
+from app_build_suite.build_steps.giantswarm_helm_validator import GiantSwarmHelmValidator
 from app_build_suite.build_steps.helm_consts import (
     VALUES_SCHEMA_JSON,
     CHART_YAML,

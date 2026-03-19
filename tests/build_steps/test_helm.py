@@ -10,18 +10,18 @@ from pytest_mock import MockerFixture
 from step_exec_lib.errors import ValidationError
 
 import app_build_suite
-from app_build_suite.build_steps.helm import (
-    HelmBuilderValidator,
-    HelmChartMetadataFinalizer,
-    HelmChartMetadataBuilder,
-    context_key_chart_yaml,
+from app_build_suite.build_steps.giantswarm_helm_validator import GiantSwarmHelmValidator
+from app_build_suite.build_steps.helm_builder_validator import HelmBuilderValidator
+from app_build_suite.build_steps.helm_chart_metadata_builder import HelmChartMetadataBuilder
+from app_build_suite.build_steps.helm_chart_metadata_finalizer import HelmChartMetadataFinalizer
+from app_build_suite.build_steps.helm_consts import (
+    context_key_changes_made,
     context_key_chart_file_name,
     context_key_chart_full_path,
-    context_key_meta_dir_path,
+    context_key_chart_yaml,
     context_key_git_version,
-    context_key_changes_made,
+    context_key_meta_dir_path,
     context_key_original_chart_yaml,
-    GiantSwarmHelmValidator,
 )
 from tests.build_steps.helpers import init_config_for_step
 
