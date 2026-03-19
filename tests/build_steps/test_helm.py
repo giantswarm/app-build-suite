@@ -40,7 +40,9 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
     chart_yaml_data = yaml.safe_load(input_chart_yaml)
 
     # run pre_run
-    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=input_chart_yaml)) as m:
+    with patch(
+        "app_build_suite.build_steps.helm_chart_metadata_builder.open", mock_open(read_data=input_chart_yaml)
+    ) as m:
         step.pre_run(config)
         m.assert_called_once_with(input_chart_path, "r")
 
@@ -90,8 +92,8 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
                 == chart_yaml_data["upstreamChartVersion"]
             )
 
-        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: True)
-        monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: True)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.isfile", lambda _: True)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.abspath", os.path.abspath)
         monkeypatch.setattr(
             app_build_suite.build_steps.helm.HelmChartMetadataBuilder,  # type: ignore[attr-defined]
             "write_chart_yaml",
@@ -140,7 +142,7 @@ def test_generate_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
             expected_meta = yaml.safe_load(t)
         assert meta == expected_meta
 
-    monkeypatch.setattr("app_build_suite.build_steps.helm.get_file_sha256", monkey_sha256)
+    monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_finalizer.get_file_sha256", monkey_sha256)
     monkeypatch.setattr(
         app_build_suite.build_steps.helm.HelmChartMetadataFinalizer,  # type: ignore[attr-defined]
         "write_meta_file",
@@ -281,7 +283,7 @@ def test_annotation_conversion_new_to_oci_format(
             assert "application.giantswarm.io/values-schema" not in annotations
             assert "application.giantswarm.io/readme" not in annotations
 
-        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.isfile", lambda _: False)
         monkeypatch.setattr(
             app_build_suite.build_steps.helm.HelmChartMetadataBuilder,  # type: ignore[attr-defined]
             "write_chart_yaml",
@@ -331,7 +333,7 @@ def test_annotation_conversion_with_restrictions(
             assert "io.giantswarm.application.restrictions.fixed-namespace" in annotations
             assert annotations["io.giantswarm.application.restrictions.fixed-namespace"] == "test-namespace"
 
-        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.isfile", lambda _: False)
         monkeypatch.setattr(
             app_build_suite.build_steps.helm.HelmChartMetadataBuilder,  # type: ignore[attr-defined]
             "write_chart_yaml",
@@ -387,7 +389,7 @@ def test_annotation_conversion_mixed_formats(monkeypatch: pytest.MonkeyPatch) ->
             assert "other.annotation/key" in annotations
             assert annotations["other.annotation/key"] == "other-value"
 
-        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.isfile", lambda _: False)
         monkeypatch.setattr(
             app_build_suite.build_steps.helm.HelmChartMetadataBuilder,  # type: ignore[attr-defined]
             "write_chart_yaml",
@@ -431,7 +433,7 @@ def test_annotation_conversion_preserves_values(
             # Verify the value is preserved exactly
             assert annotations["io.giantswarm.application.values-schema"] == test_value
 
-        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.isfile", lambda _: False)
         monkeypatch.setattr(
             app_build_suite.build_steps.helm.HelmChartMetadataBuilder,  # type: ignore[attr-defined]
             "write_chart_yaml",
@@ -476,8 +478,7 @@ def test_annotation_conversion_no_annotations(monkeypatch: pytest.MonkeyPatch) -
                 == "https://some-bogus-catalog/test-app-v1.0.0.tgz-meta/main.yaml"
             )
 
-        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
-        monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: None)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.isfile", lambda _: False)
         monkeypatch.setattr(
             app_build_suite.build_steps.helm.HelmChartMetadataBuilder,  # type: ignore[attr-defined]
             "write_chart_yaml",
@@ -520,7 +521,7 @@ def test_annotation_conversion_empty_annotations(
             # Verify metadata annotation is generated
             assert "io.giantswarm.application.metadata" in annotations
 
-        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.isfile", lambda _: False)
         monkeypatch.setattr(
             app_build_suite.build_steps.helm.HelmChartMetadataBuilder,  # type: ignore[attr-defined]
             "write_chart_yaml",
@@ -565,7 +566,7 @@ def test_metadata_finalizer_no_annotations(monkeypatch: pytest.MonkeyPatch) -> N
         # Verify annotations is an empty dict
         assert meta["annotations"] == {}
 
-    monkeypatch.setattr("app_build_suite.build_steps.helm.get_file_sha256", monkey_sha256)
+    monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_finalizer.get_file_sha256", monkey_sha256)
     monkeypatch.setattr(
         app_build_suite.build_steps.helm.HelmChartMetadataFinalizer,  # type: ignore[attr-defined]
         "write_meta_file",
@@ -576,8 +577,8 @@ def test_metadata_finalizer_no_annotations(monkeypatch: pytest.MonkeyPatch) -> N
         "get_build_timestamp",
         lambda _: "1020-10-20T10:20:10.000000",
     )
-    monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: False)
-    monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: None)
+    monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_finalizer.os.path.isfile", lambda _: False)
+    monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_finalizer.shutil.copy2", lambda _, __: None)
 
     step.run(config, context)
 
@@ -637,8 +638,10 @@ def test_build_github_annotation_url_with_tag_version(
     source_file_path = "/tmp/repo/README.md"
     version = "1.0.1"
 
-    monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.abspath", lambda x: x)
-    monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.relpath", lambda f, r: "README.md")
+    monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.abspath", lambda x: x)
+    monkeypatch.setattr(
+        "app_build_suite.build_steps.helm_chart_metadata_builder.os.path.relpath", lambda f, r: "README.md"
+    )
 
     url = step._build_github_annotation_url(github_repo, repo_root, source_file_path, version)
     expected_url = f"{step._github_raw_host}/{github_repo}/refs/tags/v1.0.1/README.md"
@@ -661,8 +664,10 @@ def test_build_github_annotation_url_with_commit_version(
     source_file_path = "/tmp/repo/README.md"
     version = "1.0.1-e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae"
 
-    monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.abspath", lambda x: x)
-    monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.relpath", lambda f, r: "README.md")
+    monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.abspath", lambda x: x)
+    monkeypatch.setattr(
+        "app_build_suite.build_steps.helm_chart_metadata_builder.os.path.relpath", lambda f, r: "README.md"
+    )
 
     url = step._build_github_annotation_url(github_repo, repo_root, source_file_path, version)
     expected_url = f"{step._github_raw_host}/{github_repo}/e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae/README.md"
@@ -691,9 +696,9 @@ def test_build_github_annotation_url_with_commit_version_values_schema(
     source_file_path = "/tmp/repo/values.schema.json"
     version = "1.0.1-e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae"
 
-    monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.abspath", lambda x: x)
+    monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.abspath", lambda x: x)
     monkeypatch.setattr(
-        "app_build_suite.build_steps.helm.os.path.relpath",
+        "app_build_suite.build_steps.helm_chart_metadata_builder.os.path.relpath",
         lambda f, r: "./values.schema.json",
     )
 
@@ -722,7 +727,9 @@ def test_prepare_metadata_with_commit_version(monkeypatch: pytest.MonkeyPatch) -
     chart_yaml_str = yaml.dump(chart_yaml_data)
 
     # run pre_run
-    with patch("app_build_suite.build_steps.helm.open", mock_open(read_data=chart_yaml_str)) as m:
+    with patch(
+        "app_build_suite.build_steps.helm_chart_metadata_builder.open", mock_open(read_data=chart_yaml_str)
+    ) as m:
         step.pre_run(config)
         m.assert_called_once_with(input_chart_path, "r")
 
@@ -773,8 +780,7 @@ def test_prepare_metadata_with_commit_version(monkeypatch: pytest.MonkeyPatch) -
                 == chart_yaml_data["upstreamChartVersion"]
             )
 
-        monkeypatch.setattr("app_build_suite.build_steps.helm.os.path.isfile", lambda _: True)
-        monkeypatch.setattr("app_build_suite.build_steps.helm.shutil.copy2", lambda _, __: True)
+        monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.isfile", lambda _: True)
         monkeypatch.setattr(
             HelmChartMetadataBuilder,
             "write_chart_yaml",
