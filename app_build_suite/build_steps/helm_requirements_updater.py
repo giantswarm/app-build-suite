@@ -87,17 +87,16 @@ class HelmRequirementsUpdater(BuildStep):
         if len(present_lock_files) == 0:
             logger.debug(f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update.")
             return
-        args = []
+        args = [
+            self._helm_bin,
+            "dependencies",
+            "update",
+            config.chart_dir,
+        ]
         for lock_file in present_lock_files:
             logger.debug(f"Saving backup of {lock_file} in {lock_file}.back")
             lock_path = os.path.join(config.chart_dir, lock_file)
             shutil.copy2(lock_path, lock_path + ".back")
-            args = [
-                self._helm_bin,
-                "dependencies",
-                "update",
-                config.chart_dir,
-            ]
             context[context_key_chart_lock_files_to_restore].append(lock_file)
         logger.info(f"Updating lockfile(s) with 'helm dependencies update {config.chart_dir}'")
         run_res = run_and_log(args, capture_output=True)  # nosec, input params checked above in pre_run

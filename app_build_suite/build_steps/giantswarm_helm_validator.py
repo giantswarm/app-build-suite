@@ -110,7 +110,7 @@ class GiantSwarmHelmValidator(BuildStep):
             name_class_tuples = name_class_tuples + inspect.getmembers(pkg, inspect.isclass)
 
         for _, cls in name_class_tuples:
-            if isinstance(cls, type) and issubclass(cls, GiantSwarmValidator):
+            if issubclass(cls, GiantSwarmValidator):
                 new_validator = cls()
                 if new_validator.get_check_code() in (c.get_check_code() for c in gs_validators):
                     raise ValidationError(

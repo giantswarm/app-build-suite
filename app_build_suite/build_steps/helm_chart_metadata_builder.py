@@ -83,7 +83,7 @@ class HelmChartMetadataBuilder(BuildStep):
         if not config.generate_metadata:
             logger.info("Metadata generation is disabled using 'generate-metadata' option.")
             return
-        if config.generate_metadata and not config.catalog_base_url:
+        if not config.catalog_base_url:
             raise ValidationError(
                 self.name,
                 "config option --generate-metadata requires non-empty option --catalog-base-url",

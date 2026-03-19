@@ -81,8 +81,6 @@ class HelmChartMetadataFinalizer(BuildStep):
     def _kebab_to_camel(kebab_str: str) -> str:
         """Convert kebab-case string to camelCase."""
         parts = kebab_str.split("-")
-        if not parts:
-            return kebab_str
         return parts[0] + "".join(word.capitalize() for word in parts[1:])
 
     def _convert_annotations(self, original_annotations: dict[str, Any]) -> dict[str, Any]:

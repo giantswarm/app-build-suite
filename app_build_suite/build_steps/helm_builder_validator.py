@@ -83,13 +83,13 @@ class HelmBuilderValidator(BuildStep):
             )
 
         # Check first character
-        if name and not (name[0].islower() or name[0].isdigit()):
+        if not (name[0].islower() or name[0].isdigit()):
             errors.append(
                 f"Name must start with a lowercase alphanumeric character, but starts with '{name[0]}' at position 0."
             )
 
         # Check last character
-        if name and not (name[-1].islower() or name[-1].isdigit()):
+        if not (name[-1].islower() or name[-1].isdigit()):
             errors.append(
                 f"Name must end with a lowercase alphanumeric character, "
                 f"but ends with '{name[-1]}' at position {len(name) - 1}."
