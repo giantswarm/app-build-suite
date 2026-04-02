@@ -22,7 +22,6 @@
     '.github/workflows/codeql-analysis.yml',
   ],
   ignoreDeps: [
-    'architect',
     'zricethezav/gitleaks-action',
     'actions/setup-go',
   ],
