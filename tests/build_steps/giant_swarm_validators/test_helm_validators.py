@@ -10,6 +10,7 @@ from app_build_suite.build_steps.giant_swarm_validators.helm import (
     HasTeamLabel,
 )
 from app_build_suite.build_steps.giant_swarm_validators.icon import (
+    IconDomainIsValid,
     IconExists,
     IconIsAlmostSquare,
 )
@@ -249,5 +250,53 @@ def test_icon_exists(
     mock_opens.return_value = mock_open_chart_yaml.return_value
 
     val = IconExists()
+
+    assert val.validate(config) == expected_result
+
+
+@pytest.mark.parametrize(
+    "chart_yaml_input,expected_result",
+    [
+        (
+            "no: icon",
+            True,
+        ),
+        (
+            """
+icon: https://s.giantswarm.io/app-icons/1/png/hello-world-app-light.png""",
+            True,
+        ),
+        (
+            """
+icon: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/app-icon.png""",
+            False,
+        ),
+        (
+            """
+icon: https://example.com/icon.png""",
+            False,
+        ),
+    ],
+    ids=[
+        "no icon - skip validation",
+        "valid s.giantswarm.io domain",
+        "invalid github domain",
+        "invalid arbitrary domain",
+    ],
+)
+def test_icon_domain_is_valid(
+    chart_yaml_input: str,
+    expected_result: bool,
+    mocker: MockerFixture,
+    config: Namespace,
+) -> None:
+    mocker.patch("os.path.exists")
+    mock_open_chart_yaml = mocker.mock_open(read_data=chart_yaml_input)
+    mock_opens = mocker.patch(
+        "app_build_suite.build_steps.giant_swarm_validators.mixins.open"
+    )
+    mock_opens.return_value = mock_open_chart_yaml.return_value
+
+    val = IconDomainIsValid()
 
     assert val.validate(config) == expected_result
