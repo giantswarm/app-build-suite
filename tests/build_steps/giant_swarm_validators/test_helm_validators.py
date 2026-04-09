@@ -292,9 +292,7 @@ def test_icon_domain_is_valid(
 ) -> None:
     mocker.patch("os.path.exists")
     mock_open_chart_yaml = mocker.mock_open(read_data=chart_yaml_input)
-    mock_opens = mocker.patch(
-        "app_build_suite.build_steps.giant_swarm_validators.mixins.open"
-    )
+    mock_opens = mocker.patch("app_build_suite.build_steps.giant_swarm_validators.mixins.open")
     mock_opens.return_value = mock_open_chart_yaml.return_value
 
     val = IconDomainIsValid()

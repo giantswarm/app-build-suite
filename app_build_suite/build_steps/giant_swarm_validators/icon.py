@@ -56,8 +56,7 @@ class IconDomainIsValid(UseChartYaml):
         parsed = urlparse(icon_url)
         if parsed.hostname != self.ALLOWED_DOMAIN:
             logger.info(
-                f"Icon URL '{icon_url}' uses domain '{parsed.hostname}', "
-                f"but only '{self.ALLOWED_DOMAIN}' is allowed."
+                f"Icon URL '{icon_url}' uses domain '{parsed.hostname}', but only '{self.ALLOWED_DOMAIN}' is allowed."
             )
             return False
 
