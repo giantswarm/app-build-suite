@@ -5,6 +5,7 @@ import urllib.error
 import tempfile
 import logging
 from typing import Final, Tuple
+from urllib.parse import urlparse
 
 from PIL import Image
 from cairosvg import svg2png
@@ -33,6 +34,30 @@ class IconExists(UseChartYaml):
 
         if not chart_yaml["icon"]:
             logger.info(f"'icon' is present in '{CHART_YAML}', but it's empty.")
+            return False
+
+        return True
+
+
+class IconDomainIsValid(UseChartYaml):
+    ALLOWED_DOMAIN: Final[str] = "s.giantswarm.io"
+
+    def get_check_code(self) -> str:
+        return "C0005"
+
+    def validate(self, config: argparse.Namespace) -> bool:
+        chart_yaml = self.get_chart_yaml(config)
+
+        icon_url = chart_yaml.get("icon")
+        if icon_url is None:
+            logger.info(f"Icon not found in '{CHART_YAML}'. Skipping icon domain validation.")
+            return True
+
+        parsed = urlparse(icon_url)
+        if parsed.hostname != self.ALLOWED_DOMAIN:
+            logger.info(
+                f"Icon URL '{icon_url}' uses domain '{parsed.hostname}', but only '{self.ALLOWED_DOMAIN}' is allowed."
+            )
             return False
 
         return True
