@@ -1,4 +1,6 @@
+MD007:
+    indent: 2
 MD013:
-  # Number of characters
-  line_length: 120
-  code_blocks: false
+    # Number of characters
+    line_length: 120
+    code_blocks: false

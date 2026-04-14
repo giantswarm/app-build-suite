@@ -9,7 +9,7 @@ repos:
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
-    rev: v0.15.0
+    rev: v0.15.10
     hooks:
       # Run the linter.
       - id: ruff-check
@@ -19,7 +19,7 @@ repos:
 
   # static type checking with mypy
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.19.1
+    rev: v1.20.1
     hooks:
       - id: mypy
 
@@ -31,7 +31,7 @@ repos:
         args: [--format=json]
 
   - repo: https://github.com/igorshubovych/markdownlint-cli
-    rev: v0.47.0
+    rev: v0.48.0
     hooks:
       - id: markdownlint
 
