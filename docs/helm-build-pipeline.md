@@ -75,6 +75,8 @@ Helm build pipeline executes in sequence the following set of steps:
         - `C0002` `IconExists` - checks if the `icon` field is present in `Chart.yaml` and is not empty.
         - `C0003` `IconIsAlmostSquare` - validates that the icon image is close to a square shape (max 33%
           aspect ratio deviation).
+        - `C0004` `IconDomainIsValid` - validates that the `icon` URL in `Chart.yaml` uses the
+          `s.giantswarm.io` domain. Skipped when no icon is set.
     - Available config options:
         - `--disable-giantswarm-helm-validator` - enabled by default, can disable the whole module
         - `--disable-strict-giantswarm-validator` - enabled by default, it means the build will fail if any
