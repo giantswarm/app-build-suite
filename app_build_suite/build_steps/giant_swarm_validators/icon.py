@@ -43,7 +43,7 @@ class IconDomainIsValid(UseChartYaml):
     ALLOWED_DOMAIN: Final[str] = "s.giantswarm.io"
 
     def get_check_code(self) -> str:
-        return "C0005"
+        return "C0004"
 
     def validate(self, config: argparse.Namespace) -> bool:
         chart_yaml = self.get_chart_yaml(config)
