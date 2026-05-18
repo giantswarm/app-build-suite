@@ -230,14 +230,17 @@ def test_dev_version_ignores_tag_on_parallel_branch(mocker: MockFixture) -> None
         repo.index.add([file_name])
         root_commit = repo.index.commit("root")
 
-        # main: one more commit tagged 1.0.0
+        # Capture the default branch reference before switching away (may be "master" or "main")
+        default_branch = repo.head.reference
+
+        # default branch: one more commit tagged 1.0.0
         with open(file_name, "a") as f:
             f.write("main")
         repo.index.add([file_name])
         repo.index.commit("on main")
         repo.create_tag("1.0.0")
 
-        # other: branch from root, tagged 2.0.0 (not reachable from main)
+        # other: branch from root, tagged 2.0.0 (not reachable from default branch)
         other = repo.create_head("other", commit=root_commit)
         repo.head.reference = other
         repo.head.reset(index=True, working_tree=True)
@@ -247,9 +250,8 @@ def test_dev_version_ignores_tag_on_parallel_branch(mocker: MockFixture) -> None
         repo.index.commit("on other")
         repo.create_tag("2.0.0")
 
-        # Back to main, add an untagged commit → dev build
-        main_branch = repo.heads["main"]
-        repo.head.reference = main_branch
+        # Back to default branch, add an untagged commit → dev build
+        repo.head.reference = default_branch
         repo.head.reset(index=True, working_tree=True)
         with open(file_name, "a") as f:
             f.write("main2")
