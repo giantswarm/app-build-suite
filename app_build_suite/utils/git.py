@@ -48,15 +48,18 @@ class GitRepoVersionInfo:
 
     def _find_next_dev_base_version(self) -> str:
         """
-        Finds the last stable semver tag (X.Y.Z, no pre-release suffix) and returns
-        the version with patch bumped by 1. Respects GS_GIT_TAG_PREFIX env var.
-        Returns '0.0.1' if no stable tag is found.
+        Finds the highest stable semver tag (X.Y.Z, no pre-release suffix) reachable
+        from HEAD and returns the version with patch bumped by 1. Respects
+        GS_GIT_TAG_PREFIX env var. Returns '0.0.1' if no reachable stable tag is found.
         """
         assert self._repo is not None
         prefix = os.environ.get("GS_GIT_TAG_PREFIX", "")
         stable_re = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+        head_commit = self._repo.head.commit
         best: Optional[tuple[int, int, int]] = None
         for tag in self._repo.tags:
+            if tag.commit.hexsha != head_commit.hexsha and not self._repo.is_ancestor(tag.commit, head_commit):
+                continue
             name = tag.name
             if prefix and not name.startswith(prefix):
                 continue

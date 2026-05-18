@@ -2,6 +2,7 @@ import os
 import re
 import tempfile
 from datetime import datetime, timezone
+from typing import Optional
 from unittest.mock import patch
 
 import git
@@ -11,8 +12,19 @@ import pytest
 from app_build_suite.utils.git import GitRepoVersionInfo
 
 
-def _make_repo_mock(mocker: MockFixture, tags: list, head_sha: str, branch: str = "main") -> None:
-    """Helper: patch git.Repo with a mock that simulates the given tags and branch."""
+def _make_repo_mock(
+    mocker: MockFixture,
+    tags: list,
+    head_sha: str,
+    branch: str = "main",
+    reachable_shas: Optional[set[str]] = None,
+) -> None:
+    """Helper: patch git.Repo with a mock that simulates the given tags and branch.
+
+    reachable_shas: SHAs considered reachable ancestors of HEAD for is_ancestor checks.
+    When None (default) all tag commits are treated as reachable, preserving backward
+    compatibility with tests that don't care about reachability.
+    """
     mocker.patch("git.Repo")
     repo_mock = mocker.MagicMock()
 
@@ -31,6 +43,14 @@ def _make_repo_mock(mocker: MockFixture, tags: list, head_sha: str, branch: str 
         tag_obj.commit = tag_commit
         tag_objects.append(tag_obj)
     repo_mock.tags = tag_objects
+
+    # is_ancestor: when reachable_shas is None all commits are reachable (backward compat)
+    def _is_ancestor(ancestor_commit: object, rev_commit: object) -> bool:
+        if reachable_shas is None:
+            return True
+        return getattr(ancestor_commit, "hexsha", None) in reachable_shas
+
+    repo_mock.is_ancestor = _is_ancestor
 
     # Active branch
     if branch == "detached":
@@ -53,6 +73,8 @@ def _make_repo_mock(mocker: MockFixture, tags: list, head_sha: str, branch: str 
         ([{"name": "v0.1.1-gs1", "sha": "abc"}], "abc", "main", "0.1.1-gs1"),
         # HEAD directly on an RC tag → return tag
         ([{"name": "1.2.3-rc.1", "sha": "abc"}], "abc", "feature", "1.2.3-rc.1"),
+        # HEAD directly on an RC tag with v-prefix → strip v
+        ([{"name": "v1.2.3-rc.1", "sha": "abc"}], "abc", "feature", "1.2.3-rc.1"),
         # HEAD not on a tag → dev format
         # No tags at all: base becomes 0.0.1
         ([], "123", "main", "0.0.1-dev.main."),
@@ -64,6 +86,8 @@ def _make_repo_mock(mocker: MockFixture, tags: list, head_sha: str, branch: str 
         ([{"name": "1.0.0", "sha": "old"}], "new", "feature/my-thing", "1.0.1-dev.feature-my-thing."),
         # Branch name sanitization: underscores → hyphens
         ([{"name": "1.0.0", "sha": "old"}], "new", "feature_underscored", "1.0.1-dev.feature-underscored."),
+        # Detached HEAD → branch segment is "detached"
+        ([{"name": "1.2.3", "sha": "old"}], "new", "detached", "1.2.4-dev.detached."),
     ],
 )
 def test_git_version(
@@ -104,6 +128,43 @@ def test_git_version_with_gs_git_tag_prefix(mocker: MockFixture, monkeypatch: py
         ver = git_info.get_git_version()
 
     assert ver.startswith("1.8.1-dev.main."), f"Got: {ver!r}"
+
+
+def test_git_version_picks_highest_reachable_stable_tag(mocker: MockFixture) -> None:
+    """When multiple stable tags are reachable, the highest semver wins."""
+    tags = [
+        {"name": "0.5.0", "sha": "aaa"},
+        {"name": "1.2.3", "sha": "bbb"},
+        {"name": "1.0.0", "sha": "ccc"},
+    ]
+    _make_repo_mock(mocker, tags, head_sha="new", branch="main")
+    git_info = GitRepoVersionInfo("bogus/path")
+
+    fixed_dt = datetime(2026, 1, 27, 9, 49, 59, tzinfo=timezone.utc)
+    with patch("app_build_suite.utils.git.datetime") as mock_dt:
+        mock_dt.now.return_value = fixed_dt
+        ver = git_info.get_git_version()
+
+    assert ver.startswith("1.2.4-dev.main."), f"Got: {ver!r}"
+
+
+def test_git_version_ignores_unreachable_tags(mocker: MockFixture) -> None:
+    """Tags on parallel branches (not reachable from HEAD) must not affect the dev base version."""
+    tags = [
+        {"name": "2.0.0", "sha": "parallel"},  # on a sibling branch, not reachable
+        {"name": "1.2.3", "sha": "ancestor"},  # reachable ancestor
+    ]
+    # Only "ancestor" sha is reachable from HEAD
+    _make_repo_mock(mocker, tags, head_sha="new", branch="main", reachable_shas={"ancestor"})
+    git_info = GitRepoVersionInfo("bogus/path")
+
+    fixed_dt = datetime(2026, 1, 27, 9, 49, 59, tzinfo=timezone.utc)
+    with patch("app_build_suite.utils.git.datetime") as mock_dt:
+        mock_dt.now.return_value = fixed_dt
+        ver = git_info.get_git_version()
+
+    # Must use 1.2.3 (reachable), not 2.0.0 (unreachable parallel branch)
+    assert ver.startswith("1.2.4-dev.main."), f"Got: {ver!r}"
 
 
 @pytest.mark.parametrize(
@@ -154,6 +215,51 @@ def test_gets_latest_tag_available_on_the_current_branch(mocker: MockFixture) ->
         assert git_info.is_git_repo
         ver = git_info.get_git_version()
         assert ver == lower_tag
+
+
+def test_dev_version_ignores_tag_on_parallel_branch(mocker: MockFixture) -> None:
+    """Integration: a higher tag on a sibling branch must not affect the dev base version."""
+    with tempfile.TemporaryDirectory() as repo_dir:
+        file_name = os.path.join(repo_dir, "f")
+        repo = git.Repo.init(repo_dir)
+        repo.git.config("user.email", "test@none.com")
+        repo.git.config("user.name", "test")
+
+        # Shared root commit
+        open(file_name, "wb").close()
+        repo.index.add([file_name])
+        root_commit = repo.index.commit("root")
+
+        # main: one more commit tagged 1.0.0
+        with open(file_name, "a") as f:
+            f.write("main")
+        repo.index.add([file_name])
+        repo.index.commit("on main")
+        repo.create_tag("1.0.0")
+
+        # other: branch from root, tagged 2.0.0 (not reachable from main)
+        other = repo.create_head("other", commit=root_commit)
+        repo.head.reference = other
+        repo.head.reset(index=True, working_tree=True)
+        with open(file_name, "a") as f:
+            f.write("other")
+        repo.index.add([file_name])
+        repo.index.commit("on other")
+        repo.create_tag("2.0.0")
+
+        # Back to main, add an untagged commit → dev build
+        main_branch = repo.heads["main"]
+        repo.head.reference = main_branch
+        repo.head.reset(index=True, working_tree=True)
+        with open(file_name, "a") as f:
+            f.write("main2")
+        repo.index.add([file_name])
+        repo.index.commit("main untagged")
+
+        git_info = GitRepoVersionInfo(repo_dir)
+        ver = git_info.get_git_version()
+        # 2.0.0 is unreachable from main → base must be 1.0.0 → next is 1.0.1
+        assert re.match(r"^1\.0\.1-dev\.[^.]+\.\d{8}\.\d{6}$", ver), f"Unexpected version: {ver!r}"
 
 
 def test_gets_dev_version_when_no_tag(mocker: MockFixture) -> None:
