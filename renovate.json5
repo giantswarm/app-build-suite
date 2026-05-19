@@ -30,6 +30,7 @@
       customType: 'regex',
       managerFilePatterns: [
         '/^Dockerfile$/',
+        '/^circleci\\.Dockerfile$/',
       ],
       matchStrings: [
         'datasource=(?<datasource>.*?) depName=(?<depName>.*?)( versioning=(?<versioning>.*?))?\\sARG .+_VER=(?<currentValue>.*)\\s',
