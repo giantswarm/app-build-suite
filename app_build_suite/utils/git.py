@@ -1,6 +1,5 @@
 """Module with git related utilities."""
 
-import os
 import re
 from datetime import datetime, timezone
 from typing import Optional
@@ -48,23 +47,18 @@ class GitRepoVersionInfo:
 
     def _find_next_dev_base_version(self) -> str:
         """
-        Finds the highest stable semver tag (X.Y.Z, no pre-release suffix) reachable
-        from HEAD and returns the version with patch bumped by 1. Respects
-        GS_GIT_TAG_PREFIX env var. Returns '0.0.1' if no reachable stable tag is found.
+        Finds the highest stable semver tag (X.Y.Z or vX.Y.Z, no pre-release suffix)
+        reachable from HEAD and returns the version with patch bumped by 1.
+        Returns '0.0.1' if no reachable stable tag is found.
         """
         assert self._repo is not None
-        prefix = os.environ.get("GS_GIT_TAG_PREFIX", "")
-        stable_re = re.compile(r"^(\d+)\.(\d+)\.(\d+)$")
+        stable_re = re.compile(r"^v?(\d+)\.(\d+)\.(\d+)$")
         head_commit = self._repo.head.commit
         best: Optional[tuple[int, int, int]] = None
         for tag in self._repo.tags:
             if tag.commit.hexsha != head_commit.hexsha and not self._repo.is_ancestor(tag.commit, head_commit):
                 continue
-            name = tag.name
-            if prefix and not name.startswith(prefix):
-                continue
-            name = name[len(prefix) :]
-            m = stable_re.match(name)
+            m = stable_re.match(tag.name)
             if not m:
                 continue
             version = (int(m.group(1)), int(m.group(2)), int(m.group(3)))

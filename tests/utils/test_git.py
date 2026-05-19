@@ -88,6 +88,8 @@ def _make_repo_mock(
         ([{"name": "1.0.0", "sha": "old"}], "new", "feature_underscored", "1.0.1-dev.feature-underscored."),
         # Detached HEAD → branch segment is "detached"
         ([{"name": "1.2.3", "sha": "old"}], "new", "detached", "1.2.4-dev.detached."),
+        # v-prefixed stable tag in ancestry → base version stripped correctly
+        ([{"name": "v1.2.3", "sha": "old"}], "new", "main", "1.2.4-dev.main."),
     ],
 )
 def test_git_version(
@@ -110,24 +112,6 @@ def test_git_version(
     if "-dev." in expected_version_string or ver.count("-dev.") > 0:
         # Verify date/time suffix format
         assert re.search(r"-dev\.[^.]+\.\d{8}\.\d{6}$", ver), f"Dev format mismatch: {ver!r}"
-
-
-def test_git_version_with_gs_git_tag_prefix(mocker: MockFixture, monkeypatch: pytest.MonkeyPatch) -> None:
-    """GS_GIT_TAG_PREFIX filters which tags are considered stable."""
-    monkeypatch.setenv("GS_GIT_TAG_PREFIX", "gs-")
-    tags = [
-        {"name": "1.9.0", "sha": "aaa"},  # no prefix → ignored
-        {"name": "gs-1.8.0", "sha": "bbb"},  # matches prefix → stable base
-    ]
-    _make_repo_mock(mocker, tags, head_sha="new", branch="main")
-    git_info = GitRepoVersionInfo("bogus/path")
-
-    fixed_dt = datetime(2026, 1, 27, 9, 49, 59, tzinfo=timezone.utc)
-    with patch("app_build_suite.utils.git.datetime") as mock_dt:
-        mock_dt.now.return_value = fixed_dt
-        ver = git_info.get_git_version()
-
-    assert ver.startswith("1.8.1-dev.main."), f"Got: {ver!r}"
 
 
 def test_git_version_picks_highest_reachable_stable_tag(mocker: MockFixture) -> None:
