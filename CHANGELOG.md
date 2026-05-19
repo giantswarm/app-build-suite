@@ -5,6 +5,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- The `-circleci` image variant now ships `cosign` (pinned via `COSIGN_VER` build arg, Renovate-tracked against `sigstore/cosign` GitHub releases, SHA-256 verified against the upstream `cosign_checksums.txt`). Required by `architect/push-to-app-catalog` since architect-orb v8.2.0 defaulted `sign: true` — without `cosign` on PATH, every chart-publish job using `executor: app-build-suite` fails on `Mint Sigstore OIDC token` with `cosign: command not found`. Closes giantswarm/architect-orb#769.
+
 ## 1.8.0 - 2026-04-14
 
 ### Changed
