@@ -19,7 +19,6 @@ from app_build_suite.build_steps.helm_consts import (
     context_key_chart_file_name,
     context_key_chart_full_path,
     context_key_chart_yaml,
-    context_key_git_version,
     context_key_meta_dir_path,
     context_key_original_chart_yaml,
 )
@@ -57,7 +56,6 @@ def test_prepare_metadata(monkeypatch: pytest.MonkeyPatch) -> None:
             context_key_chart_file_name: chart_file_name,
             context_key_chart_full_path: chart_full_path,
             context_key_meta_dir_path: meta_dir_path,
-            context_key_git_version: git_version,
             context_key_changes_made: True,
         }
 
@@ -744,7 +742,6 @@ def test_prepare_metadata_with_commit_version(monkeypatch: pytest.MonkeyPatch) -
             context_key_chart_file_name: chart_file_name,
             context_key_chart_full_path: chart_full_path,
             context_key_meta_dir_path: meta_dir_path,
-            context_key_git_version: git_version,
             context_key_changes_made: True,
         }
 

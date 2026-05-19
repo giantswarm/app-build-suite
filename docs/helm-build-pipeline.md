@@ -25,15 +25,14 @@ Helm build pipeline executes in sequence the following set of steps:
 
     - config options: none
 
-3. HelmGitVersionSetter: when enabled, this step will set `version` and/or `appVersion` in the in-memory
-   `Chart.yaml` to a version value based on your last commit hash and tag in a git repo. For this step to
-   work, the chart or chart's parent directory must contain valid git repo (`.git/`).
+3. HelmVersionSetter: when enabled, this step will set `version` and/or `appVersion` in the in-memory
+   `Chart.yaml` to the values provided via command line arguments.
     - Modifies the Chart.yaml dict in context (no disk I/O)
     - config options:
-        - `--replace-app-version-with-git`: should the `appVersion` in `Chart.yaml` be replaced by a tag and
-          hash from git
-        - `--replace-chart-version-with-git`: should the `version` in `Chart.yaml` be replaced by a tag and
-          hash from git
+        - `--override-chart-version`: value to set as the `version` field in `Chart.yaml`
+        - `--override-app-version`: value to set as the `appVersion` field in `Chart.yaml`
+        - `--replace-chart-version-with-git`: **DEPRECATED**, has no effect; use `--override-chart-version`
+        - `--replace-app-version-with-git`: **DEPRECATED**, has no effect; use `--override-app-version`
 4. HelmHomeUrlSetter: automatically sets the `home` field in the in-memory `Chart.yaml` to the git remote URL.
    This ensures the home URL always points to the correct GitHub repository. Enabled by default.
     - Converts SSH URLs (e.g., `git@github.com:org/repo.git`) to HTTPS format
@@ -58,7 +57,7 @@ Helm build pipeline executes in sequence the following set of steps:
       the exact release content.
 6. ChartYamlWriter: writes the modified `Chart.yaml` from memory to disk.
     - Creates a `.back` backup of the original file before writing
-    - Only writes if changes were made by previous steps (HelmGitVersionSetter, HelmHomeUrlSetter, or
+    - Only writes if changes were made by previous steps (HelmVersionSetter, HelmHomeUrlSetter, or
       HelmChartMetadataBuilder)
     - Uses `yaml.dump` which may reformat the file (removes comments, reorders keys)
     - The original formatting is preserved by HelmChartYAMLRestorer (step 13) which restores from the backup
@@ -84,9 +83,9 @@ Helm build pipeline executes in sequence the following set of steps:
         - `--giantswarm-validator-ignored-checks` - each check has its own ID which is printed during build;
           if you want to ignore a subset of checks, put a comma separated list here
 8. HelmRequirementsUpdater: updates Helm chart dependencies by running `helm dependencies update`.
-    - Only runs when `--replace-chart-version-with-git` is enabled
+    - Only runs when `--override-chart-version` is set
     - Requires Chart.yaml on disk (written by ChartYamlWriter in step 6)
-    - config options: none (controlled by `--replace-chart-version-with-git`)
+    - config options: none (controlled by `--override-chart-version`)
 9. HelmChartToolLinter: this step runs the [`ct`](https://github.com/helm/chart-testing) (aka.
    `chart-testing`) tool. This tool runs validation and linting of YAML files included in your chart. The tool
    is configurable on its own: [config reference](https://github.com/helm/chart-testing#configuration).
