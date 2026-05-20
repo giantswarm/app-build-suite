@@ -5,6 +5,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Fixed
+
+- Stringify boolean values from the `restrictions:` block in `Chart.yaml` when lifting them into chart annotations. Previously `clusterSingleton: true` / `gpuInstances: false` produced annotation values typed as Python `bool`, which the `gs_metadata_chart_schema.yaml` yamale schema rejects with `'True' is not a str` / `'False' is not a str`.
+
 ## [1.8.1] - 2026-05-19
 
 ### Added
