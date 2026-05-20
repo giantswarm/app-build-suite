@@ -147,10 +147,12 @@ class HelmChartMetadataBuilder(BuildStep):
                 return None
         return None
 
-    def _format_restriction_value(self, value: Any) -> Any:
+    def _format_restriction_value(self, value: Any) -> str:
         if isinstance(value, list):
             return ",".join(str(v) for v in value)
-        return value
+        if isinstance(value, bool):
+            return "true" if value else "false"
+        return str(value)
 
     def _find_git_repo_root(self, chart_dir: str) -> Optional[str]:
         current = os.path.abspath(chart_dir)

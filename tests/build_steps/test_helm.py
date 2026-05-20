@@ -343,6 +343,18 @@ def test_annotation_conversion_with_restrictions(
         step.run(config, context)
 
 
+def test_format_restriction_value_stringifies_booleans() -> None:
+    """Annotation values must be strings to satisfy `gs_metadata_chart_schema.yaml`."""
+    step = HelmChartMetadataBuilder()
+
+    assert step._format_restriction_value(True) == "true"
+    assert step._format_restriction_value(False) == "false"
+    assert isinstance(step._format_restriction_value(True), str)
+    assert isinstance(step._format_restriction_value(False), str)
+    assert step._format_restriction_value("kube-system") == "kube-system"
+    assert step._format_restriction_value(["aws", "azure"]) == "aws,azure"
+
+
 def test_annotation_conversion_mixed_formats(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test conversion when annotations are in mixed formats."""
     step = HelmChartMetadataBuilder()
