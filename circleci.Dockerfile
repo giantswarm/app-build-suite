@@ -1,6 +1,6 @@
 FROM gsoci.azurecr.io/giantswarm/conftest:v0.68.2 AS conftest
 
-FROM gsoci.azurecr.io/giantswarm/app-build-suite:1.8.0
+FROM gsoci.azurecr.io/giantswarm/app-build-suite:1.8.1
 
 COPY --from=conftest /usr/local/bin/conftest /usr/local/bin/conftest
 
