@@ -5,6 +5,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- The `-circleci` image variant now ships `gitsemver` (pinned via `GITSEMVER_VER` build arg, Renovate-tracked against `giantswarm/gitsemver` GitHub releases). Required for CircleCI jobs that compute chart versions from git state using the Giant Swarm semver-based automatic-upgrades workflow.
+
 ### Changed
 
 - Replace `HelmGitVersionSetter` with `HelmVersionSetter`. Chart `version` and `appVersion` are no longer derived
