@@ -637,6 +637,48 @@ def test_extract_commit_hash_from_version() -> None:
     commit_hash = step._extract_commit_hash_from_version("")
     assert commit_hash is None
 
+    # Test dev build format with full SHA
+    commit_hash = step._extract_commit_hash_from_version("1.0.1-dev.e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae")
+    assert commit_hash == "e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae"
+
+    # Test dev build format with short SHA
+    commit_hash = step._extract_commit_hash_from_version("1.0.1-dev.abc1234")
+    assert commit_hash == "abc1234"
+
+    # Test dev build format with non-hex suffix — no valid tag or SHA
+    commit_hash = step._extract_commit_hash_from_version("1.0.1-dev.notahash")
+    assert commit_hash is None
+
+    # Test dev build format with SHA too short
+    commit_hash = step._extract_commit_hash_from_version("1.0.1-dev.abc123")
+    assert commit_hash is None  # 6 chars, need at least 7
+
+
+def test_build_github_annotation_url_with_dev_version(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Test URL generation for dev build versions ({tag}-dev.{sha})."""
+    step = HelmChartMetadataBuilder()
+    github_repo = "giantswarm/test-app"
+    repo_root = "/tmp/repo"
+    source_file_path = "/tmp/repo/README.md"
+
+    monkeypatch.setattr("app_build_suite.build_steps.helm_chart_metadata_builder.os.path.abspath", lambda x: x)
+    monkeypatch.setattr(
+        "app_build_suite.build_steps.helm_chart_metadata_builder.os.path.relpath", lambda f, r: "README.md"
+    )
+
+    # Dev version with valid SHA — should use commit hash URL
+    version = "1.0.1-dev.e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae"
+    url = step._build_github_annotation_url(github_repo, repo_root, source_file_path, version)
+    expected_url = f"{step._github_raw_host}/{github_repo}/e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae/README.md"
+    assert url == expected_url
+
+    # Dev version with invalid SHA — no valid reference, return "unknown"
+    version = "1.0.1-dev.notahash"
+    url = step._build_github_annotation_url(github_repo, repo_root, source_file_path, version)
+    assert url == "unknown"
+
 
 def test_build_github_annotation_url_with_tag_version(
     monkeypatch: pytest.MonkeyPatch,
