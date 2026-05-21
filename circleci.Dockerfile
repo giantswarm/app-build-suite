@@ -44,6 +44,7 @@ RUN set -eux; \
     curl --silent --show-error --fail --location --retry 5 --retry-delay 2 \
         -o /tmp/gitsemver.tar.gz "${base}/gitsemver-${GITSEMVER_VER}-linux-${arch}.tar.gz"; \
     tar -xz -f /tmp/gitsemver.tar.gz -C /tmp gitsemver; \
+    test -f /tmp/gitsemver; \
     install -m 0755 /tmp/gitsemver /usr/local/bin/gitsemver; \
     rm -f /tmp/gitsemver.tar.gz /tmp/gitsemver; \
     gitsemver version

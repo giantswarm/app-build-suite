@@ -7,7 +7,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ### Added
 
-- The `-circleci` image variant now ships `gitsemver` (pinned via `GITSEMVER_VER` build arg, Renovate-tracked against `giantswarm/gitsemver` GitHub releases). Required for CircleCI jobs that compute chart versions from git state using the Giant Swarm semver-based automatic-upgrades workflow.
+- The `-circleci` image variant now ships `gitsemver`. Required for CircleCI jobs that compute chart versions from git state using the Giant Swarm semver-based automatic-upgrades workflow.
 
 ### Changed
 
