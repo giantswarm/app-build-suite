@@ -46,7 +46,7 @@ RUN set -eux; \
     tar -xz -f /tmp/gitsemver.tar.gz -C /tmp gitsemver; \
     install -m 0755 /tmp/gitsemver /usr/local/bin/gitsemver; \
     rm -f /tmp/gitsemver.tar.gz /tmp/gitsemver; \
-    gitsemver --version
+    gitsemver version
 
 # Setup ssh config for github.com
 RUN mkdir -p ~/.ssh &&\
