@@ -123,40 +123,6 @@ class HelmChartMetadataBuilder(BuildStep):
             return chart_version
         return f"v{chart_version}"
 
-    def _extract_commit_hash_from_version(self, version: str) -> Optional[str]:
-        """
-        Extracts commit hash from version string if it's in commit-based format.
-        Supported formats:
-          - {tag}-{commit_hash}         e.g. "1.0.1-e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae"
-          - {tag}-dev.{commit_hash}     e.g. "1.0.1-dev.e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae"
-        :param version: Version string
-        :return: Commit hash (7-40 hex chars) if found, None otherwise
-        """
-        if not version:
-            return None
-        # Dev build format: {tag}-dev.{sha}
-        if "-dev." in version:
-            sha_part = version.split("-dev.", 1)[1]
-            if 7 <= len(sha_part) <= 40:
-                try:
-                    int(sha_part, 16)
-                    return sha_part
-                except ValueError:
-                    pass
-            return None
-        # Direct commit hash format: {tag}-{sha}
-        parts = version.rsplit("-", 1)
-        if len(parts) != 2:
-            return None
-        potential_hash = parts[1]
-        if 7 <= len(potential_hash) <= 40:
-            try:
-                int(potential_hash, 16)
-                return potential_hash
-            except ValueError:
-                return None
-        return None
-
     def _format_restriction_value(self, value: Any) -> str:
         if isinstance(value, list):
             return ",".join(str(v) for v in value)
@@ -222,12 +188,6 @@ class HelmChartMetadataBuilder(BuildStep):
         if relative_path.startswith(".."):
             return "unknown"
         normalized_relative_path = relative_path.replace(os.sep, "/")
-        commit_hash = self._extract_commit_hash_from_version(version)
-        if commit_hash:
-            return urlsplit(f"{self._github_raw_host}/{github_repo}/{commit_hash}/{normalized_relative_path}").geturl()
-        # Dev versions without a resolvable commit SHA have no valid tag or commit to link to
-        if "-dev." in version:
-            return "unknown"
         normalized_tag = self._normalize_version_tag(version)
         return urlsplit(
             f"{self._github_raw_host}/{github_repo}/refs/tags/{normalized_tag}/{normalized_relative_path}"
