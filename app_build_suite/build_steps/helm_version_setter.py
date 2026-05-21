@@ -57,24 +57,24 @@ class HelmVersionSetter(BuildStep):
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
-        if getattr(config, "replace_chart_version_with_git", False):
+        if config.replace_chart_version_with_git:
             logger.warning(
                 "DEPRECATED: --replace-chart-version-with-git is no longer used and has no effect. "
                 "Use --override-chart-version instead."
             )
-        if getattr(config, "replace_app_version_with_git", False):
+        if config.replace_app_version_with_git:
             logger.warning(
                 "DEPRECATED: --replace-app-version-with-git is no longer used and has no effect. "
                 "Use --override-app-version instead."
             )
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
-        if config.override_chart_version:
+        if config.override_chart_version is not None:
             logger.info(f"Overriding 'version' with '{config.override_chart_version}' in {CHART_YAML}.")
             context[context_key_chart_yaml][CHART_YAML_CHART_VERSION_KEY] = config.override_chart_version
             context[context_key_changes_made] = True
 
-        if config.override_app_version:
+        if config.override_app_version is not None:
             logger.info(f"Overriding 'appVersion' with '{config.override_app_version}' in {CHART_YAML}.")
             context[context_key_chart_yaml][CHART_YAML_APP_VERSION_KEY] = config.override_app_version
             context[context_key_changes_made] = True

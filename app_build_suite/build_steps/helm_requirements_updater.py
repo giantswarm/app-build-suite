@@ -37,7 +37,7 @@ class HelmRequirementsUpdater(BuildStep):
 
     # noinspection PyMethodMayBeStatic
     def _should_run(self, config: argparse.Namespace) -> bool:
-        return bool(getattr(config, "override_chart_version", None))
+        return config.override_chart_version is not None
 
     # noinspection PyMethodMayBeStatic
     def _detect_chart_lock_files(self, config: argparse.Namespace) -> List[str]:
