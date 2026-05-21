@@ -34,6 +34,9 @@ RUN set -eux; \
 # renovate: datasource=github-releases depName=giantswarm/gitsemver
 ARG GITSEMVER_VER=v1.0.0
 
+# Install gitsemver to compute chart versions from git state in CircleCI jobs.
+# No upstream checksums file is published for this project's releases; checksum
+# verification is therefore omitted (unlike cosign above).
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in amd64|arm64) ;; *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
