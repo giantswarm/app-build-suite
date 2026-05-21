@@ -31,6 +31,20 @@ RUN set -eux; \
     rm -f /tmp/cosign /tmp/cosign_checksums.txt; \
     cosign version
 
+# renovate: datasource=github-releases depName=giantswarm/gitsemver
+ARG GITSEMVER_VER=v1.0.0
+
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in amd64|arm64) ;; *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
+    base="https://github.com/giantswarm/gitsemver/releases/download/${GITSEMVER_VER}"; \
+    curl --silent --show-error --fail --location --retry 5 --retry-delay 2 \
+        -o /tmp/gitsemver.tar.gz "${base}/gitsemver-${GITSEMVER_VER}-linux-${arch}.tar.gz"; \
+    tar -xz -f /tmp/gitsemver.tar.gz -C /tmp gitsemver; \
+    install -m 0755 /tmp/gitsemver /usr/local/bin/gitsemver; \
+    rm -f /tmp/gitsemver.tar.gz /tmp/gitsemver; \
+    gitsemver --version
+
 # Setup ssh config for github.com
 RUN mkdir -p ~/.ssh &&\
     chmod 700 ~/.ssh &&\
