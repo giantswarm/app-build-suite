@@ -1,5 +1,6 @@
 """Main module. Loads configuration and executes main control loops."""
 
+import argparse
 import logging
 import os
 import sys
@@ -65,9 +66,9 @@ def configure_global_options(config_parser: configargparse.ArgParser) -> None:
     config_parser.add_argument(
         "--keep-going",
         required=False,
-        default=False,
-        action="store_true",
-        help="Run all steps even if some fail, then report all errors at the end.",
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Run all steps even if some fail, then report all errors at the end. Use --no-keep-going to stop on first failure.",
     )
     steps_group = config_parser.add_mutually_exclusive_group()
     steps_group.add_argument(
