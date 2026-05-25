@@ -1,4 +1,5 @@
 """Build steps implementing helm3 based builds."""
+
 import argparse
 import inspect
 import logging
@@ -738,11 +739,9 @@ class HelmChartYAMLRestorer(BuildStep):
 class GiantSwarmValidator(Protocol):
     """This class is only used for type hinting of simple giant_swarm_validators below"""
 
-    def validate(self, config: argparse.Namespace) -> bool:
-        ...
+    def validate(self, config: argparse.Namespace) -> bool: ...
 
-    def get_check_code(self) -> str:
-        ...
+    def get_check_code(self) -> str: ...
 
 
 class GiantSwarmHelmValidator(BuildStep):
