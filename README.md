@@ -38,6 +38,7 @@ _Big fat warning_ This tool is available as a development version!
 - [Tuning app-build-suite execution and running parts of the build process](#tuning-app-build-suite-execution-and-running-parts-of-the-build-process)
   - [Configuring app-build-suite](#configuring-app-build-suite)
 - [Execution steps details and configuration](#execution-steps-details-and-configuration)
+- [Breaking changes](#breaking-changes)
 - [How to contribute](#how-to-contribute)
 
 ## How to use app-build-suite
@@ -200,6 +201,15 @@ disable/enable any specific build steps. Please check below for available steps 
 
 Currently, only one build pipeline is supported. It is based on `helm`. Please check
 [this doc](docs/helm-build-pipeline.md) for detailed description of steps and available config options.
+
+## Breaking changes
+
+### v2.0.0
+
+Up to this version `app-build-suite` supported automatic override of `AppVersion` and `Version` fields in the
+`Chart.yaml` file based on git tags and commits. This feature was removed in this version to not enforce any
+tagging scheme on the user. Now, any tool can be used to generate tags and then the required `AppVersion` and
+`Version` can be set using command line `--override-chart-version` and `--override-app-version` options.
 
 ## How to contribute
 
