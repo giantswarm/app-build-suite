@@ -21,15 +21,33 @@ RUN set -eux; \
     case "$arch" in amd64|arm64) ;; *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
     base="https://github.com/sigstore/cosign/releases/download/${COSIGN_VER}"; \
     curl --silent --show-error --fail --location --retry 5 --retry-delay 2 \
-        -o /tmp/cosign "${base}/cosign-linux-${arch}"; \
+    -o /tmp/cosign "${base}/cosign-linux-${arch}"; \
     curl --silent --show-error --fail --location --retry 5 --retry-delay 2 \
-        -o /tmp/cosign_checksums.txt "${base}/cosign_checksums.txt"; \
+    -o /tmp/cosign_checksums.txt "${base}/cosign_checksums.txt"; \
     expected="$(awk -v f="cosign-linux-${arch}" '$2 == f {print $1}' /tmp/cosign_checksums.txt)"; \
     [ -n "$expected" ] || { echo "no checksum for cosign-linux-${arch}" >&2; exit 1; }; \
     echo "${expected}  /tmp/cosign" | sha256sum -c -; \
     install -m 0755 /tmp/cosign /usr/local/bin/cosign; \
     rm -f /tmp/cosign /tmp/cosign_checksums.txt; \
     cosign version
+
+# renovate: datasource=github-releases depName=giantswarm/gitsemver
+ARG GITSEMVER_VER=v1.0.1
+
+# Install gitsemver to compute chart versions from git state in CircleCI jobs.
+# No upstream checksums file is published for this project's releases; checksum
+# verification is therefore omitted (unlike cosign above).
+RUN set -eux; \
+    arch="$(dpkg --print-architecture)"; \
+    case "$arch" in amd64|arm64) ;; *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
+    base="https://github.com/giantswarm/gitsemver/releases/download/${GITSEMVER_VER}"; \
+    curl --silent --show-error --fail --location --retry 5 --retry-delay 2 \
+    -o /tmp/gitsemver.tar.gz "${base}/gitsemver-${GITSEMVER_VER}-linux-${arch}.tar.gz"; \
+    tar -xz -f /tmp/gitsemver.tar.gz --strip-components=1 -C /tmp "gitsemver-${GITSEMVER_VER}-linux-${arch}/gitsemver"; \
+    test -f /tmp/gitsemver; \
+    install -m 0755 /tmp/gitsemver /usr/local/bin/gitsemver; \
+    rm -f /tmp/gitsemver.tar.gz /tmp/gitsemver; \
+    gitsemver version
 
 # Setup ssh config for github.com
 RUN mkdir -p ~/.ssh &&\

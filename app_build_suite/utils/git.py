@@ -31,31 +31,6 @@ class GitRepoVersionInfo:
         """
         return self._is_repo
 
-    def get_git_version(self, strip_v_in_version: bool = True) -> str:
-        """
-        Gets application version in the format [last-tag]-[last-commit-sha].
-        :param strip_v_in_version: If the version tag starts with 'v' (like 'v1.2.3),
-        this chooses if the 'v' should be stripped, so the resulting tag is '1.2.3'.
-        If there's a "-", "." or "_" separator after "v", it is removed as well.
-        :return: The version string
-        """
-        if not self._is_repo:
-            raise git.exc.InvalidGitRepositoryError()
-        sha = self._repo.head.commit.hexsha
-        try:
-            latest_tag = self._repo.git.describe("--tags")
-        except git.exc.GitCommandError:
-            return f"0.0.0-{sha}"
-        if strip_v_in_version and latest_tag.startswith("v"):
-            latest_tag = latest_tag.lstrip("v")
-            latest_tag = latest_tag.lstrip("-_.")
-        latest_tag_parts = latest_tag.rsplit("-", maxsplit=2)
-        if not latest_tag_parts[0]:
-            return f"0.0.0-{sha}"
-        if len(latest_tag_parts) < 3:
-            return latest_tag
-        return f"{latest_tag_parts[0]}-{sha}"
-
     def get_remote_url(self, remote_name: str = "origin") -> Optional[str]:
         """
         Get the URL of the specified git remote.

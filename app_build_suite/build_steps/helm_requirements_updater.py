@@ -37,7 +37,7 @@ class HelmRequirementsUpdater(BuildStep):
 
     # noinspection PyMethodMayBeStatic
     def _should_run(self, config: argparse.Namespace) -> bool:
-        return config.replace_chart_version_with_git
+        return config.override_chart_version is not None
 
     # noinspection PyMethodMayBeStatic
     def _detect_chart_lock_files(self, config: argparse.Namespace) -> List[str]:
@@ -55,7 +55,7 @@ class HelmRequirementsUpdater(BuildStep):
         :return: None
         """
         if not self._should_run(config):
-            logger.debug("No chart version override requested, skipping dependency update.")
+            logger.debug("No --override-chart-version set, skipping dependency update.")
             return
         if len(self._detect_chart_lock_files(config)) == 0:
             logger.debug(f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update.")
@@ -82,7 +82,7 @@ class HelmRequirementsUpdater(BuildStep):
         context[context_key_chart_lock_files_to_restore] = []
         present_lock_files = self._detect_chart_lock_files(config)
         if not self._should_run(config):
-            logger.debug("No chart version override requested. Dependency update not required, ending step.")
+            logger.debug("No --override-chart-version set. Dependency update not required, ending step.")
             return
         if len(present_lock_files) == 0:
             logger.debug(f"No {CHART_LOCK} or {REQUIREMENTS_LOCK} file exists, skipping dependency update.")

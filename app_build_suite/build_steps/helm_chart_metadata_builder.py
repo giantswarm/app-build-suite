@@ -123,30 +123,6 @@ class HelmChartMetadataBuilder(BuildStep):
             return chart_version
         return f"v{chart_version}"
 
-    def _extract_commit_hash_from_version(self, version: str) -> Optional[str]:
-        """
-        Extracts commit hash from version string if it's in commit-based format.
-        Commit-based format: {tag}-{commit_hash} where commit_hash is 7-40 hex characters.
-        :param version: Version string (e.g., "1.0.1-e0fc1f818b9f3d2c816c3ddf94e814ba6e3e1aae")
-        :return: Commit hash if found, None otherwise
-        """
-        if not version:
-            return None
-        # Split on last dash to separate tag from potential commit hash
-        parts = version.rsplit("-", 1)
-        if len(parts) != 2:
-            return None
-        potential_hash = parts[1]
-        # Commit hash should be 7-40 hex characters
-        if len(potential_hash) >= 7 and len(potential_hash) <= 40:
-            try:
-                # Validate it's hexadecimal
-                int(potential_hash, 16)
-                return potential_hash
-            except ValueError:
-                return None
-        return None
-
     def _format_restriction_value(self, value: Any) -> str:
         if isinstance(value, list):
             return ",".join(str(v) for v in value)
@@ -212,17 +188,10 @@ class HelmChartMetadataBuilder(BuildStep):
         if relative_path.startswith(".."):
             return "unknown"
         normalized_relative_path = relative_path.replace(os.sep, "/")
-        # Check if version contains a commit hash
-        commit_hash = self._extract_commit_hash_from_version(version)
-        if commit_hash:
-            # Use commit hash directly for commit-based versions
-            return urlsplit(f"{self._github_raw_host}/{github_repo}/{commit_hash}/{normalized_relative_path}").geturl()
-        else:
-            # Use tag format for tag-based versions
-            normalized_tag = self._normalize_version_tag(version)
-            return urlsplit(
-                f"{self._github_raw_host}/{github_repo}/refs/tags/{normalized_tag}/{normalized_relative_path}"
-            ).geturl()
+        normalized_tag = self._normalize_version_tag(version)
+        return urlsplit(
+            f"{self._github_raw_host}/{github_repo}/refs/tags/{normalized_tag}/{normalized_relative_path}"
+        ).geturl()
 
     def build_chart_yaml_annotations(
         self,
