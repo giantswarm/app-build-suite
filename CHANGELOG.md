@@ -7,6 +7,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ### Added
 
+- `--keep-going` flag: all validation and build steps run to completion even when earlier steps fail; errors are reported together at the end. Requires `step-exec-lib >= 0.5.0`.
+- Giant Swarm validators (`GiantSwarmHelmValidator`) now collect all failing checks into a single error when `--keep-going` is set, instead of stopping on the first one.
 - The `-circleci` image variant now ships `gitsemver`. Required for CircleCI jobs that compute chart versions from git state using the Giant Swarm semver-based automatic-upgrades workflow.
 
 ### Changed

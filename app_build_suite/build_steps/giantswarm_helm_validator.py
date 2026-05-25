@@ -76,6 +76,8 @@ class GiantSwarmHelmValidator(BuildStep):
             if n:
                 ignore_list.append(n)
 
+        keep_going = getattr(config, "keep_going", False)
+        failures: List[str] = []
         for validator in gs_validators:
             validator_name = type(validator).__name__
             logger.info(f"Running Giant Swarm validator '{validator.get_check_code()}: {validator_name}'.")
@@ -84,9 +86,15 @@ class GiantSwarmHelmValidator(BuildStep):
             else:
                 msg = f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' failed its checks."
                 if not config.disable_strict_giantswarm_validator and validator.get_check_code() not in ignore_list:
-                    raise ValidationError(self.name, msg)
+                    if keep_going:
+                        logger.error(msg)
+                        failures.append(msg)
+                    else:
+                        raise ValidationError(self.name, msg)
                 else:
                     logger.warning(msg)
+        if failures:
+            raise ValidationError(self.name, "; ".join(failures))
 
     def _load_giant_swarm_validators(self) -> List[GiantSwarmValidator]:
         gs_validators: List[GiantSwarmValidator] = []
