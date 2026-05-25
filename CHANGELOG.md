@@ -11,22 +11,31 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ### Changed
 
-- Replace `HelmGitVersionSetter` with `HelmVersionSetter`. Chart `version` and `appVersion` are no longer derived
+- BREAKING CHANGE: Replace `HelmGitVersionSetter` with `HelmVersionSetter`. Chart `version` and `appVersion` are no longer derived
   automatically from git tags and commit hashes. Use `--override-chart-version` and `--override-app-version` to set
   them explicitly. The old `--replace-chart-version-with-git` and `--replace-app-version-with-git` flags are kept for
   backward compatibility but are now no-ops that emit a deprecation warning.
 - Annotation URLs in chart metadata always point to `refs/tags/{version}` on GitHub raw. The previous heuristic
   that detected an embedded commit SHA in the version string and used it directly has been removed.
+  
+## [1.8.2] - 2026-05-19
 
 ### Fixed
 
-- Stringify boolean values from the `restrictions:` block in `Chart.yaml` when lifting them into chart annotations. Previously `clusterSingleton: true` / `gpuInstances: false` produced annotation values typed as Python `bool`, which the `gs_metadata_chart_schema.yaml` yamale schema rejects with `'True' is not a str` / `'False' is not a str`.
+- Stringify boolean values from the `restrictions:` block in `Chart.yaml` when lifting them into chart
+  annotations. Previously `clusterSingleton: true` / `gpuInstances: false` produced annotation values typed as
+  Python `bool`, which the `gs_metadata_chart_schema.yaml` yamale schema rejects with `'True' is not a str` /
+  `'False' is not a str`.
 
 ## [1.8.1] - 2026-05-19
 
 ### Added
 
-- The `-circleci` image variant now ships `cosign` (pinned via `COSIGN_VER` build arg, Renovate-tracked against `sigstore/cosign` GitHub releases, SHA-256 verified against the upstream `cosign_checksums.txt`). Required by `architect/push-to-app-catalog` since architect-orb v8.2.0 defaulted `sign: true` — without `cosign` on PATH, every chart-publish job using `executor: app-build-suite` fails on `Mint Sigstore OIDC token` with `cosign: command not found`. Closes giantswarm/architect-orb#769.
+- The `-circleci` image variant now ships `cosign` (pinned via `COSIGN_VER` build arg, Renovate-tracked
+  against `sigstore/cosign` GitHub releases, SHA-256 verified against the upstream `cosign_checksums.txt`).
+  Required by `architect/push-to-app-catalog` since architect-orb v8.2.0 defaulted `sign: true` — without
+  `cosign` on PATH, every chart-publish job using `executor: app-build-suite` fails on
+  `Mint Sigstore OIDC token` with `cosign: command not found`. Closes giantswarm/architect-orb#769.
 
 ## 1.8.0 - 2026-04-14
 
