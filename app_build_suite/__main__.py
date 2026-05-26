@@ -68,7 +68,7 @@ def configure_global_options(config_parser: configargparse.ArgParser) -> None:
         required=False,
         default=True,
         action=argparse.BooleanOptionalAction,
-        help="Run all steps even if some fail, then report all errors at the end. Use --no-keep-going to stop on first failure.",
+        help="Collect all errors before failing instead of stopping on the first failure. Full pipeline support requires step-exec-lib >= 0.5.0; individual steps (e.g. GiantSwarmHelmValidator) respect this flag regardless. Use --no-keep-going for fail-fast behaviour.",
     )
     steps_group = config_parser.add_mutually_exclusive_group()
     steps_group.add_argument(
