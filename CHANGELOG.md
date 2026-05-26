@@ -5,10 +5,15 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-05-26
+
 ### Added
 
 - Keep-going mode: all validation and build steps run to completion even when earlier steps fail; errors are reported together at the end. Enabled by default; use `--no-keep-going` to stop on first failure. Requires `step-exec-lib >= 0.5.0`.
 - Giant Swarm validators (`GiantSwarmHelmValidator`) collect every failure into a single error by default instead of stopping on the first one. Respects `--no-keep-going`.
+
+## [2.0.0] - 2026-05-25
+
 - The `-circleci` image variant now ships `gitsemver`. Required for CircleCI jobs that compute chart versions from git state using the Giant Swarm semver-based automatic-upgrades workflow.
 
 ### Changed
@@ -305,7 +310,9 @@ Initial release
     - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/giantswarm/app-build-suite/compare/v2.0.0...v2.1.0
+[2.0.0]: https://github.com/giantswarm/app-build-suite/compare/v1.8.1...v2.0.0
 [1.8.1]: https://github.com/giantswarm/app-build-suite/compare/v1.3.0...v1.8.1
 [1.3.0]: https://github.com/giantswarm/app-build-suite/compare/v1.2.10...v1.3.0
 [1.2.10]: https://github.com/giantswarm/app-build-suite/compare/v1.2.9...v1.2.10
