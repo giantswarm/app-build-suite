@@ -1,5 +1,6 @@
 """Main module. Loads configuration and executes main control loops."""
 
+import argparse
 import logging
 import os
 import sys
@@ -61,6 +62,13 @@ def configure_global_options(config_parser: configargparse.ArgParser) -> None:
         default="helm3",
         type=BuildEngineType,
         help="Select the build engine used for building your chart.",
+    )
+    config_parser.add_argument(
+        "--keep-going",
+        required=False,
+        default=True,
+        action=argparse.BooleanOptionalAction,
+        help="Collect all errors before failing instead of stopping on the first failure. Full pipeline support requires step-exec-lib >= 0.5.0; individual steps (e.g. GiantSwarmHelmValidator) respect this flag regardless. Use --no-keep-going for fail-fast behaviour.",
     )
     steps_group = config_parser.add_mutually_exclusive_group()
     steps_group.add_argument(

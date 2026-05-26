@@ -737,3 +737,46 @@ def test_helm_builder_validator_empty_name(mocker: MockerFixture) -> None:
     with pytest.raises(ValidationError) as exc_info:
         step.pre_run(config)
     assert "field 'name' is empty" in exc_info.value.msg
+
+
+def test_giant_swarm_validator_collects_all_failures(mocker: MockerFixture) -> None:
+    validators = [
+        GiantSwarmTestValidator(False, "W1"),
+        GiantSwarmTestValidator(True, "W2"),
+        GiantSwarmTestValidator(False, "W3"),
+    ]
+    step = GiantSwarmHelmValidator()
+    config = init_config_for_step(step)
+    config.disable_strict_giantswarm_validator = False
+    config.giantswarm_validator_ignored_checks = ""
+
+    loader_mock = mocker.Mock(name="loader", return_value=validators)
+    mocker.patch.object(step, "_load_giant_swarm_validators", loader_mock)
+
+    with pytest.raises(ValidationError) as exc:
+        step.pre_run(config)
+
+    assert "W1" in exc.value.msg
+    assert "W3" in exc.value.msg
+    assert all(v.validate_called for v in validators)
+
+
+def test_giant_swarm_validator_fails_fast_when_keep_going_disabled(mocker: MockerFixture) -> None:
+    validators = [
+        GiantSwarmTestValidator(False, "W1"),
+        GiantSwarmTestValidator(False, "W2"),
+    ]
+    step = GiantSwarmHelmValidator()
+    config = init_config_for_step(step)
+    config.disable_strict_giantswarm_validator = False
+    config.giantswarm_validator_ignored_checks = ""
+    config.keep_going = False
+
+    loader_mock = mocker.Mock(name="loader", return_value=validators)
+    mocker.patch.object(step, "_load_giant_swarm_validators", loader_mock)
+
+    with pytest.raises(ValidationError) as exc:
+        step.pre_run(config)
+
+    assert "W1" in exc.value.msg
+    assert not validators[1].validate_called
