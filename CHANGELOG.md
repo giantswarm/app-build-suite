@@ -7,6 +7,14 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ### Changed
 
+## [2.1.2] - 2026-06-02
+
+- Bump `gitsemver` to 2.0.0
+
+### Changed
+
+## [2.1.1] - 2026-06-01
+
 - Bump `gitsemver` to 1.1.2
 
 ## [2.1.0] - 2026-05-26
