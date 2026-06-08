@@ -32,7 +32,7 @@ RUN set -eux; \
     cosign version
 
 # renovate: datasource=github-releases depName=giantswarm/gitsemver
-ARG GITSEMVER_VER=v2.0.0
+ARG GITSEMVER_VER=v2.0.1
 
 # Install gitsemver to compute chart versions from git state in CircleCI jobs.
 # No upstream checksums file is published for this project's releases; checksum
