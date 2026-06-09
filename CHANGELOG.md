@@ -5,26 +5,43 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Changed
+
+## [2.1.2] - 2026-06-02
+
+- Bump `gitsemver` to 2.0.0
+
+### Changed
+
+## [2.1.1] - 2026-06-01
+
+- Bump `gitsemver` to 1.1.2
+
 ## [2.1.0] - 2026-05-26
 
 ### Added
 
-- Keep-going mode: all validation and build steps run to completion even when earlier steps fail; errors are reported together at the end. Enabled by default; use `--no-keep-going` to stop on first failure. Requires `step-exec-lib >= 0.5.0`.
-- Giant Swarm validators (`GiantSwarmHelmValidator`) collect every failure into a single error by default instead of stopping on the first one. Respects `--no-keep-going`.
+- Keep-going mode: all validation and build steps run to completion even when earlier steps fail; errors are
+  reported together at the end. Enabled by default; use `--no-keep-going` to stop on first failure. Requires
+  `step-exec-lib >= 0.5.0`.
+- Giant Swarm validators (`GiantSwarmHelmValidator`) collect every failure into a single error by default
+  instead of stopping on the first one. Respects `--no-keep-going`.
 
 ## [2.0.0] - 2026-05-25
 
-- The `-circleci` image variant now ships `gitsemver`. Required for CircleCI jobs that compute chart versions from git state using the Giant Swarm semver-based automatic-upgrades workflow.
+- The `-circleci` image variant now ships `gitsemver`. Required for CircleCI jobs that compute chart versions
+  from git state using the Giant Swarm semver-based automatic-upgrades workflow.
 
 ### Changed
 
-- BREAKING CHANGE: Replace `HelmGitVersionSetter` with `HelmVersionSetter`. Chart `version` and `appVersion` are no longer derived
-  automatically from git tags and commit hashes. Use `--override-chart-version` and `--override-app-version` to set
-  them explicitly. The old `--replace-chart-version-with-git` and `--replace-app-version-with-git` flags are kept for
-  backward compatibility but are now no-ops that emit a deprecation warning.
-- Annotation URLs in chart metadata always point to `refs/tags/{version}` on GitHub raw. The previous heuristic
-  that detected an embedded commit SHA in the version string and used it directly has been removed.
-  
+- BREAKING CHANGE: Replace `HelmGitVersionSetter` with `HelmVersionSetter`. Chart `version` and `appVersion`
+  are no longer derived automatically from git tags and commit hashes. Use `--override-chart-version` and
+  `--override-app-version` to set them explicitly. The old `--replace-chart-version-with-git` and
+  `--replace-app-version-with-git` flags are kept for backward compatibility but are now no-ops that emit a
+  deprecation warning.
+- Annotation URLs in chart metadata always point to `refs/tags/{version}` on GitHub raw. The previous
+  heuristic that detected an embedded commit SHA in the version string and used it directly has been removed.
+
 ## [1.8.2] - 2026-05-19
 
 ### Fixed
