@@ -25,6 +25,7 @@ workflows:
                           ignore:
                               - main
                               - master
+                              - /^renovate\/.*/
                       tags:
                           only: /^v.*/
 
@@ -43,6 +44,7 @@ workflows:
                           ignore:
                               - main
                               - master
+                              - /^renovate\/.*/
                       tags:
                           only: /^v.*/
 
