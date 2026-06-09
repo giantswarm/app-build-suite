@@ -2,7 +2,7 @@ version: 2.1
 
 orbs:
     architect: giantswarm/architect@9.1.0
-    codecov: codecov/codecov@5.4.3
+    codecov: codecov/codecov@6.0.0
 
 workflows:
     test:
@@ -25,6 +25,7 @@ workflows:
                           ignore:
                               - main
                               - master
+                              - /^renovate\/.*/
                       tags:
                           only: /^v.*/
 
@@ -43,6 +44,7 @@ workflows:
                           ignore:
                               - main
                               - master
+                              - /^renovate\/.*/
                       tags:
                           only: /^v.*/
 
