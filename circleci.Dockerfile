@@ -1,6 +1,6 @@
 FROM gsoci.azurecr.io/giantswarm/conftest:v0.68.2 AS conftest
 
-FROM gsoci.azurecr.io/giantswarm/app-build-suite:2.0.0
+FROM gsoci.azurecr.io/giantswarm/app-build-suite:2.1.2
 
 COPY --from=conftest /usr/local/bin/conftest /usr/local/bin/conftest
 
@@ -32,7 +32,7 @@ RUN set -eux; \
     cosign version
 
 # renovate: datasource=github-releases depName=giantswarm/gitsemver
-ARG GITSEMVER_VER=v1.0.1
+ARG GITSEMVER_VER=v2.0.0
 
 # Install gitsemver to compute chart versions from git state in CircleCI jobs.
 # No upstream checksums file is published for this project's releases; checksum
@@ -47,7 +47,7 @@ RUN set -eux; \
     test -f /tmp/gitsemver; \
     install -m 0755 /tmp/gitsemver /usr/local/bin/gitsemver; \
     rm -f /tmp/gitsemver.tar.gz /tmp/gitsemver; \
-    gitsemver version
+    gitsemver --version
 
 # Setup ssh config for github.com
 RUN mkdir -p ~/.ssh &&\
