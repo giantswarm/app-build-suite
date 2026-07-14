@@ -37,7 +37,6 @@ Common labels
 helm.sh/chart: {{ include "hello-world-app.chart" . }}
 app: "{{ template "hello-world-app.name" . }}"
 app.kubernetes.io/managed-by: "{{ .Release.Service }}"
-helm.sh/chart: "{{ template "hello-world-app.chart" . }}"
 giantswarm.io/service-type: "managed"
 application.giantswarm.io/team: {{ index .Chart.Annotations "application.giantswarm.io/team" | default "honeybadger" | quote }}
 {{ include "hello-world-app.selectorLabels" . }}
