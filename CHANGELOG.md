@@ -5,6 +5,19 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- New `HelmTemplateValidator` build step: renders the chart with `helm template` and fails the build on YAML
+  syntax errors or duplicate mapping keys in the rendered manifests (Helm and Kubernetes silently keep only
+  the last value of a duplicated key, dropping configuration). Enabled by default; disable with
+  `--disable-helm-template-validator`, and pass extra values files for charts that don't render with defaults
+  via `--helm-template-extra-values`. Error messages point to the originating template file and line.
+
+### Fixed
+
+- The `hello-world-app` example chart no longer renders a duplicated `helm.sh/chart` label (found by the new
+  `HelmTemplateValidator` step).
+
 ## [2.1.3] - 2026-06-09
 
 ### Changed
