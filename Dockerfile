@@ -1,7 +1,7 @@
 FROM gsoci.azurecr.io/giantswarm/python:3.13.5-slim AS binaries
 
 # renovate: datasource=github-releases depName=helm/helm
-ARG HELM_VER=v3.21.2
+ARG HELM_VER=v3.21.3
 # renovate: datasource=github-releases depName=helm/chart-testing
 ARG CT_VER=v3.14.0
 # renovate: datasource=github-releases depName=stackrox/kube-linter
@@ -28,7 +28,7 @@ RUN chmod +x /binaries/*
 FROM gsoci.azurecr.io/giantswarm/python:3.13.5-slim AS base
 
 # Install uv from official image
-COPY --from=ghcr.io/astral-sh/uv:0.11.20 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.11.28 /uv /bin/uv
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 
 ENV LANG=C.UTF-8 \

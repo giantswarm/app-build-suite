@@ -41,9 +41,9 @@ jobs:
                   args: --chart-dir helm/${{ inputs.chart }} --catalog-base-url "https://${{ inputs.organization }}.github.io/${{ inputs.app_catalog }}/" --destination app_catalog --keep-chart-changes --replace-chart-version-with-git
 
             - name: Setup Helm
-              uses: azure/setup-helm@dda3372f752e03dde6b3237bc9431cdc2f7a02a2 # v5.0.0
+              uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
               with:
-                  version: v3.21.2
+                  version: v3.21.3
 
             - name: Update Helm index.yaml
               run: |
@@ -64,7 +64,7 @@ jobs:
               run: echo "::set-output name=version::$(yq e '.version' helm/${{ inputs.chart }}/Chart.yaml)"
 
             - name: Commit changes to app catalog repository
-              uses: stefanzweifel/git-auto-commit-action@04702edda442b2e678b25b537cec683a1493fcb9 # v7.1.0
+              uses: stefanzweifel/git-auto-commit-action@4a55954c782fc1ea30b9056cd3e7a2b40ca8887d # v7.2.0
               with:
                   branch: main
                   commit_message: add ${{ inputs.chart }}-${{ steps.chart-version.outputs.version }}
