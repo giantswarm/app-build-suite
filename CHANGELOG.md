@@ -5,6 +5,16 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- Inject missing Artifact Hub metadata at package time (`HelmArtifactHubMetadataSetter`). If not already
+  present in `Chart.yaml`, `abs` adds the `artifacthub.io/license` annotation (when an Apache License 2.0
+  `LICENSE` file is detected in the repository root) and the `artifacthub.io/links` annotation (a `Support`
+  link pointing to the GitHub issues page plus an `Upstream project` link taken from the first non-Giant-Swarm
+  entry in `sources`). If the chart directory has no `README.md` but the repository root does, it is copied in
+  for packaging and removed afterwards, so the working tree ends clean. Explicit values in `Chart.yaml` always
+  win. Enabled by default; use `--disable-artifacthub-metadata` to turn it off.
+
 ## [2.1.3] - 2026-06-09
 
 ### Changed

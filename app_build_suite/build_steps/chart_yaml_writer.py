@@ -20,6 +20,23 @@ from app_build_suite.build_steps.steps import STEP_BUILD, STEP_METADATA
 logger = logging.getLogger(__name__)
 
 
+def _represent_str(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+    if "\n" in data:
+        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
+    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+
+
+class MultilineStringDumper(yaml.SafeDumper):
+    """YAML dumper that renders multi-line strings as block scalars.
+
+    Used for values like the 'artifacthub.io/links' annotation, which is a YAML list serialized
+    as a string and is conventionally written as a block scalar in Chart.yaml.
+    """
+
+
+MultilineStringDumper.add_representer(str, _represent_str)
+
+
 class ChartYamlWriter(BuildStep):
     """Writes the in-context Chart.yaml dict to disk, creating a backup."""
 
@@ -43,5 +60,5 @@ class ChartYamlWriter(BuildStep):
 
         # Write context dict to disk
         with open(chart_yaml_path, "w") as f:
-            yaml.dump(context[context_key_chart_yaml], f, default_flow_style=False)
+            yaml.dump(context[context_key_chart_yaml], f, Dumper=MultilineStringDumper, default_flow_style=False)
         logger.info(f"Saved modified {CHART_YAML} to disk.")
