@@ -17,7 +17,7 @@ workflows:
                   context: architect
                   name: push-to-registries
                   registries-data: |-
-                      public gsoci.azurecr.io ACR_GSOCI_USERNAME ACR_GSOCI_PASSWORD false
+                      public gsoci.azurecr.io ACR_GSOCI_USERNAME ACR_GSOCI_PASSWORD true
                   requires:
                       - run-tests
                   filters:
@@ -35,7 +35,7 @@ workflows:
                   dockerfile: "./circleci.Dockerfile"
                   tag-suffix: "-circleci"
                   registries-data: |-
-                      public gsoci.azurecr.io ACR_GSOCI_USERNAME ACR_GSOCI_PASSWORD false
+                      public gsoci.azurecr.io ACR_GSOCI_USERNAME ACR_GSOCI_PASSWORD true
                   requires:
                       - run-tests
                       - push-to-registries

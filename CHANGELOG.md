@@ -5,6 +5,13 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Fixed
+
+- CI: push dev images from branch builds again (`push-dev: true` in `registries-data`, aligning with
+  app-test-suite). The flag was set to `false` in the uv migration (#439); since architect-orb's
+  `push-to-registries` refactor, a branch build with `push-dev: false` skips every registry and hard-fails
+  with "No valid registry/tag combinations found for push", so the job could never pass on feature branches.
+
 ### Added
 
 - Inject missing Artifact Hub metadata at package time (`HelmArtifactHubMetadataSetter`). If not already
