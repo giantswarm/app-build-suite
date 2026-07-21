@@ -20,6 +20,17 @@ context_key_chart_lock_files_to_restore: str = "chart_lock_files_to_restore"
 context_key_original_chart_yaml: str = "original_chart_yaml"
 context_key_artifacthub_readme_copied: str = "artifacthub_readme_copied"
 
+
+class BlockLiteralStr(str):
+    """A string that ChartYamlWriter renders as a YAML block scalar ('|').
+
+    Used only for values that are conventionally block scalars in Chart.yaml, such as the
+    'artifacthub.io/links' annotation (a YAML list serialized as a string). Plain strings keep
+    PyYAML's default rendering, so unrelated multi-line fields (e.g. a multi-line 'description')
+    are not reformatted on write.
+    """
+
+
 # OCI annotation constants shared across metadata build steps
 key_oci_annotation_prefix = "io.giantswarm.application"
 annotation_files_map = {

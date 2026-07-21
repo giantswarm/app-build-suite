@@ -14,6 +14,7 @@ from step_exec_lib.types import Context, StepType
 from app_build_suite.build_steps.helm_consts import (
     CHART_YAML,
     README_MD,
+    BlockLiteralStr,
     context_key_artifacthub_readme_copied,
     context_key_changes_made,
     context_key_chart_yaml,
@@ -46,7 +47,7 @@ class HelmArtifactHubMetadataSetter(BuildStep):
     _apache_2_license = "Apache-2.0"
     _license_file_names = ["LICENSE", "LICENSE.md", "LICENSE.txt"]
     _license_detection_lines = 20
-    _giantswarm_github_url_prefix = "https://github.com/giantswarm"
+    _giantswarm_github_url_prefix = "https://github.com/giantswarm/"
 
     @property
     def steps_provided(self) -> Set[StepType]:
@@ -66,7 +67,9 @@ class HelmArtifactHubMetadataSetter(BuildStep):
     def _find_repo_root(self, chart_dir: str) -> Optional[str]:
         current = os.path.abspath(chart_dir)
         while True:
-            if os.path.isdir(os.path.join(current, ".git")):
+            # os.path.exists (not isdir): in worktrees and submodule checkouts '.git' is a
+            # file (a 'gitdir:' pointer), not a directory.
+            if os.path.exists(os.path.join(current, ".git")):
                 return current
             parent = os.path.dirname(current)
             if parent == current:
@@ -85,7 +88,7 @@ class HelmArtifactHubMetadataSetter(BuildStep):
             if not os.path.isfile(license_path):
                 continue
             try:
-                with open(license_path, "r", errors="replace") as f:
+                with open(license_path, "r", encoding="utf-8", errors="replace") as f:
                     head = "".join(f.readline() for _ in range(self._license_detection_lines)).lower()
             except OSError as e:
                 logger.debug(f"Can't read license file '{license_path}': {e}.")
@@ -138,7 +141,9 @@ class HelmArtifactHubMetadataSetter(BuildStep):
 
         if not links:
             return None
-        return yaml.safe_dump(links, default_flow_style=False, sort_keys=False)
+        # Wrapped so ChartYamlWriter renders it as a block scalar (the Artifact Hub convention for
+        # this annotation) without affecting how any other Chart.yaml string is written.
+        return BlockLiteralStr(yaml.safe_dump(links, default_flow_style=False, sort_keys=False))
 
     def _ensure_chart_readme(self, config: argparse.Namespace, context: Context, repo_root: Optional[str]) -> None:
         """
@@ -206,6 +211,12 @@ class HelmArtifactHubMetadataSetter(BuildStep):
         context: Context,
         has_build_failed: bool,
     ) -> None:
+        # Match HelmChartYAMLRestorer: with --keep-chart-changes the injected annotations are left
+        # on disk, so the copied README must be kept too, or the retained Chart.yaml would reference
+        # a README that no longer exists.
+        if getattr(config, "keep_chart_changes", False):
+            logger.debug(f"Keeping {README_MD} copied into the chart directory (--keep-chart-changes).")
+            return
         if context_key_artifacthub_readme_copied in context and context[context_key_artifacthub_readme_copied]:
             copied_readme_path = context[context_key_artifacthub_readme_copied]
             if os.path.isfile(copied_readme_path):

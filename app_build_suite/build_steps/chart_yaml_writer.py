@@ -12,6 +12,7 @@ from step_exec_lib.types import Context, StepType
 
 from app_build_suite.build_steps.helm_consts import (
     CHART_YAML,
+    BlockLiteralStr,
     context_key_changes_made,
     context_key_chart_yaml,
 )
@@ -20,21 +21,19 @@ from app_build_suite.build_steps.steps import STEP_BUILD, STEP_METADATA
 logger = logging.getLogger(__name__)
 
 
-def _represent_str(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
-    if "\n" in data:
-        return dumper.represent_scalar("tag:yaml.org,2002:str", data, style="|")
-    return dumper.represent_scalar("tag:yaml.org,2002:str", data)
+def _represent_block_literal(dumper: yaml.Dumper, data: str) -> yaml.ScalarNode:
+    return dumper.represent_scalar("tag:yaml.org,2002:str", str(data), style="|")
 
 
-class MultilineStringDumper(yaml.SafeDumper):
-    """YAML dumper that renders multi-line strings as block scalars.
+class ChartYamlDumper(yaml.SafeDumper):
+    """YAML dumper that renders BlockLiteralStr values as block scalars.
 
-    Used for values like the 'artifacthub.io/links' annotation, which is a YAML list serialized
-    as a string and is conventionally written as a block scalar in Chart.yaml.
+    Only values explicitly wrapped in BlockLiteralStr (e.g. the 'artifacthub.io/links' annotation)
+    are forced to block-scalar style; all other strings keep PyYAML's default rendering.
     """
 
 
-MultilineStringDumper.add_representer(str, _represent_str)
+ChartYamlDumper.add_representer(BlockLiteralStr, _represent_block_literal)
 
 
 class ChartYamlWriter(BuildStep):
@@ -60,5 +59,5 @@ class ChartYamlWriter(BuildStep):
 
         # Write context dict to disk
         with open(chart_yaml_path, "w") as f:
-            yaml.dump(context[context_key_chart_yaml], f, Dumper=MultilineStringDumper, default_flow_style=False)
+            yaml.dump(context[context_key_chart_yaml], f, Dumper=ChartYamlDumper, default_flow_style=False)
         logger.info(f"Saved modified {CHART_YAML} to disk.")
