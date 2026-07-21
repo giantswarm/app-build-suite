@@ -6,7 +6,9 @@ from typing import Any, Dict, Optional, Tuple
 import configargparse
 import yaml
 
+from app_build_suite.build_steps.chart_yaml_writer import ChartYamlWriter
 from app_build_suite.build_steps.helm_artifacthub_metadata_setter import HelmArtifactHubMetadataSetter
+from app_build_suite.build_steps.helm_chart_yaml_restorer import HelmChartYAMLRestorer
 from app_build_suite.build_steps.helm_consts import (
     context_key_artifacthub_readme_copied,
     context_key_changes_made,
@@ -229,3 +231,27 @@ def test_disabled_flag_makes_step_a_noop(tmp_path: Path) -> None:
     assert "annotations" not in chart_yaml
     assert not (chart_dir / "README.md").exists()
     assert context[context_key_changes_made] is False
+
+
+def test_injected_annotations_are_restored_after_build(tmp_path: Path) -> None:
+    """The injected annotations are part of the regular Chart.yaml write/backup/restore cycle."""
+    chart_dir = _make_repo(tmp_path, license_text=APACHE_2_LICENSE_TEXT, chart_readme="# chart")
+    original_chart_yaml_text = 'name: test-app\nversion: 0.0.1\nhome: "https://github.com/giantswarm/test-app"\n'
+    chart_yaml_path = chart_dir / "Chart.yaml"
+    chart_yaml_path.write_text(original_chart_yaml_text)
+    chart_yaml: Dict[str, Any] = yaml.safe_load(original_chart_yaml_text)
+    step, config, context = _init_step_for_chart_dir(chart_dir, chart_yaml)
+    config.keep_chart_changes = False
+
+    step.run(config, context)
+    ChartYamlWriter().run(config, context)
+
+    written = yaml.safe_load(chart_yaml_path.read_text())
+    assert written["annotations"][KEY_LICENSE] == "Apache-2.0"
+    assert "Support" in written["annotations"][KEY_LINKS]
+    assert (chart_dir / "Chart.yaml.back").is_file()
+
+    HelmChartYAMLRestorer().cleanup(config, context, has_build_failed=False)
+
+    assert chart_yaml_path.read_text() == original_chart_yaml_text
+    assert not (chart_dir / "Chart.yaml.back").exists()
