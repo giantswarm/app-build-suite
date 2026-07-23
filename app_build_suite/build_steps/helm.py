@@ -5,6 +5,7 @@ from step_exec_lib.steps import BuildStepsFilteringPipeline
 from app_build_suite.build_steps.chart_yaml_loader import ChartYamlLoader
 from app_build_suite.build_steps.chart_yaml_writer import ChartYamlWriter
 from app_build_suite.build_steps.giantswarm_helm_validator import GiantSwarmHelmValidator
+from app_build_suite.build_steps.helm_artifacthub_metadata_setter import HelmArtifactHubMetadataSetter
 from app_build_suite.build_steps.helm_builder_validator import HelmBuilderValidator
 from app_build_suite.build_steps.helm_chart_builder import HelmChartBuilder
 from app_build_suite.build_steps.helm_chart_metadata_builder import HelmChartMetadataBuilder
@@ -30,6 +31,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
                 HelmBuilderValidator(),
                 HelmVersionSetter(),
                 HelmHomeUrlSetter(),
+                HelmArtifactHubMetadataSetter(),
                 HelmChartMetadataBuilder(),
                 ChartYamlWriter(),
                 GiantSwarmHelmValidator(),

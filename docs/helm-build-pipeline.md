@@ -6,7 +6,7 @@ Helm build pipeline executes in sequence the following set of steps:
     - Validates that `Chart.yaml` is readable and parseable
     - Loads the parsed YAML into the build context as a dictionary
     - Initializes change tracking for the Chart.yaml file
-    - All subsequent Chart.yaml modifications happen in-memory until ChartYamlWriter (step 6) writes to disk
+    - All subsequent Chart.yaml modifications happen in-memory until ChartYamlWriter (step 7) writes to disk
     - config options: none
 2. HelmBuilderValidator: validates that the build folder contains a Helm chart and that the chart name is
    valid.
@@ -42,7 +42,22 @@ Helm build pipeline executes in sequence the following set of steps:
     - Modifies the Chart.yaml dict in context (no disk I/O)
     - config options:
         - `--disable-home-url-auto-update`: disable automatic setting of home URL from git remote
-5. HelmChartMetadataBuilder: prepares metadata for the Giant Swarm App Platform by modifying annotations in
+5. HelmArtifactHubMetadataSetter: injects missing [Artifact Hub](https://artifacthub.io) metadata into the
+   in-memory `Chart.yaml`. Explicit values already present in `Chart.yaml` always win - only missing data is
+   injected. Enabled by default.
+    - Adds the `artifacthub.io/license` annotation (value `Apache-2.0`) if it's missing and the repository
+      root contains a `LICENSE` file that is recognizably Apache License 2.0
+    - Adds the `artifacthub.io/links` annotation if it's missing: a `Support` link pointing to the GitHub
+      issues page of the chart's repository (derived from the `home` field or the git remote) and a single
+      `Upstream project` link taken from the first entry in `sources` that doesn't point to the Giant Swarm
+      GitHub organization
+    - If the chart directory has no `README.md` but the repository root does, the root `README.md` is copied
+      into the chart directory so it gets packaged; the copy is removed again after the build, leaving the
+      working tree clean
+    - Modifies the Chart.yaml dict in context (no disk I/O for the annotations)
+    - config options:
+        - `--disable-artifacthub-metadata`: disable automatic injection of Artifact Hub metadata
+6. HelmChartMetadataBuilder: prepares metadata for the Giant Swarm App Platform by modifying annotations in
    the in-memory `Chart.yaml`.
     - Converts annotation format from `application.giantswarm.io/*` to `io.giantswarm.application.*`
     - Generates metadata URLs, values schema URLs, and README URLs
@@ -55,14 +70,14 @@ Helm build pipeline executes in sequence the following set of steps:
       `application.giantswarm.io/values-schema` are automatically rewritten to point directly to the files in
       the chart's GitHub repository using the chart version tag so that published annotations always reference
       the exact release content.
-6. ChartYamlWriter: writes the modified `Chart.yaml` from memory to disk.
+7. ChartYamlWriter: writes the modified `Chart.yaml` from memory to disk.
     - Creates a `.back` backup of the original file before writing
-    - Only writes if changes were made by previous steps (HelmVersionSetter, HelmHomeUrlSetter, or
-      HelmChartMetadataBuilder)
+    - Only writes if changes were made by previous steps (HelmVersionSetter, HelmHomeUrlSetter,
+      HelmArtifactHubMetadataSetter, or HelmChartMetadataBuilder)
     - Uses `yaml.dump` which may reformat the file (removes comments, reorders keys)
-    - The original formatting is preserved by HelmChartYAMLRestorer (step 14) which restores from the backup
+    - The original formatting is preserved by HelmChartYAMLRestorer (step 15) which restores from the backup
     - config options: none
-7. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we
+8. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we
    want to enforce as company policy.
     - Currently, supports the following checks
       ([have a look at the code for details](../app_build_suite/build_steps/giant_swarm_validators/)):
@@ -82,11 +97,11 @@ Helm build pipeline executes in sequence the following set of steps:
           validation rule fails; if disabled, build won't fail even if rules will
         - `--giantswarm-validator-ignored-checks` - each check has its own ID which is printed during build;
           if you want to ignore a subset of checks, put a comma separated list here
-8. HelmRequirementsUpdater: updates Helm chart dependencies by running `helm dependencies update`.
+9. HelmRequirementsUpdater: updates Helm chart dependencies by running `helm dependencies update`.
     - Only runs when `--override-chart-version` is set
-    - Requires Chart.yaml on disk (written by ChartYamlWriter in step 6)
+    - Requires Chart.yaml on disk (written by ChartYamlWriter in step 7)
     - config options: none (controlled by `--override-chart-version`)
-9. HelmChartToolLinter: this step runs the [`ct`](https://github.com/helm/chart-testing) (aka.
+10. HelmChartToolLinter: this step runs the [`ct`](https://github.com/helm/chart-testing) (aka.
    `chart-testing`) tool. This tool runs validation and linting of YAML files included in your chart. The tool
    is configurable on its own: [config reference](https://github.com/helm/chart-testing#configuration).
     - config options:
@@ -102,7 +117,7 @@ Helm build pipeline executes in sequence the following set of steps:
         - bitnami=https://charts.bitnami.com/bitnami
     ```
 
-10. KubeLinter: this step runs [kube-linter](https://docs.kubelinter.io/) static chart verification tool. Make
+11. KubeLinter: this step runs [kube-linter](https://docs.kubelinter.io/) static chart verification tool. Make
     sure to check [kube-linter configuration docs](https://docs.kubelinter.io/#/configuring-kubelinter) to
     learn how to tune the verification to your taste or even
     [disable it completely](https://docs.kubelinter.io/#/configuring-kubelinter?id=disable-all-default-checks).
@@ -112,7 +127,7 @@ Helm build pipeline executes in sequence the following set of steps:
     configuration.
     - config options:
         - `--kubelinter-config`: path to optional 'kube-linter' config file
-11. HelmTemplateValidator: renders the chart with `helm template` and validates that the rendered manifests
+12. HelmTemplateValidator: renders the chart with `helm template` and validates that the rendered manifests
     are parseable YAML without duplicate mapping keys. Duplicate keys are dangerous because Helm and
     Kubernetes silently keep only the last value, dropping the earlier configuration. Error messages include
     the originating template file (from `helm template`'s `# Source:` comments) and the line of both the
@@ -123,13 +138,13 @@ Helm build pipeline executes in sequence the following set of steps:
         - `--helm-template-extra-values`: path to an extra values file passed to `helm template` as
           `--values`; use it for charts that don't render with default values only (e.g. templates using
           `required`). Can be given multiple times.
-12. HelmChartBuilder: this step does the actual chart build using Helm by running `helm package`.
+13. HelmChartBuilder: this step does the actual chart build using Helm by running `helm package`.
     - config options:
         - `--destination`: path of a directory to store the packaged Helm chart tgz
-13. HelmChartMetadataFinalizer: completes and writes the metadata files gathered by HelmChartMetadataBuilder.
+14. HelmChartMetadataFinalizer: completes and writes the metadata files gathered by HelmChartMetadataBuilder.
     - Creates the `<chart>-<version>.tgz-meta/` directory with metadata files
     - config options: none
-14. HelmChartYAMLRestorer: restores the original `Chart.yaml` file from the `.back` backup created by
+15. HelmChartYAMLRestorer: restores the original `Chart.yaml` file from the `.back` backup created by
     ChartYamlWriter.
     - Only restores if changes were made during the build
     - Can be disabled to keep the modified Chart.yaml
