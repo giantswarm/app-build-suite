@@ -5,15 +5,13 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
-### Fixed
-
-- CI: push dev images from branch builds again (`push-dev: true` in `registries-data`, aligning with
-  app-test-suite). The flag was set to `false` in the uv migration (#439); since architect-orb's
-  `push-to-registries` refactor, a branch build with `push-dev: false` skips every registry and hard-fails
-  with "No valid registry/tag combinations found for push", so the job could never pass on feature branches.
-
 ### Added
 
+- New `HelmTemplateValidator` build step: renders the chart with `helm template` and fails the build on YAML
+  syntax errors or duplicate mapping keys in the rendered manifests (Helm and Kubernetes silently keep only
+  the last value of a duplicated key, dropping configuration). Enabled by default; disable with
+  `--disable-helm-template-validator`, and pass extra values files for charts that don't render with defaults
+  via `--helm-template-extra-values`. Error messages point to the originating template file and line.
 - Inject missing Artifact Hub metadata at package time (`HelmArtifactHubMetadataSetter`). If not already
   present in `Chart.yaml`, `abs` adds the `artifacthub.io/license` annotation (when an Apache License 2.0
   `LICENSE` file is detected in the repository root) and the `artifacthub.io/links` annotation (a `Support`
@@ -21,6 +19,15 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
   entry in `sources`). If the chart directory has no `README.md` but the repository root does, it is copied in
   for packaging and removed afterwards, so the working tree ends clean. Explicit values in `Chart.yaml` always
   win. Enabled by default; use `--disable-artifacthub-metadata` to turn it off.
+
+### Fixed
+
+- CI: push dev images from branch builds again (`push-dev: true` in `registries-data`, aligning with
+  app-test-suite). The flag was set to `false` in the uv migration (#439); since architect-orb's
+  `push-to-registries` refactor, a branch build with `push-dev: false` skips every registry and hard-fails
+  with "No valid registry/tag combinations found for push", so the job could never pass on feature branches.
+- The `hello-world-app` example chart no longer renders a duplicated `helm.sh/chart` label (found by the new
+  `HelmTemplateValidator` step).
 
 ## [2.1.3] - 2026-06-09
 

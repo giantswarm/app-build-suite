@@ -75,7 +75,7 @@ Helm build pipeline executes in sequence the following set of steps:
     - Only writes if changes were made by previous steps (HelmVersionSetter, HelmHomeUrlSetter,
       HelmArtifactHubMetadataSetter, or HelmChartMetadataBuilder)
     - Uses `yaml.dump` which may reformat the file (removes comments, reorders keys)
-    - The original formatting is preserved by HelmChartYAMLRestorer (step 14) which restores from the backup
+    - The original formatting is preserved by HelmChartYAMLRestorer (step 15) which restores from the backup
     - config options: none
 8. GiantSwarmHelmValidator: runs simple validation rules against the chart source files. Checks for rules we
    want to enforce as company policy.
@@ -127,13 +127,24 @@ Helm build pipeline executes in sequence the following set of steps:
     configuration.
     - config options:
         - `--kubelinter-config`: path to optional 'kube-linter' config file
-12. HelmChartBuilder: this step does the actual chart build using Helm by running `helm package`.
+12. HelmTemplateValidator: renders the chart with `helm template` and validates that the rendered manifests
+    are parseable YAML without duplicate mapping keys. Duplicate keys are dangerous because Helm and
+    Kubernetes silently keep only the last value, dropping the earlier configuration. Error messages include
+    the originating template file (from `helm template`'s `# Source:` comments) and the line of both the
+    duplicate and the first occurrence of the key. Rendering happens fully offline with the chart's default
+    `values.yaml` — no cluster is needed (`--validate` is not used).
+    - config options:
+        - `--disable-helm-template-validator`: disable this step completely
+        - `--helm-template-extra-values`: path to an extra values file passed to `helm template` as
+          `--values`; use it for charts that don't render with default values only (e.g. templates using
+          `required`). Can be given multiple times.
+13. HelmChartBuilder: this step does the actual chart build using Helm by running `helm package`.
     - config options:
         - `--destination`: path of a directory to store the packaged Helm chart tgz
-13. HelmChartMetadataFinalizer: completes and writes the metadata files gathered by HelmChartMetadataBuilder.
+14. HelmChartMetadataFinalizer: completes and writes the metadata files gathered by HelmChartMetadataBuilder.
     - Creates the `<chart>-<version>.tgz-meta/` directory with metadata files
     - config options: none
-14. HelmChartYAMLRestorer: restores the original `Chart.yaml` file from the `.back` backup created by
+15. HelmChartYAMLRestorer: restores the original `Chart.yaml` file from the `.back` backup created by
     ChartYamlWriter.
     - Only restores if changes were made during the build
     - Can be disabled to keep the modified Chart.yaml

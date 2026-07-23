@@ -11,6 +11,7 @@ from app_build_suite.build_steps.helm_chart_builder import HelmChartBuilder
 from app_build_suite.build_steps.helm_chart_metadata_builder import HelmChartMetadataBuilder
 from app_build_suite.build_steps.helm_chart_metadata_finalizer import HelmChartMetadataFinalizer
 from app_build_suite.build_steps.helm_chart_tool_linter import HelmChartToolLinter
+from app_build_suite.build_steps.helm_template_validator import HelmTemplateValidator
 from app_build_suite.build_steps.helm_chart_yaml_restorer import HelmChartYAMLRestorer
 from app_build_suite.build_steps.helm_version_setter import HelmVersionSetter
 from app_build_suite.build_steps.helm_home_url_setter import HelmHomeUrlSetter
@@ -37,6 +38,7 @@ class HelmBuildFilteringPipeline(BuildStepsFilteringPipeline):
                 HelmRequirementsUpdater(),
                 HelmChartToolLinter(),
                 KubeLinter(),
+                HelmTemplateValidator(),
                 HelmChartBuilder(),
                 HelmChartMetadataFinalizer(),
                 HelmChartYAMLRestorer(),
