@@ -5,6 +5,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-07-24
+
 ### Added
 
 - New `HelmTemplateValidator` build step: renders the chart with `helm template` and fails the build on YAML
@@ -356,7 +358,8 @@ Initial release
     - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/giantswarm/app-build-suite/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/giantswarm/app-build-suite/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/giantswarm/app-build-suite/compare/v1.8.1...v2.0.0
 [1.8.1]: https://github.com/giantswarm/app-build-suite/compare/v1.3.0...v1.8.1
