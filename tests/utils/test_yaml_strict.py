@@ -50,6 +50,37 @@ EMPTY_DOCS = "---\n---\n"
 
 SYNTAX_ERROR = "key: [unclosed\nother: 1\n  bad indent: {{\n"
 
+# The YAML 1.1 'value' tag: a plain '=' scalar. Taken from the upstream prometheus-operator
+# AlertmanagerConfig CRD 'matchType' enum. Only the bare '=' resolves to the tag; '=~' is a
+# plain string, and '!=' / '!~' have to be quoted because a leading '!' reads as a tag.
+VALUE_TAG_ENUM = """enum:
+- '!='
+- =
+- =~
+- '!~'
+"""
+
+# The YAML 1.1 'merge' tag in key position. Plain yaml.safe_load handles this via
+# SafeConstructor.flatten_mapping, so UniqueKeyLoader must not regress it.
+MERGE_KEY = """base: &base
+  a: 1
+child:
+  <<: *base
+  c: 2
+"""
+
+# The same 'merge' tag reached from value position, where flatten_mapping never sees it.
+MERGE_TAG_IN_LIST = """enum:
+- <<
+"""
+
+# A duplicate alongside the tags above, guarding that the fix doesn't weaken detection.
+DUPLICATE_WITH_VALUE_TAG = """enum:
+- =
+kind: ConfigMap
+kind: Secret
+"""
+
 
 def _load_all(document: str) -> List[object]:
     return list(yaml.load_all(document, Loader=UniqueKeyLoader))
@@ -93,6 +124,27 @@ def test_empty_documents_are_fine(document: str, expected_docs: List[object]) ->
 def test_syntax_error_raises_marked_yaml_error() -> None:
     with pytest.raises(yaml.MarkedYAMLError):
         _load_all(SYNTAX_ERROR)
+
+
+@pytest.mark.parametrize(
+    "document,expected_docs",
+    [
+        (VALUE_TAG_ENUM, [{"enum": ["!=", "=", "=~", "!~"]}]),
+        (MERGE_KEY, [{"base": {"a": 1}, "child": {"a": 1, "c": 2}}]),
+        (MERGE_TAG_IN_LIST, [{"enum": ["<<"]}]),
+    ],
+    ids=["value-tag-enum", "merge-key", "merge-tag-in-list"],
+)
+def test_yaml_11_tags_load_without_error(document: str, expected_docs: List[object]) -> None:
+    """PyYAML resolves the YAML 1.1 'value' ('=') and 'merge' ('<<') tags but SafeConstructor
+    registers no constructor for either, so these used to raise ConstructorError."""
+    assert _load_all(document) == expected_docs
+
+
+def test_duplicate_detection_still_works_alongside_value_tag() -> None:
+    with pytest.raises(DuplicateKeyError) as excinfo:
+        _load_all(DUPLICATE_WITH_VALUE_TAG)
+    assert "duplicate key 'kind'" in str(excinfo.value)
 
 
 @pytest.mark.parametrize(
