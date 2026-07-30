@@ -37,6 +37,20 @@ class UniqueKeyLoader(yaml.SafeLoader):
         return super().construct_mapping(node, deep)
 
 
+def _construct_scalar_as_str(loader: UniqueKeyLoader, node: yaml.ScalarNode) -> str:
+    return loader.construct_scalar(node)
+
+
+# PyYAML implements YAML 1.1, so it resolves a plain '=' to the 'value' tag and a plain '<<' to the
+# 'merge' tag, but SafeConstructor registers no constructor for either. Anything containing them then
+# fails to load: a bare '=' scalar (e.g. the upstream prometheus-operator AlertmanagerConfig
+# 'matchType' enum), or a '<<' merge key -- which SafeLoader itself handles via flatten_mapping, but
+# construct_mapping above constructs key nodes before that happens. YAML 1.2 dropped both tags;
+# treat them as the plain strings they are.
+UniqueKeyLoader.add_constructor("tag:yaml.org,2002:value", _construct_scalar_as_str)
+UniqueKeyLoader.add_constructor("tag:yaml.org,2002:merge", _construct_scalar_as_str)
+
+
 def find_nearest_source(rendered: str, line_no: int) -> Optional[str]:
     """Map a 1-based line in 'helm template' output back to the originating template file
     using the '# Source: <path>' comments helm emits at the start of each document."""

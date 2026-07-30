@@ -5,6 +5,17 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Fixed
+
+- `HelmTemplateValidator` no longer fails on valid manifests containing the YAML 1.1 `value` (`=`) or `merge`
+  (`<<`) tags. PyYAML implements YAML 1.1 and resolves both tags, but `SafeLoader` has no constructor for
+  either, so the post-render parse aborted with "Invalid YAML in the rendered chart" even though
+  `helm template` succeeded and Kubernetes accepts the output. This blocked every chart shipping the upstream
+  prometheus-operator CRDs, whose `AlertmanagerConfig` `matchType` enum contains a bare `=`, and also broke
+  ordinary `<<: *anchor` merge keys that plain `yaml.safe_load` handles. Both now load as plain strings;
+  duplicate-key detection is unchanged. Charts that set `disable-helm-template-validator` to work around this
+  can re-enable the step.
+
 ## [2.2.0] - 2026-07-24
 
 ### Added

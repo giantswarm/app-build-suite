@@ -40,6 +40,57 @@ RENDERED_SYNTAX_ERROR = """---
 key: [unclosed
 """
 
+# A bare '=' resolves to the YAML 1.1 'value' tag and a bare '<<' to the 'merge' tag, neither of
+# which SafeConstructor can build. The CRD document is modelled on the upstream
+# prometheus-operator AlertmanagerConfig 'matchType' enum, which is what surfaced this in CI.
+RENDERED_YAML_11_TAGS = """---
+# Source: my-app/crds/crd-alertmanagerconfigs.yaml
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: alertmanagerconfigs.monitoring.coreos.com
+spec:
+  matchType:
+    enum:
+    - '!='
+    - =
+    - =~
+    - '!~'
+    type: string
+---
+# Source: my-app/templates/alertmanagerconfig.yaml
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: my-app
+spec:
+  route: &defaults
+    groupWait: 30s
+  routes:
+    - <<: *defaults
+      receiver: my-app
+"""
+
+# A real duplicate key in a stream that also contains the value tag. Guards that the tag
+# constructors don't disturb '# Source:' attribution: the error must be blamed on the second
+# document's template, not the CRD the '=' came from.
+RENDERED_VALUE_TAG_WITH_DUPLICATE = """---
+# Source: my-app/crds/crd-alertmanagerconfigs.yaml
+spec:
+  matchType:
+    enum:
+    - =
+---
+# Source: my-app/templates/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: my-app
+  labels:
+    team: my-team
+"""
+
 
 def _run_validator(mocker: MockerFixture, stdout: str, returncode: int = 0) -> unittest.mock.Mock:
     run_res = mocker.Mock(name="RunResult")
@@ -61,6 +112,21 @@ def test_valid_rendered_chart_passes(mocker: MockerFixture) -> None:
     args = run_and_log.call_args.args[0]
     assert args[:3] == ["helm", "template", "abs-validation"]
     assert "--include-crds" in args
+
+
+def test_rendered_chart_with_yaml_11_tags_passes(mocker: MockerFixture) -> None:
+    """A bare '=' scalar and a '<<' merge key are both accepted by Kubernetes, so neither
+    may fail the step."""
+    run_and_log = _run_validator(mocker, RENDERED_YAML_11_TAGS)
+    assert "--include-crds" in run_and_log.call_args.args[0]
+
+
+def test_duplicate_key_is_still_attributed_when_value_tag_present(mocker: MockerFixture) -> None:
+    with pytest.raises(BuildError) as excinfo:
+        _run_validator(mocker, RENDERED_VALUE_TAG_WITH_DUPLICATE)
+    assert "duplicate key 'labels'" in excinfo.value.msg
+    assert "my-app/templates/deployment.yaml" in excinfo.value.msg
+    assert "crd-alertmanagerconfigs.yaml" not in excinfo.value.msg
 
 
 def test_duplicate_key_in_rendered_chart_fails(mocker: MockerFixture) -> None:
