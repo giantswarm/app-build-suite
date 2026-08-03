@@ -1,4 +1,4 @@
-FROM gsoci.azurecr.io/giantswarm/conftest:v0.68.2 AS conftest
+FROM gsoci.azurecr.io/giantswarm/conftest:v0.69.0 AS conftest
 
 FROM gsoci.azurecr.io/giantswarm/app-build-suite:2.2.0
 
