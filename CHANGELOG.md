@@ -5,6 +5,14 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Removed
+
+- `conftest` binary from the `-circleci` image. It was only there for the `helm-conftest` step in
+  architect-orb's `push-to-app-catalog` job, removed in architect-orb v6.3.2. The
+  [deprek8ion](https://github.com/swade1987/deprek8ion) policies it ran have been unmaintained since 2021,
+  and ABS already runs kube-linter over the same manifests. See
+  [roadmap#4066](https://github.com/giantswarm/roadmap/issues/4066).
+
 ### Fixed
 
 - `HelmTemplateValidator` no longer fails on valid manifests containing the YAML 1.1 `value` (`=`) or `merge`
