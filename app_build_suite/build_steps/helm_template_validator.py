@@ -12,11 +12,14 @@ from step_exec_lib.steps import BuildStep
 from step_exec_lib.types import Context, StepType
 from step_exec_lib.utils.processes import run_and_log
 
+from app_build_suite.build_steps.helm_consts import CHART_YAML, context_key_chart_yaml
 from app_build_suite.build_steps.steps import STEP_VALIDATE
 from app_build_suite.errors import BuildError
 from app_build_suite.utils.yaml_strict import DuplicateKeyError, UniqueKeyLoader, find_nearest_source
 
 logger = logging.getLogger(__name__)
+
+LIBRARY_CHART_TYPE = "library"
 
 
 class HelmTemplateValidator(BuildStep):
@@ -82,9 +85,32 @@ class HelmTemplateValidator(BuildStep):
                     f"Values file '{values_file}' configured with '--helm-template-extra-values' doesn't exist.",
                 )
 
-    def run(self, config: argparse.Namespace, _: Context) -> None:
+    def _is_library_chart(self, config: argparse.Namespace, context: Context) -> bool:
+        """
+        Returns True if the chart is a Helm library chart.
+
+        Prefers the Chart.yaml already parsed into context by `ChartYamlLoader`, but falls back to
+        reading it from disk, so the check also works when only the validate step is requested and
+        the loader hasn't run.
+        """
+        chart_yaml = context.get(context_key_chart_yaml) if context else None
+        if chart_yaml is None:
+            try:
+                with open(os.path.join(config.chart_dir, CHART_YAML), "r") as f:
+                    chart_yaml = yaml.safe_load(f)
+            except (OSError, yaml.YAMLError):
+                # Chart.yaml is validated by other steps; don't fail here, just don't skip.
+                return False
+        return (chart_yaml or {}).get("type") == LIBRARY_CHART_TYPE
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         if config.disable_helm_template_validator:
             logger.info("Helm template validation is disabled, skipping.")
+            return
+        if self._is_library_chart(config, context):
+            # `helm template` refuses library charts with "library charts are not installable".
+            # They have no renderable output of their own, so there is nothing to validate.
+            logger.info("Chart is a library chart and cannot be rendered by 'helm template'; skipping.")
             return
         args = [
             self._helm_bin,
