@@ -1,5 +1,6 @@
 import os
 import unittest.mock
+from pathlib import Path
 from typing import cast
 
 import pytest
@@ -236,7 +237,7 @@ def test_chart_without_explicit_type_is_not_skipped(mocker: MockerFixture) -> No
     run_and_log.assert_called_once()
 
 
-def test_library_chart_is_detected_from_disk_without_context(mocker: MockerFixture, tmp_path) -> None:
+def test_library_chart_is_detected_from_disk_without_context(mocker: MockerFixture, tmp_path: Path) -> None:
     """When only the validate step runs, ChartYamlLoader hasn't populated the context, so the
     chart type has to be read from disk."""
     (tmp_path / "Chart.yaml").write_text("name: my-lib\ntype: library\n")
@@ -255,7 +256,7 @@ def test_library_chart_is_detected_from_disk_without_context(mocker: MockerFixtu
     run_and_log.assert_not_called()
 
 
-def test_unreadable_chart_yaml_does_not_skip(mocker: MockerFixture, tmp_path) -> None:
+def test_unreadable_chart_yaml_does_not_skip(mocker: MockerFixture, tmp_path: Path) -> None:
     """A missing or broken Chart.yaml is other steps' problem to report; this step must not
     swallow the validation by silently skipping."""
     run_and_log = mocker.patch(
