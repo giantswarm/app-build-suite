@@ -13,7 +13,22 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
   and ABS already runs kube-linter over the same manifests. See
   [roadmap#4066](https://github.com/giantswarm/roadmap/issues/4066).
 
+### Changed
+
+- `HelmTemplateValidator` now explains how to get past a failed render instead of only echoing helm's
+  error. It always points at `--helm-template-extra-values` for charts that need values to render (e.g.
+  templates using `required`), and when the chart calls helm's `lookup` it additionally notes that `lookup`
+  returns empty under `helm template` — so if the chart depends on that cluster state, no values file can
+  help and `disable-helm-template-validator` is the way out. `lookup` is used **only** to pick the hint,
+  never to skip validation: many charts call it defensively and render fine.
+
 ### Fixed
+
+- `HelmTemplateValidator` now skips Helm **library** charts (`type: library` in `Chart.yaml`) instead of
+  failing the build. `helm template` refuses them outright with "library charts are not installable", so
+  every library chart broke on v2.2.0 unless it set `disable-helm-template-validator` by hand. Library charts
+  have no renderable output of their own, so there is nothing for this step to validate. Charts that added
+  `disable-helm-template-validator: true` purely to work around this can drop it again.
 
 - `HelmTemplateValidator` no longer fails on valid manifests containing the YAML 1.1 `value` (`=`) or `merge`
   (`<<`) tags. PyYAML implements YAML 1.1 and resolves both tags, but `SafeLoader` has no constructor for

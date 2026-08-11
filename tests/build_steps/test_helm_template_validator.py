@@ -1,11 +1,13 @@
 import os
 import unittest.mock
+from pathlib import Path
 from typing import cast
 
 import pytest
 from pytest_mock import MockerFixture
 from step_exec_lib.errors import ValidationError
 
+from app_build_suite.build_steps import helm_template_validator
 from app_build_suite.build_steps.helm_template_validator import HelmTemplateValidator
 from app_build_suite.errors import BuildError
 from tests.build_steps.helpers import init_config_for_step
@@ -150,6 +152,73 @@ def test_failed_helm_template_run_fails(mocker: MockerFixture) -> None:
     assert "'helm template' rendering failed" in excinfo.value.msg
 
 
+def _fail_render_in(mocker: MockerFixture, chart_dir: Path) -> list:
+    """Runs the step against a real chart dir with a failing `helm template`; returns logged errors."""
+    run_res = mocker.Mock(name="RunResult")
+    run_res.returncode = 1
+    run_res.stdout = ""
+    run_res.stderr = "Error: some chart-specific failure"
+    mocker.patch(
+        "app_build_suite.build_steps.helm_template_validator.run_and_log",
+        return_value=run_res,
+    )
+    logged: list = []
+    mocker.patch.object(
+        helm_template_validator.logger, "error", side_effect=lambda msg, *a, **k: logged.append(str(msg))
+    )
+    step = HelmTemplateValidator()
+    config = init_config_for_step(step)
+    config.chart_dir = str(chart_dir)
+    with pytest.raises(BuildError):
+        step.run(config, {})
+    return logged
+
+
+def test_render_failure_hints_at_extra_values(mocker: MockerFixture, tmp_path: Path) -> None:
+    (tmp_path / "templates").mkdir()
+    (tmp_path / "templates" / "deployment.yaml").write_text("kind: Deployment\n")
+    logged = _fail_render_in(mocker, tmp_path)
+    assert any("--helm-template-extra-values" in line for line in logged)
+    assert not any("lookup" in line for line in logged)
+
+
+def test_render_failure_hints_at_lookup_when_used(mocker: MockerFixture, tmp_path: Path) -> None:
+    (tmp_path / "templates").mkdir()
+    (tmp_path / "templates" / "_helpers.tpl").write_text(
+        '{{- $cm := (lookup "v1" "ConfigMap" .Release.Namespace "cfg") -}}\n'
+    )
+    logged = _fail_render_in(mocker, tmp_path)
+    assert any("lookup" in line and "disable-helm-template-validator" in line for line in logged)
+
+
+def test_lookup_is_detected_in_subcharts(mocker: MockerFixture, tmp_path: Path) -> None:
+    nested = tmp_path / "charts" / "upstream" / "templates"
+    nested.mkdir(parents=True)
+    (nested / "cm.yaml").write_text('{{ lookup "v1" "Secret" "ns" "name" }}\n')
+    logged = _fail_render_in(mocker, tmp_path)
+    assert any("lookup" in line for line in logged)
+
+
+def test_lookup_never_causes_a_skip(mocker: MockerFixture, tmp_path: Path) -> None:
+    """Many charts call `lookup` defensively and render fine, so its presence must not skip
+    validation the way `type: library` does — it only changes the hint on failure."""
+    (tmp_path / "templates").mkdir()
+    (tmp_path / "templates" / "_helpers.tpl").write_text('{{ lookup "v1" "ConfigMap" "ns" "n" }}\n')
+    run_res = mocker.Mock(name="RunResult")
+    run_res.returncode = 0
+    run_res.stdout = RENDERED_OK
+    run_res.stderr = ""
+    run_and_log = mocker.patch(
+        "app_build_suite.build_steps.helm_template_validator.run_and_log",
+        return_value=run_res,
+    )
+    step = HelmTemplateValidator()
+    config = init_config_for_step(step)
+    config.chart_dir = str(tmp_path)
+    step.run(config, {})
+    run_and_log.assert_called_once()
+
+
 def test_disabled_validator_skips_run(mocker: MockerFixture) -> None:
     run_and_log = mocker.patch("app_build_suite.build_steps.helm_template_validator.run_and_log")
     step = HelmTemplateValidator()
@@ -201,6 +270,72 @@ def test_missing_extra_values_file_fails_pre_run(mocker: MockerFixture) -> None:
     config.helm_template_extra_values = ["/nonexisting-fhtagn42/values.yaml"]
     with pytest.raises(ValidationError):
         step.pre_run(config)
+
+
+def _run_with_context(mocker: MockerFixture, context: dict) -> unittest.mock.Mock:
+    run_res = mocker.Mock(name="RunResult")
+    run_res.returncode = 0
+    run_res.stdout = RENDERED_OK
+    run_res.stderr = ""
+    run_and_log = mocker.patch(
+        "app_build_suite.build_steps.helm_template_validator.run_and_log",
+        return_value=run_res,
+    )
+    step = HelmTemplateValidator()
+    config = init_config_for_step(step)
+    step.run(config, context)
+    return run_and_log
+
+
+def test_library_chart_is_skipped(mocker: MockerFixture) -> None:
+    """'helm template' rejects library charts ("library charts are not installable"), so the
+    step must skip them instead of failing the build."""
+    run_and_log = _run_with_context(mocker, {"chart_yaml": {"name": "my-lib", "type": "library"}})
+    run_and_log.assert_not_called()
+
+
+def test_application_chart_is_not_skipped(mocker: MockerFixture) -> None:
+    run_and_log = _run_with_context(mocker, {"chart_yaml": {"name": "my-app", "type": "application"}})
+    run_and_log.assert_called_once()
+
+
+def test_chart_without_explicit_type_is_not_skipped(mocker: MockerFixture) -> None:
+    """'type' is optional in Chart.yaml and defaults to 'application'."""
+    run_and_log = _run_with_context(mocker, {"chart_yaml": {"name": "my-app"}})
+    run_and_log.assert_called_once()
+
+
+def test_library_chart_is_detected_from_disk_without_context(mocker: MockerFixture, tmp_path: Path) -> None:
+    """When only the validate step runs, ChartYamlLoader hasn't populated the context, so the
+    chart type has to be read from disk."""
+    (tmp_path / "Chart.yaml").write_text("name: my-lib\ntype: library\n")
+    run_res = mocker.Mock(name="RunResult")
+    run_res.returncode = 0
+    run_res.stdout = RENDERED_OK
+    run_res.stderr = ""
+    run_and_log = mocker.patch(
+        "app_build_suite.build_steps.helm_template_validator.run_and_log",
+        return_value=run_res,
+    )
+    step = HelmTemplateValidator()
+    config = init_config_for_step(step)
+    config.chart_dir = str(tmp_path)
+    step.run(config, {})
+    run_and_log.assert_not_called()
+
+
+def test_unreadable_chart_yaml_does_not_skip(mocker: MockerFixture, tmp_path: Path) -> None:
+    """A missing or broken Chart.yaml is other steps' problem to report; this step must not
+    swallow the validation by silently skipping."""
+    run_and_log = mocker.patch(
+        "app_build_suite.build_steps.helm_template_validator.run_and_log",
+        return_value=mocker.Mock(returncode=0, stdout=RENDERED_OK, stderr=""),
+    )
+    step = HelmTemplateValidator()
+    config = init_config_for_step(step)
+    config.chart_dir = str(tmp_path / "nonexistent")
+    step.run(config, {})
+    run_and_log.assert_called_once()
 
 
 def test_step_is_registered_in_helm_pipeline() -> None:

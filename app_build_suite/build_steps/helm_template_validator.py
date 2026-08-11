@@ -3,6 +3,7 @@
 import argparse
 import logging
 import os
+import re
 from typing import Set
 
 import configargparse
@@ -12,11 +13,18 @@ from step_exec_lib.steps import BuildStep
 from step_exec_lib.types import Context, StepType
 from step_exec_lib.utils.processes import run_and_log
 
+from app_build_suite.build_steps.helm_consts import CHART_YAML, context_key_chart_yaml
 from app_build_suite.build_steps.steps import STEP_VALIDATE
 from app_build_suite.errors import BuildError
 from app_build_suite.utils.yaml_strict import DuplicateKeyError, UniqueKeyLoader, find_nearest_source
 
 logger = logging.getLogger(__name__)
+
+LIBRARY_CHART_TYPE = "library"
+
+# Matches a call to helm's `lookup` template function, e.g. `(lookup "v1" "ConfigMap" ns name)`.
+# Deliberately loose — this only tailors an error hint, so a false positive is harmless.
+LOOKUP_CALL_RE = re.compile(r"\blookup\s+[\"'(]")
 
 
 class HelmTemplateValidator(BuildStep):
@@ -82,9 +90,67 @@ class HelmTemplateValidator(BuildStep):
                     f"Values file '{values_file}' configured with '--helm-template-extra-values' doesn't exist.",
                 )
 
-    def run(self, config: argparse.Namespace, _: Context) -> None:
+    def _is_library_chart(self, config: argparse.Namespace, context: Context) -> bool:
+        """
+        Returns True if the chart is a Helm library chart.
+
+        Prefers the Chart.yaml already parsed into context by `ChartYamlLoader`, but falls back to
+        reading it from disk, so the check also works when only the validate step is requested and
+        the loader hasn't run.
+        """
+        chart_yaml = context.get(context_key_chart_yaml) if context else None
+        if chart_yaml is None:
+            try:
+                with open(os.path.join(config.chart_dir, CHART_YAML), "r") as f:
+                    chart_yaml = yaml.safe_load(f)
+            except (OSError, yaml.YAMLError):
+                # Chart.yaml is validated by other steps; don't fail here, just don't skip.
+                return False
+        return (chart_yaml or {}).get("type") == LIBRARY_CHART_TYPE
+
+    def _uses_lookup(self, chart_dir: str) -> bool:
+        """
+        Returns True if any template in the chart (or a bundled subchart) calls helm's `lookup`.
+
+        Used only to tailor the failure hint, never to skip validation: plenty of charts call
+        `lookup` defensively and render fine, so its presence says nothing about whether the
+        render should have succeeded.
+        """
+        for root, _, files in os.walk(chart_dir):
+            for name in files:
+                if not name.endswith((".yaml", ".yml", ".tpl", ".txt")):
+                    continue
+                try:
+                    with open(os.path.join(root, name), "r", errors="replace") as f:
+                        if LOOKUP_CALL_RE.search(f.read()):
+                            return True
+                except OSError:
+                    continue
+        return False
+
+    def _render_failure_hints(self, config: argparse.Namespace) -> str:
+        """Explains the two ways out of a failed render, since helm's own error says neither."""
+        hints = [
+            "hint: charts that cannot render with default values alone (e.g. templates using"
+            " 'required') need a values file passed with '--helm-template-extra-values'.",
+        ]
+        if self._uses_lookup(config.chart_dir):
+            hints.append(
+                "hint: this chart calls helm's 'lookup', which always returns empty under"
+                " 'helm template' because there is no cluster to query. If the chart fails without"
+                " that cluster state, no values file can substitute for it — set"
+                " 'disable-helm-template-validator' for this chart instead."
+            )
+        return "\n".join(hints)
+
+    def run(self, config: argparse.Namespace, context: Context) -> None:
         if config.disable_helm_template_validator:
             logger.info("Helm template validation is disabled, skipping.")
+            return
+        if self._is_library_chart(config, context):
+            # `helm template` refuses library charts with "library charts are not installable".
+            # They have no renderable output of their own, so there is nothing to validate.
+            logger.info("Chart is a library chart and cannot be rendered by 'helm template'; skipping.")
             return
         args = [
             self._helm_bin,
@@ -100,6 +166,8 @@ class HelmTemplateValidator(BuildStep):
         if run_res.returncode != 0:
             logger.error(f"{self._helm_bin} template run failed with exit code {run_res.returncode}")
             for line in run_res.stderr.splitlines():
+                logger.error(line)
+            for line in self._render_failure_hints(config).splitlines():
                 logger.error(line)
             raise BuildError(self.name, "'helm template' rendering failed")
         rendered = run_res.stdout
