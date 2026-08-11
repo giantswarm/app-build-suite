@@ -13,6 +13,15 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
   and ABS already runs kube-linter over the same manifests. See
   [roadmap#4066](https://github.com/giantswarm/roadmap/issues/4066).
 
+### Changed
+
+- `HelmTemplateValidator` now explains how to get past a failed render instead of only echoing helm's
+  error. It always points at `--helm-template-extra-values` for charts that need values to render (e.g.
+  templates using `required`), and when the chart calls helm's `lookup` it additionally notes that `lookup`
+  returns empty under `helm template` — so if the chart depends on that cluster state, no values file can
+  help and `disable-helm-template-validator` is the way out. `lookup` is used **only** to pick the hint,
+  never to skip validation: many charts call it defensively and render fine.
+
 ### Fixed
 
 - `HelmTemplateValidator` now skips Helm **library** charts (`type: library` in `Chart.yaml`) instead of
