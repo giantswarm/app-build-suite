@@ -16,6 +16,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
   for both fields overwrites that. Callers cannot express the difference, because the config file loses to
   their command line.
 
+  Passing `--override-app-version` as well keeps the declared value and logs a warning. Taking precedence
+  is a backstop for that caller bug, not the mechanism: a caller that reads the config should not pass the
+  flag at all.
+
   It computes nothing, so it does not reintroduce the git-version derivation removed in 2.0.0. It only
   declines to write one field.
 

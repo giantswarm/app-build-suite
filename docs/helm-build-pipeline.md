@@ -31,12 +31,13 @@ Helm build pipeline executes in sequence the following set of steps:
     - config options:
         - `--override-chart-version`: value to set as the `version` field in `Chart.yaml`
         - `--override-app-version`: value to set as the `appVersion` field in `Chart.yaml`
-        - `--keep-app-version`: keep the `appVersion` declared in `Chart.yaml` and ignore
-          `--override-app-version`. It wins over `--override-app-version` on purpose, and it is meant to be
-          set in the config file (`.abs/main.yaml`): the caller computes the version, but only the
-          repository owning the chart knows whether its `appVersion` means something other than that
-          version. A chart that vendors an upstream release declares that release as its `appVersion`,
-          while its own `version` is the packaging line. `--override-chart-version` is unaffected.
+        - `--keep-app-version`: keep the `appVersion` declared in `Chart.yaml`. Meant to be set in the
+          config file (`.abs/main.yaml`), so the repository owning the chart decides: the caller computes
+          a version, but only the repository knows whether its `appVersion` means something other than
+          that version. A chart that vendors an upstream release declares that release as its
+          `appVersion`, while its own `version` is the packaging line. `--override-chart-version` is
+          unaffected. Passing `--override-app-version` as well is a caller bug: the declared value is
+          kept and a warning is logged, so prefer not passing it at all.
         - `--replace-chart-version-with-git`: **DEPRECATED**, has no effect; use `--override-chart-version`
         - `--replace-app-version-with-git`: **DEPRECATED**, has no effect; use `--override-app-version`
 4. HelmHomeUrlSetter: automatically sets the `home` field in the in-memory `Chart.yaml` to the git remote URL.

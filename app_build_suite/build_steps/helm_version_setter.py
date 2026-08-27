@@ -24,10 +24,11 @@ class HelmVersionSetter(BuildStep):
     """
     Sets chart `version` and/or `appVersion` from explicit command line arguments.
 
-    `--keep-app-version` opts `appVersion` out of being set at all. It wins over
-    `--override-app-version` on purpose: the caller (a CI pipeline) computes the version, but only the
-    repository owning the chart knows whether `appVersion` means something other than that version, and
-    a config-file option is how the repository says so.
+    `--keep-app-version` opts `appVersion` out of being set at all. It is meant to be set in the config
+    file, so the repository owning the chart decides: the caller computes a version, but only the
+    repository knows whether `appVersion` means something other than that version. Passing both is a
+    caller bug and warns; taking precedence over `--override-app-version` is a backstop, not the
+    mechanism, so a caller that reads the config should simply not pass the flag.
     """
 
     @property
@@ -91,10 +92,14 @@ class HelmVersionSetter(BuildStep):
 
         if config.keep_app_version:
             if config.override_app_version is not None:
-                logger.info(
+                # A caller that knows about --keep-app-version should not pass a value it
+                # cannot apply, so warn rather than discard it quietly.
+                logger.warning(
                     f"Keeping the '{CHART_YAML_APP_VERSION_KEY}' declared in {CHART_YAML}; "
                     f"ignoring --override-app-version '{config.override_app_version}' "
-                    f"because --keep-app-version is set."
+                    f"because --keep-app-version is set. Prefer not passing "
+                    f"--override-app-version at all when the chart keeps its own "
+                    f"{CHART_YAML_APP_VERSION_KEY}."
                 )
         elif config.override_app_version is not None:
             logger.info(f"Overriding 'appVersion' with '{config.override_app_version}' in {CHART_YAML}.")
