@@ -66,6 +66,43 @@ def test_run_override_both_versions() -> None:
     assert context[context_key_changes_made] is True
 
 
+def test_run_keep_app_version_ignores_override() -> None:
+    step = HelmVersionSetter()
+    config = init_config_for_step(step)
+    config.override_chart_version = "1.2.3"
+    config.override_app_version = "1.2.3"
+    config.keep_app_version = True
+    context = _make_context()
+    step.run(config, context)
+    # The chart version is still stamped; only appVersion is left alone.
+    assert context[context_key_chart_yaml][CHART_YAML_CHART_VERSION_KEY] == "1.2.3"
+    assert context[context_key_chart_yaml][CHART_YAML_APP_VERSION_KEY] == "0.0.1"
+    assert context[context_key_changes_made] is True
+
+
+def test_run_keep_app_version_alone_is_noop() -> None:
+    step = HelmVersionSetter()
+    config = init_config_for_step(step)
+    config.keep_app_version = True
+    context = _make_context()
+    step.run(config, context)
+    assert context[context_key_chart_yaml][CHART_YAML_CHART_VERSION_KEY] == "0.0.1"
+    assert context[context_key_chart_yaml][CHART_YAML_APP_VERSION_KEY] == "0.0.1"
+    assert context[context_key_changes_made] is False
+
+
+def test_run_keep_app_version_logs_what_it_ignored(caplog: pytest.LogCaptureFixture) -> None:
+    step = HelmVersionSetter()
+    config = init_config_for_step(step)
+    config.override_app_version = "2.3.4"
+    config.keep_app_version = True
+    context = _make_context()
+    with caplog.at_level(logging.INFO):
+        step.run(config, context)
+    assert "--keep-app-version" in caplog.text
+    assert "2.3.4" in caplog.text
+
+
 def test_pre_run_no_deprecated_flags_no_warning(caplog: pytest.LogCaptureFixture) -> None:
     step = HelmVersionSetter()
     config = init_config_for_step(step)

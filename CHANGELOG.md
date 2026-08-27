@@ -5,6 +5,20 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- `--keep-app-version` on `HelmVersionSetter`: keeps the `appVersion` declared in `Chart.yaml` and ignores
+  `--override-app-version`. `--override-chart-version` is unaffected, so the chart version is still stamped.
+
+  It is meant to be set in the config file (`.abs/main.yaml`), which makes it the repository's decision
+  rather than the calling pipeline's. A chart that vendors an upstream release declares that release as its
+  `appVersion`, while its own `version` is the packaging line; a pipeline that passes one computed version
+  for both fields overwrites that. Callers cannot express the difference, because the config file loses to
+  their command line.
+
+  It computes nothing, so it does not reintroduce the git-version derivation removed in 2.0.0. It only
+  declines to write one field.
+
 ## [2.3.0] - 2026-08-18
 
 ### Removed
