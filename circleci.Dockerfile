@@ -1,4 +1,4 @@
-FROM gsoci.azurecr.io/giantswarm/app-build-suite:2.2.0
+FROM gsoci.azurecr.io/giantswarm/app-build-suite:2.3.0
 
 RUN apt-get update && apt-get install -y openssh-client curl jq wget gh
 
