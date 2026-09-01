@@ -33,13 +33,14 @@ release: docker-test release_ver_to_code
 
 release_ver_to_code:
 	$(call check_defined, TAG)
-	sed -i "s/version = \".*\"/version = \"$${TAG#v}\"/" pyproject.toml
+	sed -i.sedbak "s/version = \".*\"/version = \"$${TAG#v}\"/" pyproject.toml && rm -f pyproject.toml.sedbak
 	uv lock
 	echo "build_ver = \"${TAG}\"" > app_build_suite/version.py
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
-	sed -i "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh
-	sed -i "3s/:.*/:$${TAG#v}/" circleci.Dockerfile
+	sed -i.sedbak "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh && rm -f dabs.sh.sedbak
+	sed -i.sedbak -E "s|^(FROM .*app-build-suite):.*|\1:$${TAG#v}|" circleci.Dockerfile && rm -f circleci.Dockerfile.sedbak
+	grep -q "^FROM .*app-build-suite:$${TAG#v}$$" circleci.Dockerfile || { echo "ERROR: failed to bump the app-build-suite base image in circleci.Dockerfile"; exit 1; }
 
 docker-build:
 	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
