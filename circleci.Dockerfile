@@ -28,7 +28,7 @@ RUN set -eux; \
     cosign version
 
 # renovate: datasource=github-releases depName=giantswarm/gitsemver
-ARG GITSEMVER_VER=v2.0.1
+ARG GITSEMVER_VER=v3.0.0
 
 # Install gitsemver to compute chart versions from git state in CircleCI jobs.
 # No upstream checksums file is published for this project's releases; checksum
@@ -38,11 +38,10 @@ RUN set -eux; \
     case "$arch" in amd64|arm64) ;; *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
     base="https://github.com/giantswarm/gitsemver/releases/download/${GITSEMVER_VER}"; \
     curl --silent --show-error --fail --location --retry 5 --retry-delay 2 \
-    -o /tmp/gitsemver.tar.gz "${base}/gitsemver-${GITSEMVER_VER}-linux-${arch}.tar.gz"; \
-    tar -xz -f /tmp/gitsemver.tar.gz --strip-components=1 -C /tmp "gitsemver-${GITSEMVER_VER}-linux-${arch}/gitsemver"; \
+    -o /tmp/gitsemver "${base}/gitsemver-linux-${arch}"; \
     test -f /tmp/gitsemver; \
     install -m 0755 /tmp/gitsemver /usr/local/bin/gitsemver; \
-    rm -f /tmp/gitsemver.tar.gz /tmp/gitsemver; \
+    rm -f /tmp/gitsemver; \
     gitsemver --version
 
 # Setup ssh config for github.com
