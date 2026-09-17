@@ -28,21 +28,27 @@ RUN set -eux; \
     cosign version
 
 # renovate: datasource=github-releases depName=giantswarm/gitsemver
-ARG GITSEMVER_VER=v2.0.1
+ARG GITSEMVER_VER=v3.0.0
 
 # Install gitsemver to compute chart versions from git state in CircleCI jobs.
-# No upstream checksums file is published for this project's releases; checksum
-# verification is therefore omitted (unlike cosign above).
+# No upstream checksums file is published, but v3.0.0 and later ship a sigstore
+# bundle per asset, signed keylessly by the gitsemver CircleCI project. The
+# identity regexp pins that project's id; the pipeline-definition id that
+# follows it in the certificate SAN can change between releases.
 RUN set -eux; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in amd64|arm64) ;; *) echo "unsupported arch $arch" >&2; exit 1 ;; esac; \
     base="https://github.com/giantswarm/gitsemver/releases/download/${GITSEMVER_VER}"; \
     curl --silent --show-error --fail --location --retry 5 --retry-delay 2 \
-    -o /tmp/gitsemver.tar.gz "${base}/gitsemver-${GITSEMVER_VER}-linux-${arch}.tar.gz"; \
-    tar -xz -f /tmp/gitsemver.tar.gz --strip-components=1 -C /tmp "gitsemver-${GITSEMVER_VER}-linux-${arch}/gitsemver"; \
-    test -f /tmp/gitsemver; \
+    -o /tmp/gitsemver "${base}/gitsemver-linux-${arch}"; \
+    curl --silent --show-error --fail --location --retry 5 --retry-delay 2 \
+    -o /tmp/gitsemver.bundle "${base}/gitsemver-linux-${arch}.bundle"; \
+    cosign verify-blob --bundle /tmp/gitsemver.bundle \
+    --certificate-oidc-issuer https://oidc.circleci.com \
+    --certificate-identity-regexp '^https://circleci[.]com/api/v2/projects/45b06616-51d8-4608-ac84-fdee808d7a3d/' \
+    /tmp/gitsemver; \
     install -m 0755 /tmp/gitsemver /usr/local/bin/gitsemver; \
-    rm -f /tmp/gitsemver.tar.gz /tmp/gitsemver; \
+    rm -f /tmp/gitsemver /tmp/gitsemver.bundle; \
     gitsemver --version
 
 # Setup ssh config for github.com

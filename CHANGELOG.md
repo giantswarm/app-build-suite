@@ -5,6 +5,17 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Changed
+
+- Bumped `gitsemver` in the `-circleci` image from v2.0.1 to v3.0.0. v3 generates the new dev version
+  schema `X.Y.Z-r<branch-hash>t<timestamp>h<sha>`, which never produces an invalid Kubernetes label value.
+- The gitsemver install step downloads the raw `gitsemver-linux-<arch>` binary instead of a `.tar.gz`
+  archive. gitsemver stopped publishing those archives in
+  [gitsemver#260](https://github.com/giantswarm/gitsemver/pull/260), so the old URL 404s on v3.0.0.
+- The gitsemver install step now verifies the downloaded binary with `cosign verify-blob` against the
+  sigstore bundle that gitsemver publishes per release asset since v3.0.0. The step was unverified before,
+  because v2 published neither checksums nor bundles.
+
 ## [2.3.0] - 2026-08-18
 
 ### Removed
