@@ -5,6 +5,17 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- `HelmImageReferenceValidator`, a validate step right after `HelmTemplateValidator`: it resolves every image
+  reference the rendered chart pulls from `gsoci.azurecr.io` against the registry (an anonymous manifest
+  `HEAD` through the OCI distribution API) and fails the build when the registry does not carry the tag or
+  digest, naming the reference and the template it renders from. A chart published with such a reference
+  cannot start its pods; a Renovate bump of a mirrored third-party image tag that the mirror had not copied
+  yet was released this way and took the service down until the mirror caught up. Images on other registries
+  are not resolved. `--disable-helm-image-reference-validator` skips the step; with the template validator
+  disabled there is no render and the step reports that it checked nothing.
+
 ### Changed
 
 - Bumped `gitsemver` in the `-circleci` image from v2.0.1 to v3.0.0. v3 generates the new dev version

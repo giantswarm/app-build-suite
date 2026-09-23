@@ -19,6 +19,7 @@ context_key_meta_dir_path: str = "meta_dir_path"
 context_key_chart_lock_files_to_restore: str = "chart_lock_files_to_restore"
 context_key_original_chart_yaml: str = "original_chart_yaml"
 context_key_artifacthub_readme_copied: str = "artifacthub_readme_copied"
+context_key_rendered_chart: str = "rendered_chart"
 
 
 class BlockLiteralStr(str):
