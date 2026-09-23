@@ -348,3 +348,19 @@ def test_step_is_registered_in_helm_pipeline() -> None:
     assert HelmTemplateValidator in step_types
     # must render before packaging
     assert step_types.index(HelmTemplateValidator) < step_types.index(HelmChartBuilder)
+
+
+def test_rendered_chart_is_shared_through_the_context(mocker: MockerFixture) -> None:
+    """Later validate steps (the image reference validator) read the render from the context."""
+    from app_build_suite.build_steps.helm_consts import context_key_rendered_chart
+
+    run_res = mocker.Mock(name="RunResult")
+    run_res.returncode = 0
+    run_res.stdout = RENDERED_OK
+    run_res.stderr = ""
+    mocker.patch("app_build_suite.build_steps.helm_template_validator.run_and_log", return_value=run_res)
+    step = HelmTemplateValidator()
+    config = init_config_for_step(step)
+    context: dict = {}
+    step.run(config, context)
+    assert context[context_key_rendered_chart] == RENDERED_OK
