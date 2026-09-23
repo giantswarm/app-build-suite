@@ -5,6 +5,20 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Fixed
+
+- The release stamps its version itself. The `-circleci` image is built `FROM` the plain image of the same
+  pipeline (`ARG ABS_VERSION` in `circleci.Dockerfile`, `ABS_VERSION=${DOCKER_IMAGE_VERSION}` from the
+  architect orb, the job requiring the plain push) instead of a version pinned in the Dockerfile; the
+  Dockerfile writes `version.py` from `VERSION=${DOCKER_IMAGE_VERSION}`, so `abs --version` reports the
+  build's version; and the PyPI publish sets the package version from the tag before `uv build`. Until now
+  only the manual `make release` bumped these pins, while the release is cut by the Create Release workflow,
+  which changes the CHANGELOG alone: `2.4.0-circleci`, the executor image the architect orb uses, was built
+  `FROM app-build-suite:2.3.0` and shipped without `HelmImageReferenceValidator`, `abs --version` in the
+  `2.4.0` image reported `v2.3.1-dev`, and the PyPI publish of v2.4.0 failed on the existing 2.3.0 file. Do
+  not pin `2.4.0-circleci`. The architect orb is 10.7.0, which exports `DOCKER_IMAGE_VERSION`
+  ([#621](https://github.com/giantswarm/app-build-suite/issues/621)).
+
 ## [2.4.0] - 2026-09-23
 
 ### Added
