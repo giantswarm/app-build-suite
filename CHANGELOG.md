@@ -5,6 +5,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-09-23
+
 ### Added
 
 - `HelmImageReferenceValidator`, a validate step right after `HelmTemplateValidator`: it resolves every image
@@ -416,7 +418,8 @@ Initial release
     - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/giantswarm/app-build-suite/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/giantswarm/app-build-suite/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/giantswarm/app-build-suite/compare/v2.1.3...v2.2.0
 [2.1.0]: https://github.com/giantswarm/app-build-suite/compare/v2.0.0...v2.1.0
