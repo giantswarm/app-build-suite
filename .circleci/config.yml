@@ -1,7 +1,7 @@
 version: 2.1
 
 orbs:
-    architect: giantswarm/architect@10.5.0
+    architect: giantswarm/architect@10.7.0
     codecov: codecov/codecov@6.1.0
 
 workflows:
@@ -18,6 +18,9 @@ workflows:
                   name: push-to-registries
                   registries-data: |-
                       public gsoci.azurecr.io ACR_GSOCI_USERNAME ACR_GSOCI_PASSWORD true
+                  # The build version, stamped into version.py by the Dockerfile.
+                  build-args: |
+                      VERSION=${DOCKER_IMAGE_VERSION}
                   requires:
                       - run-tests
                   filters:
@@ -36,6 +39,11 @@ workflows:
                   tag-suffix: "-circleci"
                   registries-data: |-
                       public gsoci.azurecr.io ACR_GSOCI_USERNAME ACR_GSOCI_PASSWORD true
+                  # The -circleci image builds on the plain image this pipeline pushed
+                  # just before (`requires`), at the version without the tag-suffix, so
+                  # it carries the same code and needs no pin bumped at release time.
+                  build-args: |
+                      ABS_VERSION=${DOCKER_IMAGE_VERSION}
                   requires:
                       - run-tests
                       - push-to-registries

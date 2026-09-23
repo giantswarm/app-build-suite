@@ -1,4 +1,9 @@
-FROM gsoci.azurecr.io/giantswarm/app-build-suite:2.3.0
+# The base is the plain app-build-suite image of the same build: the CircleCI
+# job passes ABS_VERSION=${DOCKER_IMAGE_VERSION} (the architect orb's version
+# without the -circleci tag-suffix) and requires the job that pushed that image.
+# The default only serves a local `docker build -f circleci.Dockerfile .`.
+ARG ABS_VERSION=2.4.0
+FROM gsoci.azurecr.io/giantswarm/app-build-suite:${ABS_VERSION}
 
 RUN apt-get update && apt-get install -y openssh-client curl jq wget gh
 
