@@ -12,6 +12,7 @@ from typing import Any, Callable, Dict, Final, Iterator, List, Optional, Set, Tu
 
 import configargparse
 import yaml
+from step_exec_lib.errors import ConfigError
 from step_exec_lib.steps import BuildStep
 from step_exec_lib.types import Context, StepType
 
@@ -25,6 +26,8 @@ logger = logging.getLogger(__name__)
 # The registries whose references are resolved: Giant Swarm's public registry, where every chart built here
 # pulls its images from, its own builds and the mirrored third-party images alike. It answers anonymously.
 CHECKED_REGISTRIES: Final[Tuple[str, ...]] = ("gsoci.azurecr.io",)
+
+OWN_IMAGE_OPTION: Final[str] = "--helm-image-reference-validator-own-image"
 
 IMAGE_KEY: Final[str] = "image"
 DEFAULT_REGISTRY: Final[str] = "docker.io"
@@ -67,6 +70,11 @@ class ImageReference:
         """What the kubelet pulls: the digest when there is one, the tag otherwise."""
         return self.digest or self.tag
 
+    @property
+    def name(self) -> str:
+        """The image repository with its registry, e.g. `gsoci.azurecr.io/giantswarm/my-app`."""
+        return f"{self.registry}/{self.repository}"
+
 
 def parse_image_reference(value: str) -> Optional[ImageReference]:
     """Splits an image reference into its parts; None when the value is not a plain image reference
@@ -88,6 +96,16 @@ def parse_image_reference(value: str) -> Optional[ImageReference]:
         tag=match.group("tag") or DEFAULT_TAG,
         digest=match.group("digest"),
     )
+
+
+def parse_image_name(value: str) -> Optional[str]:
+    """The `registry/repository` an image name without tag or digest stands for, under the same rule as a
+    reference ("giantswarm/app" is on docker.io); None when the value is no such name."""
+    match = _IMAGE_REFERENCE_RE.match(value)
+    if match is None or match.group("tag") or match.group("digest"):
+        return None
+    image = parse_image_reference(value)
+    return image.name if image else None
 
 
 def _image_value_nodes(node: Optional[yaml.Node]) -> Iterator[yaml.ScalarNode]:
@@ -185,6 +203,9 @@ class HelmImageReferenceValidator(BuildStep):
     Resolves every image reference the rendered chart pulls from a checked registry and fails the build when
     the registry does not carry the tag or digest: a chart published like that cannot start its pods, and a
     bump of a mirrored third-party image tag that the mirror has not copied yet ships exactly that.
+
+    A chart built before its pipeline pushes its own image names that image with `--helm-image-reference-
+    validator-own-image`: its reference at the version this build stamps is not resolved, every other is.
     """
 
     def __init__(self, registry_client: Optional[RegistryClient] = None) -> None:
@@ -203,6 +224,37 @@ class HelmImageReferenceValidator(BuildStep):
             help="Disable resolving the image references of the rendered chart against"
             f" {', '.join(CHECKED_REGISTRIES)}.",
         )
+        config_parser.add_argument(
+            OWN_IMAGE_OPTION,
+            required=False,
+            action="append",
+            help="An image this pipeline builds and pushes after the chart build, named without tag (e.g."
+            " 'gsoci.azurecr.io/giantswarm/my-app'). Its reference at the version '--override-app-version' stamps"
+            " is not resolved; every other reference is, the same image at any other tag included. Can be used"
+            " multiple times.",
+        )
+
+    def pre_run(self, config: argparse.Namespace) -> None:
+        if config.disable_helm_image_reference_validator:
+            return
+        if self._own_images(config) and config.override_app_version is None:
+            logger.warning(
+                f"'{OWN_IMAGE_OPTION}' is set, but '--override-app-version' is not: this build stamps no version,"
+                " so every image reference is resolved, the own images' included."
+            )
+
+    @staticmethod
+    def _own_images(config: argparse.Namespace) -> Set[str]:
+        names: Set[str] = set()
+        for value in config.helm_image_reference_validator_own_image or []:
+            name = parse_image_name(value)
+            if name is None:
+                raise ConfigError(
+                    OWN_IMAGE_OPTION,
+                    f"'{value}' is not an image name without tag or digest, like 'gsoci.azurecr.io/giantswarm/my-app'.",
+                )
+            names.add(name)
+        return names
 
     def run(self, config: argparse.Namespace, context: Context) -> None:
         if config.disable_helm_image_reference_validator:
@@ -219,8 +271,11 @@ class HelmImageReferenceValidator(BuildStep):
             references = extract_image_references(rendered)
         except yaml.YAMLError as e:
             raise BuildError(self.name, f"Cannot parse the rendered chart: {e}")
+        own_images = self._own_images(config)
+        stamped_version = config.override_app_version
 
         checked = 0
+        own = 0
         problems: List[str] = []
         for value in sorted(references):
             templates = ", ".join(sorted(references[value]))
@@ -230,6 +285,14 @@ class HelmImageReferenceValidator(BuildStep):
                 continue
             if image.registry not in CHECKED_REGISTRIES:
                 logger.debug(f"'{value}' is on {image.registry}, which is not checked (template: {templates}).")
+                continue
+            # A digest never equals a version, so only a tag reference at the stamped version is exempt.
+            if image.name in own_images and image.manifest_reference == stamped_version:
+                own += 1
+                logger.info(
+                    f"'{value}' is this pipeline's own image at the version it stamps, pushed after the chart"
+                    f" build, so it is not resolved (template: {templates})."
+                )
                 continue
             try:
                 exists = self._registry_client.manifest_exists(image)
@@ -248,14 +311,16 @@ class HelmImageReferenceValidator(BuildStep):
             for line in self._hints():
                 logger.error(line)
             raise BuildError(self.name, f"{len(problems)} image reference(s) cannot be pulled: {'; '.join(problems)}")
-        logger.info(f"{checked} image reference(s) resolved in {', '.join(CHECKED_REGISTRIES)}, all present.")
+        own_note = f", {own} own image reference(s) at {stamped_version} not resolved" if own else ""
+        logger.info(f"{checked} image reference(s) resolved in {', '.join(CHECKED_REGISTRIES)}, all present{own_note}.")
 
     @staticmethod
     def _hints() -> List[str]:
         return [
             "hint: a tag the registry does not carry is either not published yet (an image this pipeline"
-            " builds: the chart job must 'require' the image job) or not mirrored yet (a third-party image:"
-            " the mirror must carry the tag before the chart references it).",
+            " builds: the chart job must 'require' the image job, or name the image with"
+            f" '{OWN_IMAGE_OPTION}' when the chart is built before the push) or not mirrored yet (a third-party"
+            " image: the mirror must carry the tag before the chart references it).",
             "hint: '--disable-helm-image-reference-validator' skips this check; use it only for a chart whose"
             " images are deliberately absent at build time.",
         ]

@@ -150,6 +150,12 @@ Helm build pipeline executes in sequence the following set of steps:
     - config options:
         - `--disable-helm-image-reference-validator`: disable this step completely. When the helm template
           validator is disabled there is no render, and this step reports that it checked nothing.
+        - `--helm-image-reference-validator-own-image`: an image the pipeline builds itself and pushes after
+          the chart build, named without tag (e.g. `gsoci.azurecr.io/giantswarm/my-app`). Its reference at
+          the version `--override-app-version` stamps is not resolved; every other reference is, the same
+          image at any other tag or by digest included. Without `--override-app-version` nothing is exempt.
+          Can be given multiple times (`ABS_HELM_IMAGE_REFERENCE_VALIDATOR_OWN_IMAGE` takes one name or a
+          `[a, b]` list).
 14. HelmChartBuilder: this step does the actual chart build using Helm by running `helm package`.
     - config options:
         - `--destination`: path of a directory to store the packaged Helm chart tgz
