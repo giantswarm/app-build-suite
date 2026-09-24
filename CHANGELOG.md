@@ -5,6 +5,14 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Fixed
+
+- `HelmImageReferenceValidator` does not resolve the images of a Helm test, a manifest whose `helm.sh/hook`
+  annotation names only `test` (or `test-success`): only `helm test` creates it, no install or upgrade pulls
+  those images. A chart whose subchart ships a test pod with an image the mirror does not carry no longer
+  needs `--disable-helm-image-reference-validator`, which also skipped every image the release does pull. A
+  hook that also runs on an install or upgrade event is resolved as before.
+
 ## [2.5.0] - 2026-09-24
 
 ### Added
