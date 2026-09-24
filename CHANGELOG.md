@@ -5,6 +5,16 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- `--helm-image-reference-validator-own-image` (`ABS_HELM_IMAGE_REFERENCE_VALIDATOR_OWN_IMAGE`) names an
+  image the pipeline builds itself, like `gsoci.azurecr.io/giantswarm/my-app`. `HelmImageReferenceValidator`
+  does not resolve its reference at the version `--override-app-version` stamps, and resolves every other
+  reference as before, the same image at any other tag included. A chart built before its own image is
+  pushed (a branch that never pushes it, a tag whose chart build runs beside the image push) no longer needs
+  `--disable-helm-image-reference-validator`, which also skipped every third-party reference
+  ([#624](https://github.com/giantswarm/app-build-suite/issues/624)).
+
 ## [2.4.1] - 2026-09-23
 
 ### Fixed

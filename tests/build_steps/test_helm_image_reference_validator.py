@@ -4,8 +4,10 @@ import urllib.error
 import urllib.request
 from typing import Any, List, Optional, Union
 
+import configargparse
 import pytest
 from pytest_mock import MockerFixture
+from step_exec_lib.errors import ConfigError
 
 from app_build_suite.build_steps import helm_image_reference_validator
 from app_build_suite.build_steps.helm_consts import context_key_rendered_chart
@@ -15,6 +17,7 @@ from app_build_suite.build_steps.helm_image_reference_validator import (
     RegistryClient,
     RegistryError,
     extract_image_references,
+    parse_image_name,
     parse_image_reference,
 )
 from app_build_suite.errors import BuildError
@@ -92,11 +95,24 @@ class FakeRegistryClient:
         return image.reference in self.existing
 
 
-def _run_step(client: FakeRegistryClient, rendered: Optional[str] = RENDERED, disabled: bool = False) -> None:
+OWN_IMAGE = "gsoci.azurecr.io/giantswarm/my-app"
+STAMPED_VERSION = "0.1.0"
+
+
+def _run_step(
+    client: FakeRegistryClient,
+    rendered: Optional[str] = RENDERED,
+    disabled: bool = False,
+    own_images: Optional[List[str]] = None,
+    stamped_version: Optional[str] = None,
+) -> None:
     step = HelmImageReferenceValidator(registry_client=client)  # type: ignore[arg-type]
     config = init_config_for_step(step)
     config.disable_helm_image_reference_validator = disabled
+    config.helm_image_reference_validator_own_image = own_images
+    config.override_app_version = stamped_version
     context = {} if rendered is None else {context_key_rendered_chart: rendered}
+    step.pre_run(config)
     step.run(config, context)
 
 
@@ -192,6 +208,85 @@ def test_every_problem_is_reported_at_once(mocker: MockerFixture) -> None:
     logged = [str(call.args[0]) for call in error.call_args_list]
     assert any("'require' the image job" in line for line in logged)
     assert any("--disable-helm-image-reference-validator" in line for line in logged)
+
+
+@pytest.mark.parametrize(
+    "value, name",
+    [
+        (OWN_IMAGE, OWN_IMAGE),
+        ("localhost:5000/my-app", "localhost:5000/my-app"),
+        ("giantswarm/my-app", "docker.io/giantswarm/my-app"),
+        (f"{OWN_IMAGE}:0.1.0", None),
+        (f"{OWN_IMAGE}@{DIGEST}", None),
+        ("{{ .Values.image }}", None),
+    ],
+)
+def test_parse_image_name(value: str, name: Optional[str]) -> None:
+    assert parse_image_name(value) == name
+
+
+def test_the_own_image_at_the_stamped_version_is_not_resolved(mocker: MockerFixture) -> None:
+    info = mocker.patch.object(helm_image_reference_validator.logger, "info")
+    others = [r for r in GSOCI_REFERENCES if not r.startswith(OWN_IMAGE)]
+    client = FakeRegistryClient(existing=others)
+    _run_step(client, own_images=[OWN_IMAGE], stamped_version=STAMPED_VERSION)
+    assert sorted(client.asked) == others
+    assert any("own image reference(s) at 0.1.0 not resolved" in str(call.args[0]) for call in info.call_args_list)
+
+
+def test_the_own_image_exemption_still_resolves_every_third_party_reference() -> None:
+    client = FakeRegistryClient(existing=["gsoci.azurecr.io/giantswarm/init:1.2.3"])
+    with pytest.raises(BuildError) as excinfo:
+        _run_step(client, own_images=[OWN_IMAGE], stamped_version=STAMPED_VERSION)
+    assert "1 image reference(s) cannot be pulled" in excinfo.value.msg
+    assert "redis_exporter:v1.92.0' does not exist" in excinfo.value.msg
+
+
+@pytest.mark.parametrize(
+    "reference",
+    [f"{OWN_IMAGE}:0.0.9", f"{OWN_IMAGE}:0.1.0@{DIGEST}", "gsoci.azurecr.io/giantswarm/my-app-sidecar:0.1.0"],
+)
+def test_the_own_image_exemption_covers_no_other_tag_digest_or_image(reference: str) -> None:
+    rendered = RENDERED + f"---\n# Source: my-app/templates/job.yaml\nspec:\n  image: {reference}\n"
+    client = FakeRegistryClient(existing=GSOCI_REFERENCES)
+    with pytest.raises(BuildError) as excinfo:
+        _run_step(client, rendered=rendered, own_images=[OWN_IMAGE], stamped_version=STAMPED_VERSION)
+    assert f"'{reference}' does not exist" in excinfo.value.msg
+    assert f"'{OWN_IMAGE}:0.1.0' does not exist" not in excinfo.value.msg
+
+
+@pytest.mark.parametrize(
+    "own_images, stamped_version",
+    [(None, STAMPED_VERSION), ([OWN_IMAGE], None), (["gsoci.azurecr.io/giantswarm/other"], STAMPED_VERSION)],
+)
+def test_without_a_matching_own_image_and_stamped_version_the_own_image_is_resolved(
+    own_images: Optional[List[str]], stamped_version: Optional[str]
+) -> None:
+    client = FakeRegistryClient(existing=[r for r in GSOCI_REFERENCES if not r.startswith(OWN_IMAGE)])
+    with pytest.raises(BuildError) as excinfo:
+        _run_step(client, own_images=own_images, stamped_version=stamped_version)
+    assert f"'{OWN_IMAGE}:0.1.0' does not exist" in excinfo.value.msg
+
+
+def test_an_own_image_without_a_stamped_version_is_warned_about(mocker: MockerFixture) -> None:
+    warning = mocker.patch.object(helm_image_reference_validator.logger, "warning")
+    _run_step(FakeRegistryClient(existing=GSOCI_REFERENCES), own_images=[OWN_IMAGE])
+    assert "'--override-app-version' is not" in str(warning.call_args.args[0])
+
+
+@pytest.mark.parametrize("value", [f"{OWN_IMAGE}:0.1.0", f"{OWN_IMAGE}@{DIGEST}", "not an image"])
+def test_an_own_image_with_a_tag_or_no_image_name_is_a_config_error(value: str) -> None:
+    with pytest.raises(ConfigError) as excinfo:
+        _run_step(FakeRegistryClient(existing=GSOCI_REFERENCES), own_images=[value], stamped_version=STAMPED_VERSION)
+    assert excinfo.value.config_option == "--helm-image-reference-validator-own-image"
+    assert f"'{value}'" in excinfo.value.msg
+
+
+def test_the_own_image_is_settable_through_an_abs_environment_variable(monkeypatch: pytest.MonkeyPatch) -> None:
+    parser = configargparse.ArgParser(auto_env_var_prefix="ABS_")
+    HelmImageReferenceValidator(registry_client=FakeRegistryClient(existing=[])).initialize_config(parser)  # type: ignore[arg-type]
+    monkeypatch.setenv("ABS_HELM_IMAGE_REFERENCE_VALIDATOR_OWN_IMAGE", OWN_IMAGE)
+    assert parser.parse_known_args([])[0].helm_image_reference_validator_own_image == [OWN_IMAGE]
 
 
 def test_disabled_validator_asks_nothing() -> None:
