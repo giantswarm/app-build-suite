@@ -5,6 +5,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-09-24
+
 ### Added
 
 - `--helm-image-reference-validator-own-image` (`ABS_HELM_IMAGE_REFERENCE_VALIDATOR_OWN_IMAGE`) names an
@@ -444,7 +446,8 @@ Initial release
     - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.4.1...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/giantswarm/app-build-suite/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/giantswarm/app-build-suite/compare/v2.4.0...v2.4.1
 [2.4.0]: https://github.com/giantswarm/app-build-suite/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/giantswarm/app-build-suite/compare/v2.2.0...v2.3.0
