@@ -145,8 +145,9 @@ Helm build pipeline executes in sequence the following set of steps:
     the reference and the template it renders from. A chart published with such a reference cannot start its
     pods: the image was either not pushed yet (an image this pipeline builds — the chart job must `require`
     the image job) or not mirrored yet (a third-party image the mirror has not copied). Images on other
-    registries are not resolved. Only what renders with the default values (and
-    `--helm-template-extra-values`) is checked.
+    registries are not resolved, and neither are the images of a Helm test (a manifest whose `helm.sh/hook`
+    names only `test` events): only `helm test` creates it, no install or upgrade pulls them. Only what
+    renders with the default values (and `--helm-template-extra-values`) is checked.
     - config options:
         - `--disable-helm-image-reference-validator`: disable this step completely. When the helm template
           validator is disabled there is no render, and this step reports that it checked nothing.

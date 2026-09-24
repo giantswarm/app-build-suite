@@ -6,6 +6,7 @@ from typing import Any, List, Optional, Union
 
 import configargparse
 import pytest
+import yaml
 from pytest_mock import MockerFixture
 from step_exec_lib.errors import ConfigError
 
@@ -17,6 +18,7 @@ from app_build_suite.build_steps.helm_image_reference_validator import (
     RegistryClient,
     RegistryError,
     extract_image_references,
+    is_test_hook,
     parse_image_name,
     parse_image_reference,
 )
@@ -78,6 +80,24 @@ GSOCI_REFERENCES = [
     "gsoci.azurecr.io/giantswarm/my-app:0.1.0",
     "gsoci.azurecr.io/giantswarm/redis_exporter:v1.92.0",
 ]
+
+# A Helm test from an upstream subchart, pulling an image the mirror does not carry.
+RENDERED_WITH_A_TEST = (
+    RENDERED
+    + """---
+# Source: my-app/charts/upstream/templates/tests/pod.yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-app-tests
+  annotations:
+    helm.sh/hook: test
+spec:
+  containers:
+    - name: tests
+      image: gsoci.azurecr.io/upstream/pytest:1.2.0
+"""
+)
 
 
 class FakeRegistryClient:
@@ -176,6 +196,45 @@ def test_extracts_image_values_with_the_templates_they_render_from() -> None:
     }
     assert found["*"] == {"my-app/templates/policy.yaml"}
     assert "gsoci.azurecr.io/giantswarm/not-under-an-image-key:1.0.0" not in found
+
+
+@pytest.mark.parametrize(
+    "hook, is_test",
+    [
+        ("test", True),
+        ("test-success", True),
+        ("test, test-success", True),
+        ("pre-install", False),
+        ("test,post-install", False),
+        ("", False),
+        (None, False),
+    ],
+)
+def test_is_test_hook(hook: Optional[str], is_test: bool) -> None:
+    annotations = "" if hook is None else f'\n  annotations:\n    helm.sh/hook: "{hook}"'
+    document = yaml.compose(f"apiVersion: v1\nkind: Pod\nmetadata:\n  name: tests{annotations}\n")
+    assert is_test_hook(document) is is_test
+
+
+def test_a_helm_test_s_images_are_not_resolved(mocker: MockerFixture) -> None:
+    info = mocker.patch.object(helm_image_reference_validator.logger, "info")
+    client = FakeRegistryClient(existing=GSOCI_REFERENCES)
+    _run_step(client, rendered=RENDERED_WITH_A_TEST)
+    assert sorted(client.asked) == GSOCI_REFERENCES
+    logged = [str(call.args[0]) for call in info.call_args_list]
+    assert any(
+        "'gsoci.azurecr.io/upstream/pytest:1.2.0' is in a Helm test" in line
+        and "my-app/charts/upstream/templates/tests/pod.yaml" in line
+        for line in logged
+    )
+
+
+def test_a_hook_that_also_runs_on_install_is_resolved() -> None:
+    rendered = RENDERED_WITH_A_TEST.replace("helm.sh/hook: test", "helm.sh/hook: test,post-install")
+    client = FakeRegistryClient(existing=GSOCI_REFERENCES)
+    with pytest.raises(BuildError) as excinfo:
+        _run_step(client, rendered=rendered)
+    assert "'gsoci.azurecr.io/upstream/pytest:1.2.0' does not exist in gsoci.azurecr.io" in excinfo.value.msg
 
 
 def test_every_checked_registry_reference_is_resolved_once_and_others_are_not(mocker: MockerFixture) -> None:

@@ -8,7 +8,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Final, Iterator, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Final, FrozenSet, Iterator, List, Optional, Set, Tuple
 
 import configargparse
 import yaml
@@ -30,6 +30,10 @@ CHECKED_REGISTRIES: Final[Tuple[str, ...]] = ("gsoci.azurecr.io",)
 OWN_IMAGE_OPTION: Final[str] = "--helm-image-reference-validator-own-image"
 
 IMAGE_KEY: Final[str] = "image"
+HOOK_ANNOTATION: Final[str] = "helm.sh/hook"
+# The hook events of a Helm test: `test`, and `test-success`, its Helm 2 name. Only `helm test` creates a
+# manifest carrying nothing else; no install, upgrade or rollback does.
+TEST_HOOK_EVENTS: Final[FrozenSet[str]] = frozenset({"test", "test-success"})
 DEFAULT_REGISTRY: Final[str] = "docker.io"
 DEFAULT_TAG: Final[str] = "latest"
 REQUEST_TIMEOUT_SECONDS: Final[int] = 30
@@ -124,13 +128,40 @@ def _image_value_nodes(node: Optional[yaml.Node]) -> Iterator[yaml.ScalarNode]:
             yield from _image_value_nodes(item)
 
 
+def _mapping_value(node: Optional[yaml.Node], key: str) -> Optional[yaml.Node]:
+    if isinstance(node, yaml.MappingNode):
+        for key_node, value_node in node.value:
+            if isinstance(key_node, yaml.ScalarNode) and key_node.value == key:
+                return value_node
+    return None
+
+
+def is_test_hook(document: Optional[yaml.Node]) -> bool:
+    """Whether the manifest is a Helm test: every event its `helm.sh/hook` annotation names is a test event, so
+    only `helm test` creates it and no release installs it."""
+    annotations = _mapping_value(_mapping_value(document, "metadata"), "annotations")
+    hook = _mapping_value(annotations, HOOK_ANNOTATION)
+    if not isinstance(hook, yaml.ScalarNode):
+        return False
+    events = {event.strip() for event in hook.value.split(",")} - {""}
+    return bool(events) and events <= TEST_HOOK_EVENTS
+
+
 def extract_image_references(rendered: str) -> Dict[str, Set[str]]:
-    """Every string value of an `image` key in the rendered manifests, wherever it sits (a pod's containers
-    and init containers, a custom resource's own spec), mapped to the templates it renders from."""
+    """Every string value of an `image` key in the rendered manifests a release installs, wherever it sits (a
+    pod's containers and init containers, a custom resource's own spec), mapped to the templates it renders
+    from. A Helm test is left out: only `helm test` creates it, so no release pulls its images."""
     found: Dict[str, Set[str]] = {}
     for document in yaml.compose_all(rendered, Loader=UniqueKeyLoader):  # nosec, safe subclass
+        test_hook = is_test_hook(document)
         for value_node in _image_value_nodes(document):
             source = find_nearest_source(rendered, value_node.start_mark.line + 1) or "unknown template"
+            if test_hook:
+                logger.info(
+                    f"'{value_node.value}' is in a Helm test, which only 'helm test' creates, so it is not resolved"
+                    f" (template: {source})."
+                )
+                continue
             found.setdefault(value_node.value, set()).add(source)
     return found
 
@@ -205,7 +236,8 @@ class HelmImageReferenceValidator(BuildStep):
     bump of a mirrored third-party image tag that the mirror has not copied yet ships exactly that.
 
     A chart built before its pipeline pushes its own image names that image with `--helm-image-reference-
-    validator-own-image`: its reference at the version this build stamps is not resolved, every other is.
+    validator-own-image`: its reference at the version this build stamps is not resolved, every other is. A Helm
+    test's images are not resolved either: only `helm test` creates it, no release pulls them.
     """
 
     def __init__(self, registry_client: Optional[RegistryClient] = None) -> None:
