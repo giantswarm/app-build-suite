@@ -39,8 +39,8 @@ release_ver_to_code:
 	$(eval IMG_VER := ${TAG})
 	cp dabs.sh dabs.sh.back
 	sed -i.sedbak "s/:-\".*\"/:-\"$${TAG#v}\"/" dabs.sh && rm -f dabs.sh.sedbak
-	sed -i.sedbak -E "s|^(FROM .*app-build-suite):.*|\1:$${TAG#v}|" circleci.Dockerfile && rm -f circleci.Dockerfile.sedbak
-	grep -q "^FROM .*app-build-suite:$${TAG#v}$$" circleci.Dockerfile || { echo "ERROR: failed to bump the app-build-suite base image in circleci.Dockerfile"; exit 1; }
+	sed -i.sedbak -E "s|^ARG ABS_VERSION=.*|ARG ABS_VERSION=$${TAG#v}|" circleci.Dockerfile && rm -f circleci.Dockerfile.sedbak
+	grep -qx "ARG ABS_VERSION=$${TAG#v}" circleci.Dockerfile || { echo "ERROR: failed to bump the ABS_VERSION default in circleci.Dockerfile"; exit 1; }
 
 docker-build:
 	docker build . -t ${IMG}:latest -t ${IMG}:${IMG_VER}
