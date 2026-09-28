@@ -28,7 +28,7 @@ RUN chmod +x /binaries/*
 FROM gsoci.azurecr.io/giantswarm/python:3.13.5-slim AS base
 
 # Install uv from official image
-COPY --from=ghcr.io/astral-sh/uv:0.12.18 /uv /bin/uv
+COPY --from=ghcr.io/astral-sh/uv:0.12.19 /uv /bin/uv
 ENV UV_PYTHON_INSTALL_DIR=/opt/uv/python
 
 ENV LANG=C.UTF-8 \
@@ -59,6 +59,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY README.md ${ABS_DIR}/
 COPY resources/ ${ABS_DIR}/resources/
 COPY app_build_suite/ ${ABS_DIR}/app_build_suite/
+
+# The version `abs --version` reports. The CircleCI job passes the computed
+# build version (VERSION=${DOCKER_IMAGE_VERSION}: 2.4.0 on the tag pipeline, a
+# dev version on a branch); a local build without it stays a dev build.
+ARG VERSION=0.0.0-dev
+RUN printf 'build_ver = "v%s"\n' "${VERSION}" > ${ABS_DIR}/app_build_suite/version.py
 
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=uv.lock,target=uv.lock \

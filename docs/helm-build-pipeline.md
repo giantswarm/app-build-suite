@@ -138,13 +138,32 @@ Helm build pipeline executes in sequence the following set of steps:
         - `--helm-template-extra-values`: path to an extra values file passed to `helm template` as
           `--values`; use it for charts that don't render with default values only (e.g. templates using
           `required`). Can be given multiple times.
-13. HelmChartBuilder: this step does the actual chart build using Helm by running `helm package`.
+13. HelmImageReferenceValidator: resolves every image reference the rendered chart (from step 12) pulls
+    from `gsoci.azurecr.io` against the registry — an anonymous manifest `HEAD` through the OCI distribution
+    API for each distinct `image:` value, wherever it sits in the manifests (containers, init containers, a
+    custom resource's spec) — and fails the build when the registry does not carry the tag or digest, naming
+    the reference and the template it renders from. A chart published with such a reference cannot start its
+    pods: the image was either not pushed yet (an image this pipeline builds — the chart job must `require`
+    the image job) or not mirrored yet (a third-party image the mirror has not copied). Images on other
+    registries are not resolved, and neither are the images of a Helm test (a manifest whose `helm.sh/hook`
+    names only `test` events): only `helm test` creates it, no install or upgrade pulls them. Only what
+    renders with the default values (and `--helm-template-extra-values`) is checked.
+    - config options:
+        - `--disable-helm-image-reference-validator`: disable this step completely. When the helm template
+          validator is disabled there is no render, and this step reports that it checked nothing.
+        - `--helm-image-reference-validator-own-image`: an image the pipeline builds itself and pushes after
+          the chart build, named without tag (e.g. `gsoci.azurecr.io/giantswarm/my-app`). Its reference at
+          the version `--override-app-version` stamps is not resolved; every other reference is, the same
+          image at any other tag or by digest included. Without `--override-app-version` nothing is exempt.
+          Can be given multiple times (`ABS_HELM_IMAGE_REFERENCE_VALIDATOR_OWN_IMAGE` takes one name or a
+          `[a, b]` list).
+14. HelmChartBuilder: this step does the actual chart build using Helm by running `helm package`.
     - config options:
         - `--destination`: path of a directory to store the packaged Helm chart tgz
-14. HelmChartMetadataFinalizer: completes and writes the metadata files gathered by HelmChartMetadataBuilder.
+15. HelmChartMetadataFinalizer: completes and writes the metadata files gathered by HelmChartMetadataBuilder.
     - Creates the `<chart>-<version>.tgz-meta/` directory with metadata files
     - config options: none
-15. HelmChartYAMLRestorer: restores the original `Chart.yaml` file from the `.back` backup created by
+16. HelmChartYAMLRestorer: restores the original `Chart.yaml` file from the `.back` backup created by
     ChartYamlWriter.
     - Only restores if changes were made during the build
     - Can be disabled to keep the modified Chart.yaml

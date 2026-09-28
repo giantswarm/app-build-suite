@@ -13,7 +13,7 @@ from step_exec_lib.steps import BuildStep
 from step_exec_lib.types import Context, StepType
 from step_exec_lib.utils.processes import run_and_log
 
-from app_build_suite.build_steps.helm_consts import CHART_YAML, context_key_chart_yaml
+from app_build_suite.build_steps.helm_consts import CHART_YAML, context_key_chart_yaml, context_key_rendered_chart
 from app_build_suite.build_steps.steps import STEP_VALIDATE
 from app_build_suite.errors import BuildError
 from app_build_suite.utils.yaml_strict import DuplicateKeyError, UniqueKeyLoader, find_nearest_source
@@ -185,3 +185,6 @@ class HelmTemplateValidator(BuildStep):
         except yaml.YAMLError as e:
             raise BuildError(self.name, f"Invalid YAML in the rendered chart: {e}")
         logger.info(f"Rendered chart is valid YAML ({doc_count} documents, no duplicate keys).")
+        # Later validate steps read the render from the context instead of rendering again
+        # (HelmImageReferenceValidator resolves the image references in it).
+        context[context_key_rendered_chart] = rendered

@@ -5,6 +5,57 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## [2.5.1] - 2026-09-24
+
+### Fixed
+
+- `HelmImageReferenceValidator` does not resolve the images of a Helm test, a manifest whose `helm.sh/hook`
+  annotation names only `test` (or `test-success`): only `helm test` creates it, no install or upgrade pulls
+  those images. A chart whose subchart ships a test pod with an image the mirror does not carry no longer
+  needs `--disable-helm-image-reference-validator`, which also skipped every image the release does pull. A
+  hook that also runs on an install or upgrade event is resolved as before.
+
+## [2.5.0] - 2026-09-24
+
+### Added
+
+- `--helm-image-reference-validator-own-image` (`ABS_HELM_IMAGE_REFERENCE_VALIDATOR_OWN_IMAGE`) names an
+  image the pipeline builds itself, like `gsoci.azurecr.io/giantswarm/my-app`. `HelmImageReferenceValidator`
+  does not resolve its reference at the version `--override-app-version` stamps, and resolves every other
+  reference as before, the same image at any other tag included. A chart built before its own image is
+  pushed (a branch that never pushes it, a tag whose chart build runs beside the image push) no longer needs
+  `--disable-helm-image-reference-validator`, which also skipped every third-party reference
+  ([#624](https://github.com/giantswarm/app-build-suite/issues/624)).
+
+## [2.4.1] - 2026-09-23
+
+### Fixed
+
+- The release stamps its version itself. The `-circleci` image is built `FROM` the plain image of the same
+  pipeline (`ARG ABS_VERSION` in `circleci.Dockerfile`, `ABS_VERSION=${DOCKER_IMAGE_VERSION}` from the
+  architect orb, the job requiring the plain push) instead of a version pinned in the Dockerfile; the
+  Dockerfile writes `version.py` from `VERSION=${DOCKER_IMAGE_VERSION}`, so `abs --version` reports the
+  build's version; and the PyPI publish sets the package version from the tag before `uv build`. Until now
+  only the manual `make release` bumped these pins, while the release is cut by the Create Release workflow,
+  which changes the CHANGELOG alone: `2.4.0-circleci`, the executor image the architect orb uses, was built
+  `FROM app-build-suite:2.3.0` and shipped without `HelmImageReferenceValidator`, `abs --version` in the
+  `2.4.0` image reported `v2.3.1-dev`, and the PyPI publish of v2.4.0 failed on the existing 2.3.0 file. Do
+  not pin `2.4.0-circleci`. The architect orb is 10.7.0, which exports `DOCKER_IMAGE_VERSION`
+  ([#621](https://github.com/giantswarm/app-build-suite/issues/621)).
+
+## [2.4.0] - 2026-09-23
+
+### Added
+
+- `HelmImageReferenceValidator`, a validate step right after `HelmTemplateValidator`: it resolves every image
+  reference the rendered chart pulls from `gsoci.azurecr.io` against the registry (an anonymous manifest
+  `HEAD` through the OCI distribution API) and fails the build when the registry does not carry the tag or
+  digest, naming the reference and the template it renders from. A chart published with such a reference
+  cannot start its pods; a Renovate bump of a mirrored third-party image tag that the mirror had not copied
+  yet was released this way and took the service down until the mirror caught up. Images on other registries
+  are not resolved. `--disable-helm-image-reference-validator` skips the step; with the template validator
+  disabled there is no render and the step reports that it checked nothing.
+
 ### Changed
 
 - Bumped `gitsemver` in the `-circleci` image from v2.0.1 to v3.0.0. v3 generates the new dev version
@@ -405,7 +456,11 @@ Initial release
     - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.5.1...HEAD
+[2.5.1]: https://github.com/giantswarm/app-build-suite/compare/v2.5.0...v2.5.1
+[2.5.0]: https://github.com/giantswarm/app-build-suite/compare/v2.4.1...v2.5.0
+[2.4.1]: https://github.com/giantswarm/app-build-suite/compare/v2.4.0...v2.4.1
+[2.4.0]: https://github.com/giantswarm/app-build-suite/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/giantswarm/app-build-suite/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/giantswarm/app-build-suite/compare/v2.1.3...v2.2.0
 [2.1.0]: https://github.com/giantswarm/app-build-suite/compare/v2.0.0...v2.1.0
