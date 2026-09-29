@@ -66,10 +66,16 @@ We encourage adding tests. Execute them with `make docker-test`
 
 ## Releases
 
-At this point, this repository does not make use of the release automation implemented in GitHub actions.
+Releases are normally cut by the GitHub Actions release automation: push a branch named `main#release#<major|minor|patch>`
+(or `main#release#vX.Y.Z`), and the Create Release PR workflow opens the release PR. The build stamps its own version,
+so nothing below is needed on that path.
 
-To create a release, switch to the `master` branch, make sure everything you want to have in your release is committed
-and documented in the CHANGELOG.md file and your git stage is clean. For MacOS users make sure to use GNU Sed.
+`make release` is the manual fallback. To use it, switch to the `main` branch, make sure everything you want to have in your release is committed
+and your git stage is clean.
+
+`make release` does not touch `CHANGELOG.md`, so prepare it first: rename the `## [Unreleased]` heading to
+`## [X.Y.Z] - YYYY-MM-DD`, add a fresh empty `## [Unreleased]` above it, and commit that on its own (by convention
+`chore: prepare CHANGELOG for vX.Y.Z release`).
 
 Now execute:
 
