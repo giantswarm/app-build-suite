@@ -81,12 +81,33 @@ jobs:
 
             - codecov/upload
 
+    # Attaches dabs.sh to the GitHub Release of the tag. The release itself is
+    # created by the create_release GitHub Action, so the upload retries for a
+    # minute in case it does not exist yet. The token is an installation token
+    # of the architect GitHub App, from the architect context.
     publish-github-release:
-        docker:
-            - image: cibuilds/github:0.13
+        executor: architect/architect
         steps:
             - checkout
+            - architect/generate-github-token
             - run:
-                  name: Publish Release on GitHub
+                  name: Upload dabs.sh to the GitHub Release
                   command: |
-                      ghr -t ${TAYLORBOT_CIRCLECI_RELEASE_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} ${CIRCLE_TAG} ./dabs.sh
+                      repo="${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}"
+                      for i in $(seq 1 12); do
+                          if err=$(gh release view "${CIRCLE_TAG}" --repo "${repo}" 2>&1 >/dev/null); then
+                              exec gh release upload "${CIRCLE_TAG}" ./dabs.sh --clobber --repo "${repo}"
+                          fi
+                          # Only a missing release is worth waiting for; anything else
+                          # (a bad token, missing permissions) fails right away.
+                          if [[ "${err}" != *"release not found"* ]]; then
+                              echo "${err}" >&2
+                              exit 1
+                          fi
+                          if [[ "${i}" -lt 12 ]]; then
+                              echo "Release ${CIRCLE_TAG} does not exist yet (attempt ${i}/12); sleeping 5s."
+                              sleep 5
+                          fi
+                      done
+                      echo "Release ${CIRCLE_TAG} still does not exist; giving up uploading dabs.sh." >&2
+                      exit 1
