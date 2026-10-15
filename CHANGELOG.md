@@ -5,6 +5,11 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Changed
+
+- CircleCI uploads `dabs.sh` to the GitHub Release with a token of the architect GitHub App instead of the
+  shared `taylorbot` account's token.
+
 ## [2.5.1] - 2026-09-24
 
 ### Fixed
