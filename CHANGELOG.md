@@ -5,6 +5,18 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-10-15
+
+### Changed
+
+- CircleCI uploads `dabs.sh` to the GitHub Release with a token of the architect GitHub App instead of the
+  shared `taylorbot` account's token.
+- Update helm/chart-testing to v3.15.0
+
+### Security
+
+- Update `cairosvg` to v2.9.1 ([#644](https://github.com/giantswarm/app-build-suite/pull/644)).
+
 ## [2.5.1] - 2026-09-24
 
 ### Fixed
@@ -456,7 +468,8 @@ Initial release
     - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.5.2...HEAD
+[2.5.2]: https://github.com/giantswarm/app-build-suite/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/giantswarm/app-build-suite/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/giantswarm/app-build-suite/compare/v2.4.1...v2.5.0
 [2.4.1]: https://github.com/giantswarm/app-build-suite/compare/v2.4.0...v2.4.1
