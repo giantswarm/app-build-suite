@@ -1,5 +1,7 @@
 import os.path
 import pathlib
+import urllib.error
+from email.message import Message
 
 import pytest
 from configargparse import Namespace
@@ -218,6 +220,40 @@ icon: file://{logo_path}"""
     val = IconIsAlmostSquare()
 
     assert val.validate(config) == expected_result
+
+
+@pytest.mark.parametrize(
+    "fetch_error,expected_result",
+    [
+        (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 404, "Not Found", Message(), None), False),
+        (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 503, "Service Unavailable", Message(), None), True),
+        (urllib.error.URLError("Name or service not known"), True),
+        (TimeoutError("timed out"), True),
+        (ConnectionResetError("Connection reset by peer"), True),
+    ],
+    ids=[
+        "missing icon fails",
+        "5xx is an unreachable icon host",
+        "dns error is an unreachable icon host",
+        "timeout is an unreachable icon host",
+        "connection error is an unreachable icon host",
+    ],
+)
+def test_icon_is_almost_square_validator_fetch_errors(
+    fetch_error: Exception, expected_result: bool, mocker: MockerFixture, config: Namespace
+) -> None:
+    mocker.patch("os.path.exists")
+    mock_open_chart_yaml = mocker.mock_open(read_data="icon: https://s.giantswarm.io/x.svg")
+    mock_opens = mocker.patch("app_build_suite.build_steps.giant_swarm_validators.mixins.open")
+    mock_opens.return_value = mock_open_chart_yaml.return_value
+    mock_urlopen = mocker.patch(
+        "app_build_suite.build_steps.giant_swarm_validators.icon.urllib.request.urlopen", side_effect=fetch_error
+    )
+
+    val = IconIsAlmostSquare()
+
+    assert val.validate(config) == expected_result
+    mock_urlopen.assert_called_once_with("https://s.giantswarm.io/x.svg", timeout=10)
 
 
 @pytest.mark.parametrize(
