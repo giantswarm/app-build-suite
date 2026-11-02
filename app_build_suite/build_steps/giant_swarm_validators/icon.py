@@ -1,5 +1,6 @@
 import argparse
 import os
+import shutil
 import urllib.request
 import urllib.error
 import tempfile
@@ -11,6 +12,7 @@ from PIL import Image
 from cairosvg import svg2png
 from app_build_suite.build_steps.giant_swarm_validators.errors import (
     GiantSwarmValidatorError,
+    IconHostUnreachableError,
 )
 from app_build_suite.build_steps.giant_swarm_validators.mixins import UseChartYaml
 
@@ -65,6 +67,7 @@ class IconDomainIsValid(UseChartYaml):
 
 class IconIsAlmostSquare(UseChartYaml):
     MAX_ALLOWED_DEVIATION: Final[float] = 0.33
+    FETCH_TIMEOUT_SECONDS: Final[int] = 10
 
     def get_check_code(self) -> str:
         return "C0003"
@@ -77,7 +80,15 @@ class IconIsAlmostSquare(UseChartYaml):
             logger.info(f"Icon not found in '{CHART_YAML}'. Skipping icon validation.")
             return True
 
-        img_path = self.fetch_icon_to_tmp(icon_path)
+        # An outage of the icon host must not block every chart build, so only a missing icon fails here.
+        try:
+            img_path = self.fetch_icon_to_tmp(icon_path)
+        except IconHostUnreachableError as e:
+            logger.warning(f"Skipping icon shape validation, the icon host is unreachable: {e.msg}")
+            return True
+        except GiantSwarmValidatorError as e:
+            logger.warning(f"Icon validation failed: {e.msg}")
+            return False
 
         if not self.is_image(img_path):
             try:
@@ -123,9 +134,18 @@ class IconIsAlmostSquare(UseChartYaml):
     def fetch_icon_to_tmp(self, icon_path: str) -> str:
         _, tmp_file_path = tempfile.mkstemp()
         try:
-            return urllib.request.urlretrieve(icon_path, tmp_file_path)[0]  # nosec
-        except urllib.error.URLError as exc:
+            with (
+                urllib.request.urlopen(icon_path, timeout=self.FETCH_TIMEOUT_SECONDS) as response,  # nosec
+                open(tmp_file_path, "wb") as tmp_file,
+            ):
+                shutil.copyfileobj(response, tmp_file)
+        except urllib.error.HTTPError as exc:
+            if exc.code >= 500:
+                raise IconHostUnreachableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            raise IconHostUnreachableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
+        return tmp_file_path
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
         img = Image.open(path)
