@@ -8,6 +8,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 ### Changed
 
 - Update architect to v10.14.9 (giantswarm/app-build-suite#663)
+- Update architect to v10.16.7 (giantswarm/app-build-suite#682)
 
 ## [2.5.2] - 2026-10-15
 
