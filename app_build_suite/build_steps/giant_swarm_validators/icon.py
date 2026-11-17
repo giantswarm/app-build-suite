@@ -1,4 +1,5 @@
 import argparse
+import http.client
 import os
 import shutil
 import urllib.request
@@ -139,23 +140,29 @@ class IconIsAlmostSquare(UseChartYaml):
         fd, tmp_file_path = tempfile.mkstemp()
         os.close(fd)
         try:
+            self._download(icon_path, tmp_file_path)
+        except BaseException:
+            os.remove(tmp_file_path)
+            raise
+        return tmp_file_path
+
+    def _download(self, icon_path: str, tmp_file_path: str) -> None:
+        try:
             with (
                 urllib.request.urlopen(icon_path, timeout=self.FETCH_TIMEOUT_SECONDS) as response,  # nosec
                 open(tmp_file_path, "wb") as tmp_file,
             ):
                 shutil.copyfileobj(response, tmp_file)
         except urllib.error.HTTPError as exc:
-            os.remove(tmp_file_path)
+            exc.close()
             if exc.code == 404 or exc.code >= 500:
                 raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
         except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
-            os.remove(tmp_file_path)
             raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
-        except ValueError as exc:
-            os.remove(tmp_file_path)
-            raise GiantSwarmValidatorError(f"Icon URL '{icon_path}' is malformed. Error: {exc}.")
-        return tmp_file_path
+        except (ValueError, http.client.HTTPException) as exc:
+            # Malformed URLs raise ValueError or http.client.InvalidURL.
+            raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
         img = Image.open(path)

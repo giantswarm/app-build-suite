@@ -12,6 +12,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 - Check `C0004` also fails when the icon URL doesn't use https. A chart with an `http://` icon URL that
   built before now fails the build. (giantswarm/app-build-suite#638)
 - Check `C0003` fails cleanly on a malformed icon URL instead of crashing the build.
+  (giantswarm/app-build-suite#638)
 
 ## [2.6.0] - 2026-11-17
 

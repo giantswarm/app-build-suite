@@ -1,5 +1,6 @@
 import os.path
 import pathlib
+import tempfile
 import urllib.error
 from email.message import Message
 
@@ -258,7 +259,11 @@ def test_icon_is_almost_square_validator_fetch_errors(
     mock_urlopen.assert_called_once_with("https://s.giantswarm.io/x.svg", timeout=10)
 
 
-@pytest.mark.parametrize("icon_url", ["not a url", "''"], ids=["malformed url", "empty url"])
+@pytest.mark.parametrize(
+    "icon_url",
+    ["not a url", "''", "https://s.giantswarm.io/a b.png"],
+    ids=["malformed url", "empty url", "url with a space"],
+)
 def test_icon_is_almost_square_validator_malformed_url_fails(
     icon_url: str, mocker: MockerFixture, config: Namespace
 ) -> None:
@@ -267,9 +272,12 @@ def test_icon_is_almost_square_validator_malformed_url_fails(
     mock_opens = mocker.patch("app_build_suite.build_steps.giant_swarm_validators.mixins.open")
     mock_opens.return_value = mock_open_chart_yaml.return_value
 
+    mock_mkstemp = mocker.spy(tempfile, "mkstemp")
+
     val = IconIsAlmostSquare()
 
     assert not val.validate(config)
+    assert not pathlib.Path(mock_mkstemp.spy_return[1]).exists()
 
 
 @pytest.mark.parametrize(
