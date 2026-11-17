@@ -125,12 +125,14 @@ def _run_step(
     disabled: bool = False,
     own_images: Optional[List[str]] = None,
     stamped_version: Optional[str] = None,
+    chart_version: Optional[str] = None,
 ) -> None:
     step = HelmImageReferenceValidator(registry_client=client)  # type: ignore[arg-type]
     config = init_config_for_step(step)
     config.disable_helm_image_reference_validator = disabled
     config.helm_image_reference_validator_own_image = own_images
     config.override_app_version = stamped_version
+    config.override_chart_version = chart_version
     context = {} if rendered is None else {context_key_rendered_chart: rendered}
     step.pre_run(config)
     step.run(config, context)
@@ -293,6 +295,17 @@ def test_the_own_image_at_the_stamped_version_is_not_resolved(mocker: MockerFixt
     assert any("own image reference(s) at 0.1.0 not resolved" in str(call.args[0]) for call in info.call_args_list)
 
 
+def test_the_own_image_at_the_stamped_chart_version_is_not_resolved_when_app_version_is_kept(
+    mocker: MockerFixture,
+) -> None:
+    info = mocker.patch.object(helm_image_reference_validator.logger, "info")
+    others = [r for r in GSOCI_REFERENCES if not r.startswith(OWN_IMAGE)]
+    client = FakeRegistryClient(existing=others)
+    _run_step(client, own_images=[OWN_IMAGE], chart_version=STAMPED_VERSION)
+    assert sorted(client.asked) == others
+    assert any("own image reference(s) at 0.1.0 not resolved" in str(call.args[0]) for call in info.call_args_list)
+
+
 def test_the_own_image_exemption_still_resolves_every_third_party_reference() -> None:
     client = FakeRegistryClient(existing=["gsoci.azurecr.io/giantswarm/init:1.2.3"])
     with pytest.raises(BuildError) as excinfo:
@@ -330,7 +343,7 @@ def test_without_a_matching_own_image_and_stamped_version_the_own_image_is_resol
 def test_an_own_image_without_a_stamped_version_is_warned_about(mocker: MockerFixture) -> None:
     warning = mocker.patch.object(helm_image_reference_validator.logger, "warning")
     _run_step(FakeRegistryClient(existing=GSOCI_REFERENCES), own_images=[OWN_IMAGE])
-    assert "'--override-app-version' is not" in str(warning.call_args.args[0])
+    assert "neither '--override-app-version' nor '--override-chart-version'" in str(warning.call_args.args[0])
 
 
 @pytest.mark.parametrize("value", [f"{OWN_IMAGE}:0.1.0", f"{OWN_IMAGE}@{DIGEST}", "not an image"])

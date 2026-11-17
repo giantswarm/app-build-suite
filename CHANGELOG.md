@@ -5,6 +5,11 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Changed
+
+- The own-image exemption of the image reference check also covers the `--override-chart-version` tag, so a
+  chart that keeps its declared appVersion can exempt its own image.
+
 ## [2.5.3] - 2026-11-02
 
 ### Changed

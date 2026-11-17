@@ -236,7 +236,8 @@ class HelmImageReferenceValidator(BuildStep):
     bump of a mirrored third-party image tag that the mirror has not copied yet ships exactly that.
 
     A chart built before its pipeline pushes its own image names that image with `--helm-image-reference-
-    validator-own-image`: its reference at the version this build stamps is not resolved, every other is. A Helm
+    validator-own-image`: its reference at a version this build stamps (`--override-app-version`, or
+    `--override-chart-version` for a chart that keeps its declared appVersion) is not resolved, every other is. A Helm
     test's images are not resolved either: only `helm test` creates it, no release pulls them.
     """
 
@@ -261,19 +262,27 @@ class HelmImageReferenceValidator(BuildStep):
             required=False,
             action="append",
             help="An image this pipeline builds and pushes after the chart build, named without tag (e.g."
-            " 'gsoci.azurecr.io/giantswarm/my-app'). Its reference at the version '--override-app-version' stamps"
-            " is not resolved; every other reference is, the same image at any other tag included. Can be used"
-            " multiple times.",
+            " 'gsoci.azurecr.io/giantswarm/my-app'). Its reference at a version this build stamps"
+            " ('--override-app-version' or '--override-chart-version') is not resolved; every other reference is,"
+            " the same image at any other tag included. Can be used multiple times.",
         )
 
     def pre_run(self, config: argparse.Namespace) -> None:
         if config.disable_helm_image_reference_validator:
             return
-        if self._own_images(config) and config.override_app_version is None:
+        if self._own_images(config) and not self._stamped_versions(config):
             logger.warning(
-                f"'{OWN_IMAGE_OPTION}' is set, but '--override-app-version' is not: this build stamps no version,"
-                " so every image reference is resolved, the own images' included."
+                f"'{OWN_IMAGE_OPTION}' is set, but neither '--override-app-version' nor '--override-chart-version'"
+                " is: this build stamps no version, so every image reference is resolved, the own images' included."
             )
+
+    @staticmethod
+    def _stamped_versions(config: argparse.Namespace) -> List[str]:
+        """The versions this build stamps, which the pipeline tags its own images with. A chart that keeps its
+        declared appVersion gets no '--override-app-version' and references its own image at the chart
+        version."""
+        versions = [config.override_app_version, getattr(config, "override_chart_version", None)]
+        return sorted({v for v in versions if v is not None})
 
     @staticmethod
     def _own_images(config: argparse.Namespace) -> Set[str]:
@@ -304,7 +313,7 @@ class HelmImageReferenceValidator(BuildStep):
         except yaml.YAMLError as e:
             raise BuildError(self.name, f"Cannot parse the rendered chart: {e}")
         own_images = self._own_images(config)
-        stamped_version = config.override_app_version
+        stamped_versions = self._stamped_versions(config)
 
         checked = 0
         own = 0
@@ -318,8 +327,8 @@ class HelmImageReferenceValidator(BuildStep):
             if image.registry not in CHECKED_REGISTRIES:
                 logger.debug(f"'{value}' is on {image.registry}, which is not checked (template: {templates}).")
                 continue
-            # A digest never equals a version, so only a tag reference at the stamped version is exempt.
-            if image.name in own_images and image.manifest_reference == stamped_version:
+            # A digest never equals a version, so only a tag reference at a stamped version is exempt.
+            if image.name in own_images and image.manifest_reference in stamped_versions:
                 own += 1
                 logger.info(
                     f"'{value}' is this pipeline's own image at the version it stamps, pushed after the chart"
@@ -343,7 +352,7 @@ class HelmImageReferenceValidator(BuildStep):
             for line in self._hints():
                 logger.error(line)
             raise BuildError(self.name, f"{len(problems)} image reference(s) cannot be pulled: {'; '.join(problems)}")
-        own_note = f", {own} own image reference(s) at {stamped_version} not resolved" if own else ""
+        own_note = f", {own} own image reference(s) at {', '.join(stamped_versions)} not resolved" if own else ""
         logger.info(f"{checked} image reference(s) resolved in {', '.join(CHECKED_REGISTRIES)}, all present{own_note}.")
 
     @staticmethod
