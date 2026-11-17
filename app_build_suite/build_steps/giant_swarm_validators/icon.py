@@ -106,7 +106,7 @@ class IconIsAlmostSquare(UseChartYaml):
         try:
             width, height = self.get_width_height_from_image(img_path)
         except GiantSwarmValidatorError as e:
-            logger.warn(f"Icon validation failed: {e.msg}")
+            logger.warning(f"Icon validation failed: {e.msg}")
             return False
         finally:
             os.remove(img_path)
@@ -136,7 +136,8 @@ class IconIsAlmostSquare(UseChartYaml):
         return tmp_file_path
 
     def fetch_icon_to_tmp(self, icon_path: str) -> str:
-        _, tmp_file_path = tempfile.mkstemp()
+        fd, tmp_file_path = tempfile.mkstemp()
+        os.close(fd)
         try:
             with (
                 urllib.request.urlopen(icon_path, timeout=self.FETCH_TIMEOUT_SECONDS) as response,  # nosec
@@ -144,11 +145,16 @@ class IconIsAlmostSquare(UseChartYaml):
             ):
                 shutil.copyfileobj(response, tmp_file)
         except urllib.error.HTTPError as exc:
+            os.remove(tmp_file_path)
             if exc.code == 404 or exc.code >= 500:
                 raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
         except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            os.remove(tmp_file_path)
             raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
+        except ValueError as exc:
+            os.remove(tmp_file_path)
+            raise GiantSwarmValidatorError(f"Icon URL '{icon_path}' is malformed. Error: {exc}.")
         return tmp_file_path
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:

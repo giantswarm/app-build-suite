@@ -258,6 +258,20 @@ def test_icon_is_almost_square_validator_fetch_errors(
     mock_urlopen.assert_called_once_with("https://s.giantswarm.io/x.svg", timeout=10)
 
 
+@pytest.mark.parametrize("icon_url", ["not a url", "''"], ids=["malformed url", "empty url"])
+def test_icon_is_almost_square_validator_malformed_url_fails(
+    icon_url: str, mocker: MockerFixture, config: Namespace
+) -> None:
+    mocker.patch("os.path.exists")
+    mock_open_chart_yaml = mocker.mock_open(read_data=f"icon: {icon_url}")
+    mock_opens = mocker.patch("app_build_suite.build_steps.giant_swarm_validators.mixins.open")
+    mock_opens.return_value = mock_open_chart_yaml.return_value
+
+    val = IconIsAlmostSquare()
+
+    assert not val.validate(config)
+
+
 @pytest.mark.parametrize(
     "chart_yaml_input,expected_result",
     [
