@@ -5,6 +5,8 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-11-17
+
 ### Changed
 
 - The own-image exemption of the image reference check also covers the `--override-chart-version` tag, so a
@@ -479,7 +481,8 @@ Initial release
     - config file is loaded from `.abs/main.yaml`, not from `.abs.yaml` (for future needs)
 - testing basic classes and pipelines
 
-[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.5.3...HEAD
+[Unreleased]: https://github.com/giantswarm/app-build-suite/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/giantswarm/app-build-suite/compare/v2.5.3...v2.6.0
 [2.5.3]: https://github.com/giantswarm/app-build-suite/compare/v2.5.2...v2.5.3
 [2.5.2]: https://github.com/giantswarm/app-build-suite/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/giantswarm/app-build-suite/compare/v2.5.0...v2.5.1
