@@ -89,10 +89,10 @@ Helm build pipeline executes in sequence the following set of steps:
         - `C0002` `IconExists` - checks if the `icon` field is present in `Chart.yaml` and is not empty.
         - `C0003` `IconIsAlmostSquare` - validates that the icon image is close to a square shape (max 33%
           aspect ratio deviation). Only a well-formed http or https URL is fetched; anything else fails the
-          check. The download has a 10 second timeout for each network operation, 30 seconds in total, and a
-          5 MiB limit; a larger icon fails the check. If the icon host can't be reached (DNS, connection or TLS
-          error, timeout, truncated or garbled response, HTTP 408, 429 or 5xx) or the icon isn't published yet
-          (HTTP 404), the check is skipped with a warning naming the URL. With
+          check. Each network operation has a 10 second timeout, reading the image body is limited to 30
+          seconds in total and 5 MiB, and a larger icon fails the check. If the icon host can't be reached
+          (DNS, connection or TLS error, timeout, truncated or garbled response, HTTP 408, 429 or 5xx) or the
+          icon isn't published yet (HTTP 404), the check is skipped with a warning naming the URL. With
           `--giantswarm-validator-require-published-icon`, HTTP 404 fails the check instead. Any other HTTP
           error, or an error writing the temp file, fails the check.
         - `C0004` `IconDomainIsValid` - validates that the `icon` URL in `Chart.yaml` uses the

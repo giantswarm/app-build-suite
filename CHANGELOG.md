@@ -19,7 +19,7 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
   (giantswarm/app-build-suite#638)
 - Check `C0003` only fetches well-formed http or https URLs and fails the check for anything else, including
   local `file://` paths and non-string `icon` values, without fetching it.
-- Check `C0003` limits the whole download to 30 seconds and 5 MiB. A slower download counts as an
+- Check `C0003` limits reading the icon to 30 seconds and 5 MiB. A slower download counts as an
   unavailable host, a larger icon fails the check.
 - Check `C0004` fails a non-string or malformed `icon` value instead of crashing the build.
 - A Giant Swarm validator that raises an error now counts as a failed check instead of crashing the build,

@@ -405,8 +405,11 @@ def test_icon_is_almost_square_validator_require_published_icon(
 
 
 @pytest.fixture
-def cut_short_icon_url() -> Iterator[str]:
+def cut_short_icon_url(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
     """A real local HTTP server that announces 1000 bytes, sends 100 and closes the connection."""
+    # urllib honours proxy settings from the environment, which must not catch the local server.
+    monkeypatch.setenv("no_proxy", "127.0.0.1")
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1")
 
     class CutShortHandler(http.server.BaseHTTPRequestHandler):
         def do_GET(self) -> None:

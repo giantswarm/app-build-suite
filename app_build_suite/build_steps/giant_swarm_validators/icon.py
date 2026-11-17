@@ -50,7 +50,7 @@ ICON_URL_SCHEMES: Final[frozenset[str]] = frozenset({"http", "https"})
 def parse_icon_url(icon: object) -> Tuple[Optional[str], Optional[str]]:
     """Returns the icon URL's hostname and None, or None and why the icon value isn't a usable web URL."""
     if not isinstance(icon, str):
-        return None, f"Icon in '{CHART_YAML}' must be a URL string, but it is '{icon!r}'."
+        return None, f"Icon in '{CHART_YAML}' must be a URL string, but it is {icon!r}."
     try:
         parsed = urlparse(icon)
         hostname = parsed.hostname
@@ -251,14 +251,10 @@ class IconIsAlmostSquare(UseChartYaml):
 
     @staticmethod
     def _content_length(response: object) -> Optional[int]:
-        headers = getattr(response, "headers", None)
-        value = headers.get("Content-Length") if headers is not None else None
-        if value is None:
-            return None
-        try:
-            return int(value)
-        except (TypeError, ValueError):
-            return None
+        # http.client sets length from Content-Length before the body is read, and leaves it None for a
+        # chunked response, where Content-Length must be ignored.
+        length = getattr(response, "length", None)
+        return length if isinstance(length, int) else None
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
         with Image.open(path) as img:
