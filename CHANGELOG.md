@@ -5,14 +5,26 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Added
+
+- Option `--giantswarm-validator-require-published-icon` makes check `C0003` fail when the icon returns
+  HTTP 404, for repositories that want the icon to exist at build time. (giantswarm/app-build-suite#638)
+
 ### Changed
 
-- Check `C0003` no longer fails the build when the icon returns HTTP 404, so a chart can reference an icon
-  before it's published. It logs a warning naming the URL instead. (giantswarm/app-build-suite#638)
-- Check `C0004` also fails when the icon URL doesn't use https. A chart with an `http://` icon URL that
-  built before now fails the build. (giantswarm/app-build-suite#638)
-- Check `C0003` fails cleanly on a malformed icon URL instead of crashing the build.
+- Check `C0003` no longer fails the build when the icon host is unavailable or the icon isn't published yet.
+  It logs a warning naming the URL and passes instead. This covers HTTP 404, 408, 429 and 5xx, DNS,
+  connection and TLS errors, timeouts, and truncated or garbled responses. HTTP 404, 408 and 429 failed the
+  check before, and TLS errors or truncated responses during the download crashed the build.
   (giantswarm/app-build-suite#638)
+- Check `C0003` only fetches well-formed http or https URLs and fails the check for anything else, including
+  local `file://` paths and non-string `icon` values, without fetching it.
+- Check `C0003` limits the whole download to 30 seconds and 5 MiB. A slower download counts as an
+  unavailable host, a larger icon fails the check.
+- Check `C0004` fails a non-string or malformed `icon` value instead of crashing the build.
+- A Giant Swarm validator that raises an error now counts as a failed check instead of crashing the build,
+  so `--giantswarm-validator-ignored-checks` and `--disable-strict-giantswarm-validator` apply to it.
+- `IconHostUnreachableError` is renamed to `IconUnavailableError`. The old name stays as a deprecated alias.
 
 ## [2.6.0] - 2026-11-17
 

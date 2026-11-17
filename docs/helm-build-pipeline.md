@@ -88,11 +88,14 @@ Helm build pipeline executes in sequence the following set of steps:
           [the example](../examples/apps/hello-world-app/templates/_helpers.yaml) here.
         - `C0002` `IconExists` - checks if the `icon` field is present in `Chart.yaml` and is not empty.
         - `C0003` `IconIsAlmostSquare` - validates that the icon image is close to a square shape (max 33%
-          aspect ratio deviation). The icon is downloaded with a 10 second timeout. If the icon host can't be
-          reached (DNS, connection or TLS error, timeout, truncated response, HTTP 408, 429 or 5xx) or the icon isn't
-          published yet (HTTP 404), the check is skipped with a warning naming the URL. Any other HTTP error or
-          a malformed URL fails the check.
-        - `C0004` `IconDomainIsValid` - validates that the `icon` URL in `Chart.yaml` uses https and the
+          aspect ratio deviation). Only a well-formed http or https URL is fetched; anything else fails the
+          check. The download has a 10 second timeout for each network operation, 30 seconds in total, and a
+          5 MiB limit; a larger icon fails the check. If the icon host can't be reached (DNS, connection or TLS
+          error, timeout, truncated or garbled response, HTTP 408, 429 or 5xx) or the icon isn't published yet
+          (HTTP 404), the check is skipped with a warning naming the URL. With
+          `--giantswarm-validator-require-published-icon`, HTTP 404 fails the check instead. Any other HTTP
+          error, or an error writing the temp file, fails the check.
+        - `C0004` `IconDomainIsValid` - validates that the `icon` URL in `Chart.yaml` uses the
           `s.giantswarm.io` domain. Skipped when no icon is set.
     - Available config options:
         - `--disable-giantswarm-helm-validator` - enabled by default, can disable the whole module
@@ -100,6 +103,9 @@ Helm build pipeline executes in sequence the following set of steps:
           validation rule fails; if disabled, build won't fail even if rules will
         - `--giantswarm-validator-ignored-checks` - each check has its own ID which is printed during build;
           if you want to ignore a subset of checks, put a comma separated list here
+        - `--giantswarm-validator-require-published-icon` - disabled by default; when enabled, check `C0003`
+          fails if the icon returns HTTP 404 instead of skipping it with a warning
+    - A check that raises an error counts as a failed check, so strict mode and the ignored checks apply to it too.
 9. HelmRequirementsUpdater: updates Helm chart dependencies by running `helm dependencies update`.
     - Only runs when `--override-chart-version` is set
     - Requires Chart.yaml on disk (written by ChartYamlWriter in step 7)

@@ -13,6 +13,7 @@ from step_exec_lib.errors import ValidationError
 from step_exec_lib.steps import BuildStep
 from step_exec_lib.types import Context, StepType
 
+from app_build_suite.build_steps.giant_swarm_validators.errors import GiantSwarmValidatorError
 from app_build_suite.build_steps.steps import STEP_VALIDATE
 
 logger = logging.getLogger(__name__)
@@ -60,6 +61,13 @@ class GiantSwarmHelmValidator(BuildStep):
             default="",
             help="Comma-separated list of Giant Swarm validation checks to ignore even if they fail",
         )
+        config_parser.add_argument(
+            "--giantswarm-validator-require-published-icon",
+            required=False,
+            default=False,
+            action="store_true",
+            help="Make check C0003 fail when the icon returns HTTP 404, instead of skipping it with a warning",
+        )
 
     def pre_run(self, config: argparse.Namespace) -> None:
         """Runs a set of Giant Swarm specific validations."""
@@ -81,7 +89,17 @@ class GiantSwarmHelmValidator(BuildStep):
         for validator in gs_validators:
             validator_name = type(validator).__name__
             logger.info(f"Running Giant Swarm validator '{validator.get_check_code()}: {validator_name}'.")
-            if validator.validate(config):
+            try:
+                ok = validator.validate(config)
+            except Exception as e:
+                # A crashing check counts as a failed one, so the ignore list and strict mode still apply.
+                # Only unexpected errors get a traceback.
+                logger.error(
+                    f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' raised an error: {e}",
+                    exc_info=not isinstance(e, GiantSwarmValidatorError),
+                )
+                ok = False
+            if ok:
                 logger.debug(f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' is OK.")
             else:
                 msg = f"Giant Swarm validator '{validator.get_check_code()}: {validator_name}' failed its checks."
