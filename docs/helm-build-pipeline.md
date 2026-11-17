@@ -89,7 +89,7 @@ Helm build pipeline executes in sequence the following set of steps:
         - `C0002` `IconExists` - checks if the `icon` field is present in `Chart.yaml` and is not empty.
         - `C0003` `IconIsAlmostSquare` - validates that the icon image is close to a square shape (max 33%
           aspect ratio deviation). The icon is downloaded with a 10 second timeout. If the icon host can't be
-          reached (DNS, connection or TLS error, timeout, truncated response or HTTP 5xx) or the icon isn't
+          reached (DNS, connection or TLS error, timeout, truncated response, HTTP 408, 429 or 5xx) or the icon isn't
           published yet (HTTP 404), the check is skipped with a warning naming the URL. Any other HTTP error or
           a malformed URL fails the check.
         - `C0004` `IconDomainIsValid` - validates that the `icon` URL in `Chart.yaml` uses https and the

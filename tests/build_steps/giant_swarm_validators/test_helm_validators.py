@@ -229,7 +229,9 @@ icon: file://{logo_path}"""
     "fetch_error,expected_result",
     [
         (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 404, "Not Found", Message(), None), True),
+        (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 429, "Too Many Requests", Message(), None), True),
         (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 403, "Forbidden", Message(), None), False),
+        (OSError(28, "No space left on device"), OSError),
         (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 503, "Service Unavailable", Message(), None), True),
         (urllib.error.URLError("Name or service not known"), True),
         (TimeoutError("timed out"), True),
@@ -239,7 +241,9 @@ icon: file://{logo_path}"""
     ],
     ids=[
         "unpublished icon is skipped",
+        "rate limited is an unreachable icon host",
         "other http error fails",
+        "local disk error is not hidden",
         "5xx is an unreachable icon host",
         "dns error is an unreachable icon host",
         "timeout is an unreachable icon host",
@@ -249,7 +253,7 @@ icon: file://{logo_path}"""
     ],
 )
 def test_icon_is_almost_square_validator_fetch_errors(
-    fetch_error: Exception, expected_result: bool, mocker: MockerFixture, config: Namespace
+    fetch_error: Exception, expected_result: bool | type[OSError], mocker: MockerFixture, config: Namespace
 ) -> None:
     mocker.patch("os.path.exists")
     mock_open_chart_yaml = mocker.mock_open(read_data="icon: https://s.giantswarm.io/x.svg")
@@ -261,7 +265,11 @@ def test_icon_is_almost_square_validator_fetch_errors(
 
     val = IconIsAlmostSquare()
 
-    assert val.validate(config) == expected_result
+    if expected_result is OSError:
+        with pytest.raises(OSError):
+            val.validate(config)
+    else:
+        assert val.validate(config) == expected_result
     mock_urlopen.assert_called_once_with("https://s.giantswarm.io/x.svg", timeout=10)
 
 

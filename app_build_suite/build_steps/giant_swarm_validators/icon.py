@@ -3,6 +3,7 @@ import contextlib
 import http.client
 import os
 import shutil
+import ssl
 import urllib.request
 import urllib.error
 import tempfile
@@ -74,6 +75,8 @@ class IconDomainIsValid(UseChartYaml):
 class IconIsAlmostSquare(UseChartYaml):
     MAX_ALLOWED_DEVIATION: Final[float] = 0.33
     FETCH_TIMEOUT_SECONDS: Final[int] = 10
+    # Not found (not published yet), request timeout and rate limiting; any 5xx is unavailable too.
+    UNAVAILABLE_HTTP_CODES: Final[frozenset[int]] = frozenset({404, 408, 429})
 
     def get_check_code(self) -> str:
         return "C0003"
@@ -157,14 +160,21 @@ class IconIsAlmostSquare(UseChartYaml):
                 shutil.copyfileobj(response, tmp_file)
         except urllib.error.HTTPError as exc:
             exc.close()
-            if exc.code == 404 or exc.code >= 500:
+            if exc.code in self.UNAVAILABLE_HTTP_CODES or exc.code >= 500:
                 raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
         except (ValueError, http.client.InvalidURL) as exc:
             # A malformed URL is the chart's fault, so it fails the check.
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
-        except (OSError, http.client.HTTPException) as exc:
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            ConnectionError,
+            ssl.SSLError,
+            http.client.HTTPException,
+        ) as exc:
             # DNS, connection, TLS and timeout errors, or a truncated or garbled response: the host is at fault.
+            # Local errors, like a full temp dir, are not caught here and still fail the build.
             raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
