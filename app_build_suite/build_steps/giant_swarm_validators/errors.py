@@ -5,5 +5,5 @@ class GiantSwarmValidatorError(Error):
     pass
 
 
-class IconHostUnreachableError(GiantSwarmValidatorError):
-    pass
+class IconUnavailableError(GiantSwarmValidatorError):
+    """The icon can't be fetched right now: its host is down or the icon isn't published yet."""

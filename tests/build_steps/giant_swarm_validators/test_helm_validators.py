@@ -225,14 +225,16 @@ icon: file://{logo_path}"""
 @pytest.mark.parametrize(
     "fetch_error,expected_result",
     [
-        (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 404, "Not Found", Message(), None), False),
+        (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 404, "Not Found", Message(), None), True),
+        (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 403, "Forbidden", Message(), None), False),
         (urllib.error.HTTPError("https://s.giantswarm.io/x.svg", 503, "Service Unavailable", Message(), None), True),
         (urllib.error.URLError("Name or service not known"), True),
         (TimeoutError("timed out"), True),
         (ConnectionResetError("Connection reset by peer"), True),
     ],
     ids=[
-        "missing icon fails",
+        "unpublished icon is skipped",
+        "other http error fails",
         "5xx is an unreachable icon host",
         "dns error is an unreachable icon host",
         "timeout is an unreachable icon host",
@@ -312,12 +314,24 @@ icon: https://raw.githubusercontent.com/giantswarm/hello-world-app/v0.0.1/app-ic
 icon: https://example.com/icon.png""",
             False,
         ),
+        (
+            """
+icon: http://s.giantswarm.io/app-icons/1/png/hello-world-app-light.png""",
+            False,
+        ),
+        (
+            """
+icon: not a url""",
+            False,
+        ),
     ],
     ids=[
         "no icon - skip validation",
         "valid s.giantswarm.io domain",
         "invalid github domain",
         "invalid arbitrary domain",
+        "plain http is rejected",
+        "malformed url is rejected",
     ],
 )
 def test_icon_domain_is_valid(

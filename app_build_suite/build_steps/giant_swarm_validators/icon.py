@@ -12,7 +12,7 @@ from PIL import Image
 from cairosvg import svg2png
 from app_build_suite.build_steps.giant_swarm_validators.errors import (
     GiantSwarmValidatorError,
-    IconHostUnreachableError,
+    IconUnavailableError,
 )
 from app_build_suite.build_steps.giant_swarm_validators.mixins import UseChartYaml
 
@@ -56,6 +56,10 @@ class IconDomainIsValid(UseChartYaml):
             return True
 
         parsed = urlparse(icon_url)
+        if parsed.scheme != "https":
+            logger.info(f"Icon URL '{icon_url}' must use https.")
+            return False
+
         if parsed.hostname != self.ALLOWED_DOMAIN:
             logger.info(
                 f"Icon URL '{icon_url}' uses domain '{parsed.hostname}', but only '{self.ALLOWED_DOMAIN}' is allowed."
@@ -80,11 +84,11 @@ class IconIsAlmostSquare(UseChartYaml):
             logger.info(f"Icon not found in '{CHART_YAML}'. Skipping icon validation.")
             return True
 
-        # An outage of the icon host must not block every chart build, so only a missing icon fails here.
+        # An outage of the icon host or an icon that isn't published yet must not block chart builds.
         try:
             img_path = self.fetch_icon_to_tmp(icon_path)
-        except IconHostUnreachableError as e:
-            logger.warning(f"Skipping icon shape validation, the icon host is unreachable: {e.msg}")
+        except IconUnavailableError as e:
+            logger.warning(f"Skipping icon shape validation, the icon can't be fetched: {e.msg}")
             return True
         except GiantSwarmValidatorError as e:
             logger.warning(f"Icon validation failed: {e.msg}")
@@ -140,11 +144,11 @@ class IconIsAlmostSquare(UseChartYaml):
             ):
                 shutil.copyfileobj(response, tmp_file)
         except urllib.error.HTTPError as exc:
-            if exc.code >= 500:
-                raise IconHostUnreachableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
+            if exc.code == 404 or exc.code >= 500:
+                raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
         except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
-            raise IconHostUnreachableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
+            raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
         return tmp_file_path
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:

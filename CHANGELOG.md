@@ -5,6 +5,12 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ## [Unreleased]
 
+### Changed
+
+- Check `C0003` no longer fails the build when the icon returns HTTP 404, so a chart can reference an icon
+  before it's published. It logs a warning naming the URL instead. (giantswarm/app-build-suite#638)
+- Check `C0004` also fails when the icon URL doesn't use https. (giantswarm/app-build-suite#638)
+
 ## [2.6.0] - 2026-11-17
 
 ### Changed
