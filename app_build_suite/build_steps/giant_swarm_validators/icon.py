@@ -1,4 +1,5 @@
 import argparse
+import contextlib
 import http.client
 import os
 import shutil
@@ -142,7 +143,8 @@ class IconIsAlmostSquare(UseChartYaml):
         try:
             self._download(icon_path, tmp_file_path)
         except BaseException:
-            os.remove(tmp_file_path)
+            with contextlib.suppress(FileNotFoundError):
+                os.remove(tmp_file_path)
             raise
         return tmp_file_path
 
@@ -158,11 +160,12 @@ class IconIsAlmostSquare(UseChartYaml):
             if exc.code == 404 or exc.code >= 500:
                 raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
-        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
-            raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
-        except (ValueError, http.client.HTTPException) as exc:
-            # Malformed URLs raise ValueError or http.client.InvalidURL.
+        except (ValueError, http.client.InvalidURL) as exc:
+            # A malformed URL is the chart's fault, so it fails the check.
             raise GiantSwarmValidatorError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
+        except (OSError, http.client.HTTPException) as exc:
+            # DNS, connection, TLS and timeout errors, or a truncated or garbled response: the host is at fault.
+            raise IconUnavailableError(f"Error fetching icon from '{icon_path}'. Error: {exc}.")
 
     def get_width_height_from_image(self, path: str) -> Tuple[int, int]:
         img = Image.open(path)

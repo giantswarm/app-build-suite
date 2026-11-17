@@ -1,5 +1,7 @@
+import http.client
 import os.path
 import pathlib
+import ssl
 import tempfile
 import urllib.error
 from email.message import Message
@@ -232,6 +234,8 @@ icon: file://{logo_path}"""
         (urllib.error.URLError("Name or service not known"), True),
         (TimeoutError("timed out"), True),
         (ConnectionResetError("Connection reset by peer"), True),
+        (http.client.IncompleteRead(b"partial"), True),
+        (ssl.SSLEOFError("EOF occurred in violation of protocol"), True),
     ],
     ids=[
         "unpublished icon is skipped",
@@ -240,6 +244,8 @@ icon: file://{logo_path}"""
         "dns error is an unreachable icon host",
         "timeout is an unreachable icon host",
         "connection error is an unreachable icon host",
+        "truncated response is an unreachable icon host",
+        "tls error is an unreachable icon host",
     ],
 )
 def test_icon_is_almost_square_validator_fetch_errors(
