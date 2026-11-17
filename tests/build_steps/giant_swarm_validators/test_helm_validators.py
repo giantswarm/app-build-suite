@@ -447,6 +447,56 @@ def test_icon_is_almost_square_validator_cut_short_response_is_unavailable(
     assert_removed(tmp_files)
 
 
+@pytest.fixture
+def chunked_icon_url(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
+    """A real local HTTP server that sends a complete square SVG chunked, with a Content-Length it must ignore."""
+    monkeypatch.setenv("no_proxy", "127.0.0.1")
+    monkeypatch.setenv("NO_PROXY", "127.0.0.1")
+    body = (pathlib.Path(__file__).parent / "test_files" / "test_icon.svg").read_bytes()
+
+    class ChunkedHandler(http.server.BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def do_GET(self) -> None:
+            self.send_response(200)
+            self.send_header("Content-Type", "image/svg+xml")
+            self.send_header("Transfer-Encoding", "chunked")
+            self.send_header("Content-Length", str(len(body) * 10))
+            self.send_header("Connection", "close")
+            self.end_headers()
+            for start in range(0, len(body), 100):
+                part = body[start : start + 100]
+                self.wfile.write(f"{len(part):x}\r\n".encode() + part + b"\r\n")
+            self.wfile.write(b"0\r\n\r\n")
+            self.wfile.flush()
+            self.close_connection = True
+
+        def log_message(self, format: str, *args: object) -> None:
+            pass
+
+    server = http.server.HTTPServer(("127.0.0.1", 0), ChunkedHandler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield f"http://127.0.0.1:{server.server_address[1]}/x.svg"
+    finally:
+        server.shutdown()
+        server.server_close()
+
+
+def test_icon_is_almost_square_validator_chunked_response_is_not_cut_short(
+    chunked_icon_url: str, mocker: MockerFixture, config: Namespace, tmp_files: list[str]
+) -> None:
+    mock_chart_yaml(mocker, f"icon: {chunked_icon_url}")
+    mock_warning = mocker.patch(f"{ICON_MODULE}.logger.warning")
+
+    val = IconIsAlmostSquare()
+
+    assert val.validate(config)
+    mock_warning.assert_not_called()
+    assert_removed(tmp_files)
+
+
 def test_icon_is_almost_square_validator_decompression_bomb_fails(
     mocker: MockerFixture, config: Namespace, tmp_files: list[str]
 ) -> None:

@@ -91,7 +91,7 @@ class IconDomainIsValid(UseChartYaml):
 
 class IconIsAlmostSquare(UseChartYaml):
     MAX_ALLOWED_DEVIATION: Final[float] = 0.33
-    # Timeout for each network operation, and for the whole download.
+    # Timeout for each network operation, and for reading the whole response body.
     FETCH_TIMEOUT_SECONDS: Final[int] = 10
     FETCH_DEADLINE_SECONDS: Final[int] = 30
     MAX_ICON_BYTES: Final[int] = 5 * 1024 * 1024
@@ -202,7 +202,6 @@ class IconIsAlmostSquare(UseChartYaml):
         # Errors from the network side are told apart from local ones by where they're raised: urlopen and
         # response.read1 talk only to the icon host, while opening and writing the temp file is local. Local
         # errors, like a full temp dir, are not caught here, so they fail the check instead of being skipped.
-        deadline = monotonic() + self.FETCH_DEADLINE_SECONDS
         with open(tmp_file_path, "wb") as tmp_file:
             try:
                 response = urllib.request.urlopen(icon_url, timeout=self.FETCH_TIMEOUT_SECONDS)  # nosec
@@ -221,6 +220,7 @@ class IconIsAlmostSquare(UseChartYaml):
                 raise IconUnavailableError(f"Error fetching icon from '{icon_url}'. Error: {exc}.")
 
             with response:
+                deadline = monotonic() + self.FETCH_DEADLINE_SECONDS
                 expected_size = self._content_length(response)
                 size = 0
                 while True:
