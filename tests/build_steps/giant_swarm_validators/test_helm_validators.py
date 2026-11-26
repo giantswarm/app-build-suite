@@ -2,11 +2,13 @@ import errno
 import gzip
 import http.client
 import http.server
+import importlib
 import io
 import itertools
 import os.path
 import pathlib
 import ssl
+import sys
 import tempfile
 import threading
 import urllib.error
@@ -292,6 +294,21 @@ def test_icon_is_almost_square_validator_svg_without_cairo_is_skipped(
     assert val.validate(config) is expected_result
     assert "needs the cairo library" in caplog.text
     assert_removed(tmp_files)
+
+
+def test_icon_module_imports_without_cairo(mocker: MockerFixture) -> None:
+    original_svg2png = icon_module.svg2png
+    # A None entry in sys.modules makes `from cairosvg import svg2png` raise ImportError, like a missing cairo.
+    mocker.patch.dict(sys.modules, {"cairosvg": None})
+    try:
+        importlib.reload(icon_module)
+
+        assert icon_module.svg2png is None
+        assert isinstance(icon_module._cairo_import_error, ImportError)
+    finally:
+        mocker.stopall()
+        importlib.reload(icon_module)
+    assert icon_module.svg2png is original_svg2png
 
 
 @pytest.mark.parametrize(

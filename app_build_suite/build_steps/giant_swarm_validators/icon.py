@@ -217,13 +217,13 @@ class IconIsAlmostSquare(UseChartYaml):
             if data[:2] == b"\x1f\x8b":
                 with gzip.GzipFile(fileobj=io.BytesIO(data)) as gz:
                     data = gz.read(cls.MAX_ICON_BYTES)
-            for _, element in ET.iterparse(io.BytesIO(data), events=("start",)):  # nosec B314 - see the docstring
-                return element.tag == "svg" or element.tag.endswith("}svg")
+            # The first start event is the root element. A document without one raises ParseError.
+            _, root = next(ET.iterparse(io.BytesIO(data), events=("start",)))  # nosec B314 - see the docstring
         except (ET.ParseError, ValueError, LookupError, OSError, EOFError, zlib.error):
             # expat raises ValueError and LookupError for encodings it can't decode, gzip raises OSError,
             # EOFError and zlib.error for broken archives. A truncated one yields what it could decompress.
             return False
-        return False
+        return root.tag == "svg" or root.tag.endswith("}svg")
 
     def convert_svg_to_png(self, svg_path: str) -> str:
         if svg2png is None:
