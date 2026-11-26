@@ -1,4 +1,5 @@
 import errno
+import gzip
 import http.client
 import http.server
 import io
@@ -27,6 +28,7 @@ from app_build_suite.build_steps.giant_swarm_validators.icon import (
     IconExists,
     IconIsAlmostSquare,
 )
+from app_build_suite.build_steps.giant_swarm_validators import icon as icon_module
 from app_build_suite.build_steps.giantswarm_helm_validator import GiantSwarmHelmValidator
 from app_build_suite.build_steps.helm_consts import (
     VALUES_SCHEMA_JSON,
@@ -180,6 +182,12 @@ def test_has_team_label_validator(
 
 ICON_URL = "https://s.giantswarm.io/x.svg"
 ICON_MODULE = "app_build_suite.build_steps.giant_swarm_validators.icon"
+# A valid gzip header followed by deflate data zlib rejects.
+_SVGZ = gzip.compress(b"<svg/>" * 100)
+CORRUPT_GZIP = _SVGZ[:10] + b"\xff" * 20 + _SVGZ[30:]
+needs_cairo = pytest.mark.skipif(
+    icon_module.svg2png is None, reason="checking an SVG icon's shape needs the cairo C library"
+)
 
 
 def mock_chart_yaml(mocker: MockerFixture, chart_yaml_input: str) -> None:
@@ -205,8 +213,14 @@ def tmp_files(mocker: MockerFixture) -> list[str]:
 
 
 def assert_removed(paths: list[str]) -> None:
+    # os.stat, not os.path.exists or Path.exists: mock_chart_yaml patches os.path.exists, and since
+    # Python 3.14 Path.exists goes through it too.
     for path in paths:
-        assert not pathlib.Path(path).exists(), f"temp file {path} was left behind"
+        try:
+            os.stat(path)
+        except FileNotFoundError:
+            continue
+        pytest.fail(f"temp file {path} was left behind")
 
 
 @pytest.mark.parametrize(
@@ -216,14 +230,8 @@ def assert_removed(paths: list[str]) -> None:
             "",
             True,
         ),
-        (
-            "./test_files/test_logo.svg",
-            False,
-        ),
-        (
-            "./test_files/test_icon.svg",
-            True,
-        ),
+        pytest.param("./test_files/test_logo.svg", False, marks=needs_cairo),
+        pytest.param("./test_files/test_icon.svg", True, marks=needs_cairo),
         (
             "./test_files/test_logo.png",
             False,
@@ -252,6 +260,74 @@ def test_icon_is_almost_square_validator(
     val = IconIsAlmostSquare()
 
     assert val.validate(config) == expected_result
+    assert_removed(tmp_files)
+
+
+@pytest.mark.parametrize(
+    "logo_filename,expected_result",
+    [("test_logo.svg", True), ("test_icon.svg", True), ("test_icon.svgz", True)],
+    ids=["svg icon that isn't a square", "square svg icon", "compressed svg icon"],
+)
+def test_icon_is_almost_square_validator_svg_without_cairo_is_skipped(
+    logo_filename: str,
+    expected_result: bool,
+    mocker: MockerFixture,
+    config: Namespace,
+    tmp_files: list[str],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    mock_chart_yaml(mocker, f"icon: {ICON_URL}")
+    test_files = pathlib.Path(__file__).parent.absolute() / "test_files"
+    if logo_filename.endswith(".svgz"):
+        body = gzip.compress((test_files / logo_filename.removesuffix("z")).read_bytes())
+    else:
+        body = (test_files / logo_filename).read_bytes()
+    mocker.patch(f"{ICON_MODULE}.urllib.request.urlopen", return_value=io.BytesIO(body))
+    # What icon.py is left with when importing cairosvg fails because cairo can't be loaded.
+    mocker.patch(f"{ICON_MODULE}.svg2png", None)
+    mocker.patch(f"{ICON_MODULE}._cairo_import_error", OSError('no library called "cairo-2" was found'))
+
+    val = IconIsAlmostSquare()
+
+    assert val.validate(config) is expected_result
+    assert "needs the cairo library" in caplog.text
+    assert_removed(tmp_files)
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        b"<html>not an image</html>",
+        b"\x00\x01garbage",
+        b"<?xml version='1.0'?><svg",
+        b"<?xml version='1.0' encoding='shift_jis'?><svg/>",
+        b"<?xml version='1.0' encoding='x-bogus'?><svg/>",
+        b"\x1f\x8bnot really gzip",
+        CORRUPT_GZIP,
+        gzip.compress(b"<!--" + b"a" * (6 * 1024 * 1024) + b"--><svg/>"),
+    ],
+    ids=[
+        "html page",
+        "binary garbage",
+        "truncated svg",
+        "encoding expat can't decode",
+        "unknown encoding",
+        "broken gzip",
+        "corrupt gzip data",
+        "svgz that decompresses past the size limit",
+    ],
+)
+def test_icon_is_almost_square_validator_non_svg_without_cairo_fails(
+    body: bytes, mocker: MockerFixture, config: Namespace, tmp_files: list[str]
+) -> None:
+    mock_chart_yaml(mocker, f"icon: {ICON_URL}")
+    mocker.patch(f"{ICON_MODULE}.urllib.request.urlopen", return_value=io.BytesIO(body))
+    mocker.patch(f"{ICON_MODULE}.svg2png", None)
+    mocker.patch(f"{ICON_MODULE}._cairo_import_error", OSError('no library called "cairo-2" was found'))
+
+    val = IconIsAlmostSquare()
+
+    assert val.validate(config) is False
     assert_removed(tmp_files)
 
 
@@ -484,6 +560,7 @@ def chunked_icon_url(monkeypatch: pytest.MonkeyPatch) -> Iterator[str]:
         server.server_close()
 
 
+@needs_cairo
 def test_icon_is_almost_square_validator_chunked_response_is_not_cut_short(
     chunked_icon_url: str, mocker: MockerFixture, config: Namespace, tmp_files: list[str]
 ) -> None:

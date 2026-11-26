@@ -57,7 +57,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-install-project
 
 COPY README.md ${ABS_DIR}/
-COPY resources/ ${ABS_DIR}/resources/
 COPY app_build_suite/ ${ABS_DIR}/app_build_suite/
 
 # The version `abs --version` reports. The CircleCI job passes the computed

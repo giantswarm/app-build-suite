@@ -1,17 +1,20 @@
 import argparse
 import contextlib
+import gzip
+import io
 import http.client
 import os
 import urllib.request
 import urllib.error
 import tempfile
 import logging
+import xml.etree.ElementTree as ET  # nosec B405 - see is_svg
+import zlib
 from time import monotonic
 from typing import Final, List, Optional, Tuple
 from urllib.parse import urlparse
 
 from PIL import Image
-from cairosvg import svg2png
 from app_build_suite.build_steps.giant_swarm_validators.errors import (
     GiantSwarmValidatorError,
     IconNotPublishedError,
@@ -24,6 +27,19 @@ from app_build_suite.build_steps.helm_consts import (
 )
 
 logger = logging.getLogger(__name__)
+
+# cairosvg loads the cairo C library when imported. abs must still run on a host without cairo (a
+# `uv tool install` on macOS, say), so a failed import only disables the shape check for SVG icons.
+_cairo_import_error: Optional[BaseException] = None
+try:
+    from cairosvg import svg2png
+except (ImportError, OSError) as e:
+    svg2png = None
+    _cairo_import_error = e
+
+
+class _CairoUnavailableError(Exception):
+    """The cairo C library that SVG conversion needs can't be loaded."""
 
 
 class IconExists(UseChartYaml):
@@ -142,6 +158,15 @@ class IconIsAlmostSquare(UseChartYaml):
             if not is_image:
                 try:
                     img_path = self.convert_svg_to_png(img_path)
+                except _CairoUnavailableError as e:
+                    if not self.is_svg(img_path):
+                        logger.warning("Icon is not a valid image or SVG.")
+                        return False
+                    logger.warning(
+                        "Skipping icon shape validation, checking an SVG icon needs the cairo library, "
+                        f"which can't be loaded: {e}"
+                    )
+                    return True
                 except Exception:
                     logger.warning("Icon is not a valid image or SVG.")
                     return False
@@ -176,7 +201,34 @@ class IconIsAlmostSquare(UseChartYaml):
         except (IOError, SyntaxError):
             return False
 
+    @classmethod
+    def is_svg(cls, path: str) -> bool:
+        """Whether the file is an XML document with an <svg> root element, gzip-compressed (svgz) or not.
+
+        Only used without cairo, to tell an SVG icon, whose shape can't be checked then, from a file that is
+        no icon at all. The parser never sees more than MAX_ICON_BYTES: the download is capped at that, and
+        so is what a gzip-compressed one decompresses to. Expat (2.4 and newer) limits entity amplification,
+        and the standard library parser never fetches external entities.
+        """
+        # Local errors reading the temp file aren't caught, so they fail the check with their own cause.
+        with open(path, "rb") as f:
+            data = f.read(cls.MAX_ICON_BYTES)
+        try:
+            if data[:2] == b"\x1f\x8b":
+                with gzip.GzipFile(fileobj=io.BytesIO(data)) as gz:
+                    data = gz.read(cls.MAX_ICON_BYTES)
+            for _, element in ET.iterparse(io.BytesIO(data), events=("start",)):  # nosec B314 - see the docstring
+                return element.tag == "svg" or element.tag.endswith("}svg")
+        except (ET.ParseError, ValueError, LookupError, OSError, EOFError, zlib.error):
+            # expat raises ValueError and LookupError for encodings it can't decode, gzip raises OSError,
+            # EOFError and zlib.error for broken archives. A truncated one yields what it could decompress.
+            return False
+        return False
+
     def convert_svg_to_png(self, svg_path: str) -> str:
+        if svg2png is None:
+            raise _CairoUnavailableError(str(_cairo_import_error))
+
         fd, tmp_file_path = tempfile.mkstemp()
         os.close(fd)
         try:

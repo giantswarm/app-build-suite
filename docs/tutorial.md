@@ -97,7 +97,7 @@ Defaults:
 2021-04-28 14:48:03,682 app_build_suite.build_steps.build_step INFO: Running build step for HelmChartToolLinter
 2021-04-28 14:48:03,682 app_build_suite.build_steps.helm INFO: Running chart tool linting
 2021-04-28 14:48:03,682 app_build_suite.utils.processes INFO: Running command:
-2021-04-28 14:48:03,682 app_build_suite.utils.processes INFO: ct lint --validate-maintainers=false --charts=examples/tutorial --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../../resources/ct_schemas/gs_metadata_chart_schema.yaml
+2021-04-28 14:48:03,682 app_build_suite.utils.processes INFO: ct lint --validate-maintainers=false --charts=examples/tutorial --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../resources/ct_schemas/gs_metadata_chart_schema.yaml
 2021-04-28 14:48:04,718 app_build_suite.utils.processes INFO: Command executed, exit code: 0.
 2021-04-28 14:48:04,719 app_build_suite.build_steps.helm INFO: Linting charts...
 2021-04-28 14:48:04,719 app_build_suite.build_steps.helm INFO:

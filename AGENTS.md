@@ -127,7 +127,7 @@ app_build_suite/
 
 ### Code Style
 
-- Python 3.13+
+- Python 3.11+
 - Type hints enforced (mypy)
 - ruff for linting
 - Pre-commit hooks for consistency

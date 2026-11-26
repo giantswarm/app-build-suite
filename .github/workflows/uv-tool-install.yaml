@@ -1,0 +1,54 @@
+name: uv tool install
+
+# Checks that `abs` installs with `uv tool install` and runs on every Python version
+# pyproject.toml declares, outside the Docker image. The CircleCI tests only run inside
+# the image, on its single Python version.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  uv-tool-install:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
+          - "3.15"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      # cairosvg loads the cairo C library at runtime, for the icon check.
+      - name: Install cairo
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y libcairo2
+
+      - name: Install abs as a uv tool
+        run: uv tool install --python "${{ matrix.python-version }}" .
+
+      - name: Run abs
+        run: |
+          abs --version
+          abs --help
+
+      # tests/e2e runs the full pipeline and needs helm, ct and kube-linter, which the
+      # Docker-based CircleCI tests cover.
+      - name: Run unit tests
+        run: uv run --locked --python "${{ matrix.python-version }}" pytest --ignore=tests/e2e tests/

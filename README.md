@@ -54,18 +54,35 @@ This mode doesn't need docker, so it's a good match for all the systems with iso
 like CI/CD or AI agents running in isolated jails/sandboxes.
 
 The main tool you need is [uv](https://github.com/astral-sh/uv). Please refer to the
-[uv installation documentation](https://astral.sh/docs/uv/install) for instructions on how to install it.
+[uv installation documentation](https://docs.astral.sh/uv/getting-started/installation/) for instructions on how
+to install it. `abs` runs on Python 3.11 or newer; uv downloads a matching Python if you don't have one.
 
-You also need to have the following binaries installed:
+You also need the following installed and available on your `PATH`:
 
-- [helm](https://helm.sh/docs/intro/install/)
-- [chart testing](https://github.com/helm/chart-testing#installation)
+- [helm](https://helm.sh/docs/intro/install/) 3 (helm 4 isn't supported yet)
+- [chart testing](https://github.com/helm/chart-testing#installation) (`ct`) 3, with its `lintconf.yaml` and
+  `chart_schema.yaml` where `ct` finds them (`./`, `~/.ct` or `/etc/ct`; they're in the `etc/` directory of the
+  `ct` release archive, and Homebrew installs them for you), and the `yamllint` and `yamale` commands it runs
+  (`uv tool install yamllint` and `uv tool install yamale`)
 - [kube-linter](https://docs.kubelinter.io/#/?id=installing-kubelinter)
+- `git`
+
+To check the shape of an SVG icon (`C0003`), `abs` also needs the [cairo](https://www.cairographics.org/download/)
+C library (`libcairo2` on Debian and Ubuntu). When it can't load cairo, `abs` logs a warning and skips that check
+for SVG icons. This is the case on macOS even with Homebrew's `cairo`, because a uv-managed Python doesn't look in
+Homebrew's library directory. Use the Docker image when you need that check there.
 
 Then, to install `abs`, just run:
 
 ```bash
 uv tool install app-build-suite
+```
+
+To install a version that isn't released yet, install straight from the repository instead, for example from
+the `main` branch:
+
+```bash
+uv tool install git+https://github.com/giantswarm/app-build-suite@main
 ```
 
 Check the installation:
@@ -136,7 +153,7 @@ The list bellow is a set of commands executed for you by `abs`:
 
 ```bash
 # app and chart versions in the Chart.yaml file are set using git changes (if configured)
-ct lint --validate-maintainers=false --charts=examples/apps/hello-world-app --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../../resources/ct_schemas/gs_metadata_chart_schema.yaml
+ct lint --validate-maintainers=false --charts=examples/apps/hello-world-app --chart-yaml-schema=/abs/workdir/app_build_suite/build_steps/../resources/ct_schemas/gs_metadata_chart_schema.yaml
 kube-linter lint . --config .kube-linter.yaml
 helm package examples/apps/hello-world-app --destination build
 # now metadata is generated from the data collected during the build (if configured)

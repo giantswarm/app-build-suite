@@ -70,7 +70,6 @@ class HelmChartToolLinter(BuildStep):
             full_path = os.path.join(
                 os.path.dirname(__file__),
                 "..",
-                "..",
                 "resources",
                 "ct_schemas",
                 self._metadata_schema,

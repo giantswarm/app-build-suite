@@ -12,6 +12,10 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 
 ### Changed
 
+- `abs` now runs on Python 3.11 or newer instead of 3.13 or newer, so `uv tool install app-build-suite` works with
+  a wider range of Python versions. A new GitHub Actions workflow installs it with `uv tool install` and runs
+  the unit tests on Python 3.11 to 3.15. (giantswarm/roadmap#3736)
+- The README lists every binary and library `abs` needs on the host when installed with uv.
 - Check `C0003` no longer fails the build when the icon host is unavailable or the icon isn't published yet.
   It logs a warning naming the URL and passes instead. This covers HTTP 404, 408, 429 and 5xx, DNS,
   connection and TLS errors, timeouts, and truncated or garbled responses. HTTP 404, 408 and 429 failed the
@@ -25,6 +29,17 @@ Based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), following
 - A Giant Swarm validator that raises an error now counts as a failed check instead of crashing the build,
   so `--giantswarm-validator-ignored-checks` and `--disable-strict-giantswarm-validator` apply to it.
 - `IconHostUnreachableError` is renamed to `IconUnavailableError`. The old name stays as a deprecated alias.
+
+### Fixed
+
+- `--generate-metadata` failed when `abs` was installed with `uv tool install`: the `ct` schema it uses lived
+  outside the package. It moved from `resources/` into the `app_build_suite` package and now ships with it.
+  (giantswarm/roadmap#3736)
+- `abs` crashed on start for every chart when the cairo C library couldn't be loaded, for example after
+  `uv tool install` on macOS. It now loads cairo only to check an SVG icon, and when cairo is missing it logs a
+  warning and skips the shape check for that icon (`C0003`). (giantswarm/roadmap#3736)
+- `abs --version` printed the post-release dev version (`v2.5.3-dev` for 2.6.0) when installed from PyPI. The
+  PyPI package now gets the version of its release tag. (giantswarm/roadmap#3736)
 
 ## [2.6.0] - 2026-11-17
 
